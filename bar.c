@@ -24,6 +24,7 @@
 
 struct private {
     /* From bar_config */
+    enum bar_location location;
     int height;
     int left_spacing, right_spacing;
     int left_margin, right_margin;
@@ -189,8 +190,6 @@ run(struct bar_run_context *run_ctx)
         &e);
     assert(e == NULL);
 
-    const bool at_top = false;
-
     bar->height_with_border = bar->height + 2 * bar->border.width;
 
     /* Find monitor coordinates and width/height */
@@ -215,7 +214,8 @@ run(struct bar_run_context *run_ctx)
         bar->x = mon->x;
         bar->y = mon->y;
         bar->width = mon->width;
-        bar->y += at_top ? 0 : screen->height_in_pixels - bar->height_with_border;
+        bar->y += bar->location == BAR_TOP ? 0
+            : screen->height_in_pixels - bar->height_with_border;
         break;
     }
     free(monitors);
@@ -317,7 +317,7 @@ run(struct bar_run_context *run_ctx)
     uint32_t top_strut, bottom_strut;
     uint32_t top_pair[2], bottom_pair[2];
 
-    if (at_top) {
+    if (bar->location == BAR_TOP) {
         top_strut = bar->y + bar->height_with_border;
         top_pair[0] = bar->x;
         top_pair[1] = bar->x + bar->width - 1;
@@ -530,6 +530,7 @@ struct bar *
 bar_new(const struct bar_config *config)
 {
     struct private *priv = malloc(sizeof(*priv));
+    priv->location = config->location;
     priv->height = config->height;
     priv->background = config->background;
     priv->left_spacing = config->left_spacing;

@@ -198,6 +198,7 @@ conf_to_bar(const struct yml_node *bar)
     struct font *font = font_new("sans", 12, false, false, 0);
 
     const struct yml_node *height = yml_get_value(bar, "height");
+    const struct yml_node *location = yml_get_value(bar, "location");
     const struct yml_node *background = yml_get_value(bar, "background");
     const struct yml_node *spacing = yml_get_value(bar, "spacing");
     const struct yml_node *left_spacing = yml_get_value(bar, "left_spacing");
@@ -213,6 +214,18 @@ conf_to_bar(const struct yml_node *bar)
 
     if (height != NULL)
         conf.height = yml_value_as_int(height);
+
+    if (location != NULL) {
+        const char *loc = yml_value_as_string(location);
+        assert(strcasecmp(loc, "top") == 0 || strcasecmp(loc, "bottom") == 0);
+
+        if (strcasecmp(loc, "top") == 0)
+            conf.location = BAR_TOP;
+        else if (strcasecmp(loc, "bottom") == 0)
+            conf.location = BAR_BOTTOM;
+        else
+            assert(false);
+    }
 
     if (background != NULL)
         conf.background = color_from_hexstr(yml_value_as_string(background));

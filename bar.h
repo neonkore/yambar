@@ -8,6 +8,7 @@ struct bar_run_context {
     struct bar *bar;
     int abort_fd;
 };
+
 struct bar {
     void *private;
     int (*run)(struct bar_run_context *ctx);
@@ -15,7 +16,10 @@ struct bar {
     void (*refresh)(const struct bar *bar);
 };
 
+enum bar_location { BAR_TOP, BAR_BOTTOM };
+
 struct bar_config {
+    enum bar_location location;
     int height;
     int left_spacing, right_spacing;
     int left_margin, right_margin;
