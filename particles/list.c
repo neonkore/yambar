@@ -5,7 +5,6 @@ struct particle_private {
     struct particle **particles;
     size_t count;
     int left_spacing, right_spacing;
-    bool has_ownership;
 };
 
 struct exposable_private {
@@ -94,12 +93,8 @@ static void
 particle_destroy(struct particle *particle)
 {
     struct particle_private *p = particle->private;
-
-    if (p->has_ownership) {
-        for (size_t i = 0; i < p->count; i++)
-            p->particles[i]->destroy(p->particles[i]);
-    }
-
+    for (size_t i = 0; i < p->count; i++)
+        p->particles[i]->destroy(p->particles[i]);
     free(p->particles);
     free(p);
     free(particle);
@@ -108,15 +103,13 @@ particle_destroy(struct particle *particle)
 struct particle *
 particle_list_new(
     struct particle *particles[], size_t count,
-    int left_spacing, int right_spacing, int left_margin, int right_margin,
-    bool take_ownership)
+    int left_spacing, int right_spacing, int left_margin, int right_margin)
 {
     struct particle_private *p = malloc(sizeof(*p));
     p->particles = malloc(count * sizeof(p->particles[0]));
     p->count = count;
     p->left_spacing = left_spacing;
     p->right_spacing = right_spacing;
-    p->has_ownership = take_ownership;
 
     for (size_t i = 0; i < count; i++)
         p->particles[i] = particles[i];

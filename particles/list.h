@@ -1,9 +1,6 @@
 #pragma once
-
-#include <stdbool.h>
 #include "../particle.h"
 
 struct particle *particle_list_new(
     struct particle *particles[], size_t count,
-    int left_spacing, int right_spacing, int left_margin, int right_margin,
-    bool take_ownership);
+    int left_spacing, int right_spacing, int left_margin, int right_margin);
