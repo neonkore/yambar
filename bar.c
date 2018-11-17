@@ -290,16 +290,6 @@ run(struct bar_run_context *run_ctx)
         XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
         strlen(title), title);
 
-    const xcb_atom_t _NET_WM_PID = get_atom(bar->conn, "_NET_WM_PID");
-    const xcb_atom_t _NET_WM_WINDOW_TYPE = get_atom(bar->conn,  "_NET_WM_WINDOW_TYPE");
-    const xcb_atom_t _NET_WM_WINDOW_TYPE_DOCK = get_atom(bar->conn, "_NET_WM_WINDOW_TYPE_DOCK");
-    const xcb_atom_t _NET_WM_STATE = get_atom(bar->conn, "_NET_WM_STATE");
-    const xcb_atom_t _NET_WM_STATE_ABOVE = get_atom(bar->conn, "_NET_WM_STATE_ABOVE");
-    const xcb_atom_t _NET_WM_STATE_STICKY = get_atom(bar->conn, "_NET_WM_STATE_STICKY");
-    const xcb_atom_t _NET_WM_DESKTOP = get_atom(bar->conn, "_NET_WM_DESKTOP");
-    const xcb_atom_t _NET_WM_STRUT = get_atom(bar->conn, "_NET_WM_STRUT");
-    const xcb_atom_t _NET_WM_STRUT_PARTIAL = get_atom(bar->conn, "_NET_WM_STRUT_PARTIAL");
-
     xcb_change_property(
         bar->conn,
         XCB_PROP_MODE_REPLACE, bar->win,

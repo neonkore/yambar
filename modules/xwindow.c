@@ -17,14 +17,6 @@
 #include "../bar.h"
 #include "../xcb.h"
 
-static bool globals_inited = false;
-xcb_atom_t UTF8_STRING;
-xcb_atom_t _NET_ACTIVE_WINDOW;
-xcb_atom_t _NET_CURRENT_DESKTOP;
-xcb_atom_t _NET_WM_VISIBLE_NAME;
-xcb_atom_t _NET_WM_NAME;
-xcb_atom_t _NET_WM_PID;
-
 struct private {
     /* Accessed from bar thread only */
     struct particle *label;
@@ -40,26 +32,6 @@ struct private {
     xcb_window_t monitor_win;
     xcb_window_t active_win;
 };
-
-static void
-init_globals(void)
-{
-    if (globals_inited)
-        return;
-
-    xcb_connection_t *conn = xcb_connect(NULL, NULL);
-    assert(conn != NULL);
-
-    UTF8_STRING = get_atom(conn, "UTF8_STRING");
-    _NET_ACTIVE_WINDOW = get_atom(conn, "_NET_ACTIVE_WINDOW");
-    _NET_CURRENT_DESKTOP = get_atom(conn, "_NET_CURRENT_DESKTOP");
-    _NET_WM_VISIBLE_NAME = get_atom(conn, "_NET_WM_VISIBLE_NAME");
-    _NET_WM_NAME = get_atom(conn, "_NET_WM_NAME");
-    _NET_WM_PID = get_atom(conn, "_NET_WM_PID");
-    globals_inited = true;
-
-    xcb_disconnect(conn);
-}
 
 static void
 update_active_window(struct private *m)
@@ -317,8 +289,6 @@ destroy(struct module *mod)
 struct module *
 module_xwindow(struct particle *label)
 {
-    init_globals();
-
     struct private *m = calloc(1, sizeof(*m));
     m->label = label;
     mtx_init(&m->lock, mtx_plain);
