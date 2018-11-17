@@ -166,7 +166,8 @@ particle_list_from_config(const struct yml_node *node,
     }
 
     struct particle *list = particle_list_new(
-        parts, count, left_spacing, right_spacing, left_margin, right_margin);
+        parts, count, left_spacing, right_spacing, left_margin, right_margin,
+        true);
 
     free(parts);
     return list;
