@@ -32,23 +32,17 @@ xcb_init(void)
 
     const xcb_setup_t *setup = xcb_get_setup(conn);
 
-    /* Vendor string */
-    int length = xcb_setup_vendor_length(setup);
-    char *vendor = malloc(length + 1);
-    memcpy(vendor, xcb_setup_vendor(setup), length);
-    vendor[length] = '\0';
-
     /* Vendor release number */
     unsigned release = setup->release_number;
     unsigned major = release / 10000000; release %= 10000000;
     unsigned minor = release / 100000; release %= 100000;
     unsigned patch = release / 1000;
 
-    printf("%s %u.%u.%u (protocol: %u.%u)\n", vendor,
+    printf("%.*s %u.%u.%u (protocol: %u.%u)\n",
+           xcb_setup_vendor_length(setup), xcb_setup_vendor(setup),
            major, minor, patch,
            setup->protocol_major_version,
            setup->protocol_minor_version);
-    free(vendor);
 
     const xcb_query_extension_reply_t *randr =
         xcb_get_extension_data(conn, &xcb_randr_id);
