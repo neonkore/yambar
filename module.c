@@ -8,6 +8,7 @@ module_default_begin_expose(const struct module *mod, cairo_t *cr)
     return (struct module_expose_context){
         .exposable = e,
         .width = e->begin_expose(e, cr),
+        .private = NULL,
     };
 }
 

@@ -16,6 +16,7 @@ struct module_run_context {
 struct module_expose_context {
     struct exposable *exposable;
     int width;
+    void *private;
 };
 
 struct module {
