@@ -14,8 +14,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 
-#include "../bar.h"
-#include "../xcb.h"
+#include "../../bar.h"
+#include "../../xcb.h"
 
 struct private {
     /* Accessed from bar thread only */

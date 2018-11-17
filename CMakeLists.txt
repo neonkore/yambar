@@ -28,9 +28,9 @@ add_executable(foobar
   particles/string.c particles/string.h
   particles/list.c particles/list.h
 
-  modules/label.c modules/label.h
-  modules/clock.c modules/clock.h
-  modules/xwindow.c modules/xwindow.h
+  modules/label/label.c modules/label/label.h
+  modules/clock/clock.c modules/clock/clock.h
+  modules/xwindow/xwindow.c modules/xwindow/xwindow.h
   )
 
 target_compile_definitions(foobar PRIVATE _GNU_SOURCE)

@@ -12,9 +12,9 @@
 #include "particles/list.h"
 
 #include "module.h"
-#include "modules/label.h"
-#include "modules/clock.h"
-#include "modules/xwindow.h"
+#include "modules/label/label.h"
+#include "modules/clock/clock.h"
+#include "modules/xwindow/xwindow.h"
 
 static uint8_t
 hex_nibble(char hex)
