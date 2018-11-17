@@ -189,6 +189,30 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
         assert(false);
 }
 
+static struct module *
+module_label_from_config(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    assert(c != NULL);
+    return module_label(particle_from_config(c, parent_font));
+}
+
+static struct module *
+module_clock_from_config(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    assert(c != NULL);
+    return module_clock(particle_from_config(c, parent_font));
+}
+
+static struct module *
+module_xwindow_from_config(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    assert(c != NULL);
+    return module_xwindow(particle_from_config(c, parent_font));
+}
+
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -279,20 +303,16 @@ conf_to_bar(const struct yml_node *bar)
                  yml_list_next(&it), idx++)
             {
                 const struct yml_node *n = yml_get_value(it.node, "module");
+
                 assert(n != NULL);
-
-                const struct yml_node *c = yml_get_value(it.node, "content");
-                assert(c != NULL);
-
                 const char *mod_name = yml_value_as_string(n);
-                struct particle *content = particle_from_config(c, font);
 
                 if (strcmp(mod_name, "label") == 0)
-                    mods[idx] = module_label(content);
+                    mods[idx] = module_label_from_config(it.node, font);
                 else if (strcmp(mod_name, "clock") == 0)
-                    mods[idx] = module_clock(content);
+                    mods[idx] = module_clock_from_config(it.node, font);
                 else if (strcmp(mod_name, "xwindow") == 0)
-                    mods[idx] = module_xwindow(content);
+                    mods[idx] = module_xwindow_from_config(it.node, font);
                 else
                     assert(false);
             }
