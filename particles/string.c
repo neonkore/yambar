@@ -42,7 +42,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     cairo_scaled_font_text_to_glyphs(
         scaled,
         x + exposable->particle->left_margin,
-        (double)y + ((double)height - extents.y_bearing) / 2,
+        (double)y + ((double)height - extents.y_bearing) / 2 + font_y_offset(e->font),
         e->text, strlen(e->text), &glyphs, &num_glyphs,
         &clusters, &num_clusters, &cluster_flags);
 
