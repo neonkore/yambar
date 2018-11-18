@@ -2,6 +2,8 @@
 
 #include <stddef.h>
 
+#include <stdbool.h>
+
 struct tag {
     void *private;
 
@@ -16,6 +18,7 @@ struct tag_set {
 };
 
 struct tag *tag_new_int(const char *name, long value);
+struct tag *tag_new_bool(const char *name, bool value);
 struct tag *tag_new_float(const char *name, double value);
 struct tag *tag_new_string(const char *name, const char *value);
 

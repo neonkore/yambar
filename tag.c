@@ -7,6 +7,7 @@ struct private {
     char *name;
     union {
         long value_as_int;
+        bool value_as_bool;
         double value_as_float;
         char *value_as_string;
     };
@@ -47,6 +48,13 @@ value_int(const struct tag *tag)
 }
 
 static const char *
+value_bool(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_bool ? "true" : "false";
+}
+
+static const char *
 value_float(const struct tag *tag)
 {
     static char as_string[128];
@@ -75,6 +83,21 @@ tag_new_int(const char *name, long value)
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
     tag->value = &value_int;
+    return tag;
+}
+
+struct tag *
+tag_new_bool(const char *name, bool value)
+{
+    struct private *priv = malloc(sizeof(*priv));
+    priv->name = strdup(name);
+    priv->value_as_int = value;
+
+    struct tag *tag = malloc(sizeof(*tag));
+    tag->private = priv;
+    tag->destroy = &destroy_int_and_float;
+    tag->name = &tag_name;
+    tag->value = &value_bool;
     return tag;
 }
 
