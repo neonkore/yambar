@@ -146,7 +146,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         sbuf_strncat(&formatted, src, begin - src);
 
         /* Copy tag value */
-        const char *value = tag->value(tag);
+        const char *value = tag->as_string(tag);
         sbuf_strcat(&formatted, value);
 
         /* Skip past tag name + closing '}' */

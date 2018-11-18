@@ -9,7 +9,7 @@ struct tag {
 
     void (*destroy)(struct tag *tag);
     const char *(*name)(const struct tag *tag);
-    const char *(*value)(const struct tag *tag);
+    const char *(*as_string)(const struct tag *tag);
 };
 
 struct tag_set {

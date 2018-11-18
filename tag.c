@@ -38,7 +38,7 @@ destroy_string(struct tag *tag)
 }
 
 static const char *
-value_int(const struct tag *tag)
+int_as_string(const struct tag *tag)
 {
     static char as_string[128];
     const struct private *priv = tag->private;
@@ -48,14 +48,14 @@ value_int(const struct tag *tag)
 }
 
 static const char *
-value_bool(const struct tag *tag)
+bool_as_string(const struct tag *tag)
 {
     const struct private *priv = tag->private;
     return priv->value_as_bool ? "true" : "false";
 }
 
 static const char *
-value_float(const struct tag *tag)
+float_as_string(const struct tag *tag)
 {
     static char as_string[128];
     const struct private *priv = tag->private;
@@ -65,7 +65,7 @@ value_float(const struct tag *tag)
 }
 
 static const char *
-value_string(const struct tag *tag)
+string_as_string(const struct tag *tag)
 {
     const struct private *priv = tag->private;
     return priv->value_as_string;
@@ -82,7 +82,7 @@ tag_new_int(const char *name, long value)
     tag->private = priv;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
-    tag->value = &value_int;
+    tag->as_string = &int_as_string;
     return tag;
 }
 
@@ -97,7 +97,7 @@ tag_new_bool(const char *name, bool value)
     tag->private = priv;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
-    tag->value = &value_bool;
+    tag->as_string = &bool_as_string;
     return tag;
 }
 
@@ -112,7 +112,7 @@ tag_new_float(const char *name, double value)
     tag->private = priv;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
-    tag->value = &value_float;
+    tag->as_string = &float_as_string;
     return tag;
 }
 
@@ -127,7 +127,7 @@ tag_new_string(const char *name, const char *value)
     tag->private = priv;
     tag->destroy = &destroy_string;
     tag->name = &tag_name;
-    tag->value = &value_string;
+    tag->as_string = &string_as_string;
     return tag;
 }
 
