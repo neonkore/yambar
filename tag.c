@@ -1,5 +1,6 @@
 #include "tag.h"
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -47,11 +48,53 @@ int_as_string(const struct tag *tag)
     return as_string;
 }
 
+static long
+int_as_int(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_int;
+}
+
+static bool
+int_as_bool(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_int;
+}
+
+static double
+int_as_float(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_int;
+}
+
 static const char *
 bool_as_string(const struct tag *tag)
 {
     const struct private *priv = tag->private;
     return priv->value_as_bool ? "true" : "false";
+}
+
+static long
+bool_as_int(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_bool;
+}
+
+static bool
+bool_as_bool(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_bool;
+}
+
+static double
+bool_as_float(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_bool;
 }
 
 static const char *
@@ -64,11 +107,62 @@ float_as_string(const struct tag *tag)
     return as_string;
 }
 
+static long
+float_as_int(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_float;
+}
+
+static bool
+float_as_bool(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_float;
+}
+
+static double
+float_as_float(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_float;
+}
+
 static const char *
 string_as_string(const struct tag *tag)
 {
     const struct private *priv = tag->private;
     return priv->value_as_string;
+}
+
+static long
+string_as_int(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+
+    long value;
+    int matches = sscanf(priv->value_as_string, "%ld", &value);
+    return matches == 1 ? value : 0;
+}
+
+static bool
+string_as_bool(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+
+    uint8_t value;
+    int matches = sscanf(priv->value_as_string, "%hhu", &value);
+    return matches == 1 ? value : 0;
+}
+
+static double
+string_as_float(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+
+    double value;
+    int matches = sscanf(priv->value_as_string, "%lf", &value);
+    return matches == 1 ? value : 0;
 }
 
 struct tag *
@@ -83,6 +177,9 @@ tag_new_int(const char *name, long value)
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
     tag->as_string = &int_as_string;
+    tag->as_int = &int_as_int;
+    tag->as_bool = &int_as_bool;
+    tag->as_float = &int_as_float;
     return tag;
 }
 
@@ -98,6 +195,9 @@ tag_new_bool(const char *name, bool value)
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
     tag->as_string = &bool_as_string;
+    tag->as_int = &bool_as_int;
+    tag->as_bool = &bool_as_bool;
+    tag->as_float = &bool_as_float;
     return tag;
 }
 
@@ -113,6 +213,9 @@ tag_new_float(const char *name, double value)
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
     tag->as_string = &float_as_string;
+    tag->as_int = &float_as_int;
+    tag->as_bool = &float_as_bool;
+    tag->as_float = &float_as_float;
     return tag;
 }
 
@@ -128,6 +231,9 @@ tag_new_string(const char *name, const char *value)
     tag->destroy = &destroy_string;
     tag->name = &tag_name;
     tag->as_string = &string_as_string;
+    tag->as_int = &string_as_int;
+    tag->as_bool = &string_as_bool;
+    tag->as_float = &string_as_float;
     return tag;
 }
 

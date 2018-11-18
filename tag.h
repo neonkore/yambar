@@ -10,6 +10,9 @@ struct tag {
     void (*destroy)(struct tag *tag);
     const char *(*name)(const struct tag *tag);
     const char *(*as_string)(const struct tag *tag);
+    long (*as_int)(const struct tag *tag);
+    bool (*as_bool)(const struct tag *tag);
+    double (*as_float)(const struct tag *tag);
 };
 
 struct tag_set {
