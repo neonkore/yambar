@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project(foobar C)
+project(f00bar C)
 
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -16,7 +16,7 @@ pkg_check_modules(YAML REQUIRED yaml-0.1)                # Core (configuration)
 
 pkg_check_modules(JSON REQUIRED json-c)                  # Module/i3
 
-add_executable(foobar
+add_executable(f00bar
   bar.c bar.h
   config.c config.h
   font.c font.h
@@ -38,23 +38,23 @@ add_executable(foobar
   modules/xwindow/xwindow.c modules/xwindow/xwindow.h
   )
 
-target_compile_definitions(foobar PRIVATE _GNU_SOURCE)
+target_compile_definitions(f00bar PRIVATE _GNU_SOURCE)
 
-target_compile_options(foobar PRIVATE
+target_compile_options(f00bar PRIVATE
   ${XCB_CFLAGS_OTHER}
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
   ${JSON_CFLAGS_OTHER}
   )
 
-target_include_directories(foobar PRIVATE
+target_include_directories(f00bar PRIVATE
   ${XCB_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
   ${JSON_INCLUDE_DIRS}
   )
 
-target_link_libraries(foobar
+target_link_libraries(f00bar
   ${CMAKE_THREAD_LIBS_INIT}
   ${XCB_LIBRARIES}
   ${CAIRO_LIBRARIES}
