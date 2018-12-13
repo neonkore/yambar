@@ -17,6 +17,7 @@ enum node_type {
 struct yml_node;
 struct llist_element {
     struct yml_node *node;
+    struct llist_element *prev;
     struct llist_element *next;
 };
 
@@ -25,10 +26,19 @@ struct llist {
     struct llist_element *tail;
 };
 
+struct anchor_map {
+    char *anchor;
+    const struct yml_node *node;
+};
+
 struct yml_node {
     enum node_type type;
     union {
-        struct yml_node *root;
+        struct {
+            struct yml_node *root;
+            struct anchor_map anchors[10];
+            size_t anchor_count;
+        } root;
         struct {
             char *value;
         } scalar;
@@ -51,6 +61,7 @@ llist_add(struct llist *list, struct yml_node *node)
 {
     struct llist_element *element = malloc(sizeof(*element));
     element->node = node;
+    element->prev = NULL;
     element->next = NULL;
 
     if (list->tail == NULL) {
@@ -59,9 +70,53 @@ llist_add(struct llist *list, struct yml_node *node)
     } else {
         assert(list->head != NULL);
         list->tail->next = element;
+        element->prev = list->tail;
     }
 
     list->tail = element;
+}
+
+static struct yml_node *
+clone_node(struct yml_node *parent, const struct yml_node *node)
+{
+    struct yml_node *clone = calloc(1, sizeof(*clone));
+    clone->type = node->type;
+    clone->parent = parent;
+
+    switch (node->type) {
+    case SCALAR:
+        clone->scalar.value = strdup(node->scalar.value);
+        break;
+
+    case DICT:
+        for (const struct llist_element *k = node->dict.keys.head,
+                 *v = node->dict.values.head;
+             k != NULL;
+             k = k->next, v = v->next)
+        {
+            llist_add(&clone->dict.keys, clone_node(clone, k->node));
+            llist_add(&clone->dict.values, clone_node(clone, v->node));
+        }
+
+        clone->dict.key_count = node->dict.key_count;
+        clone->dict.value_count = node->dict.value_count;
+        break;
+
+    case LIST:
+        for (const struct llist_element *v = node->list.values.head;
+             v != NULL;
+             v = v->next)
+        {
+            llist_add(&clone->list.values, clone_node(clone, v->node));
+        }
+        break;
+
+    case ROOT:
+        assert(false);
+        break;
+    }
+
+    return clone;
 }
 
 static void
@@ -69,8 +124,8 @@ add_node(struct yml_node *parent, struct yml_node *new_node)
 {
     switch (parent->type) {
     case ROOT:
-        assert(parent->root == NULL);
-        parent->root = new_node;
+        assert(parent->root.root == NULL);
+        parent->root.root = new_node;
         new_node->parent = parent;
         break;
 
@@ -96,6 +151,124 @@ add_node(struct yml_node *parent, struct yml_node *new_node)
     }
 }
 
+static void
+add_anchor(struct yml_node *root, const char *anchor,
+           const struct yml_node *node)
+{
+    assert(root->type == ROOT);
+
+    struct anchor_map *map = &root->root.anchors[root->root.anchor_count];
+    map->anchor = strdup(anchor);
+    map->node = node;
+    root->root.anchor_count++;
+}
+
+static void
+post_process(struct yml_node *node)
+{
+    switch (node->type) {
+    case ROOT:
+        post_process(node->root.root);
+        break;
+
+    case SCALAR:
+        //assert(strcmp(node->scalar.value, "<<") != 0);
+        break;
+
+    case LIST:
+        for (struct llist_element *v = node->list.values.head;
+             v != NULL;
+             v = v->next)
+        {
+            post_process(v->node);
+        }
+        break;
+
+    case DICT:
+        for (struct llist_element *k = node->dict.keys.head,
+                 *v = node->dict.values.head;
+             k != NULL;
+             k = k->next, v = v->next)
+        {
+            post_process(k->node);
+            post_process(v->node);
+        }
+
+        for (struct llist_element *k = node->dict.keys.head,
+                 *v = node->dict.values.head,
+                 *k_next = k ? k->next : NULL, *v_next = v ? v->next : NULL;
+             k != NULL;
+             k = k_next, v = v_next,
+                 k_next = k_next ? k_next->next : NULL,
+                 v_next = v_next ? v_next->next : NULL)
+        {
+            if (k->node->type != SCALAR)
+                continue;
+
+            if (strcmp(k->node->scalar.value, "<<") != 0)
+                continue;
+
+            assert(v->node->type == DICT);
+
+            for (struct llist_element *mk = v->node->dict.keys.head,
+                     *mv = v->node->dict.values.head,
+                     *mk_next = mk ? mk->next : NULL,
+                     *mv_next = mv ? mv->next : NULL;
+                 mk != NULL;
+                 mk = mk_next, mv = mv_next,
+                     mk_next = mk_next ? mk_next->next : NULL,
+                     mv_next = mv_next ? mv_next->next : NULL)
+            {
+                /* TODO: verify key doesn't already exist */
+                llist_add(&node->dict.keys, mk->node);
+                llist_add(&node->dict.values, mv->node);
+
+                node->dict.key_count++;
+                node->dict.value_count++;
+
+                free(mk);
+                free(mv);
+            }
+
+            /* Delete merge node */
+            struct llist_element *prev_k = k->prev;
+            struct llist_element *next_k = k->next;
+            struct llist_element *prev_v = v->prev;
+            struct llist_element *next_v = v->next;
+
+            if (prev_k != NULL) {
+                assert(node->dict.keys.head != k);
+                prev_k->next = next_k;
+                prev_v->next = next_v;
+            } else {
+                assert(node->dict.keys.head == k);
+                node->dict.keys.head = next_k;
+                node->dict.values.head = next_v;
+            }
+
+            if (next_k != NULL) {
+                assert(node->dict.keys.tail != k);
+                next_k->prev = prev_k;
+                next_v->prev = prev_v;
+            } else {
+                assert(node->dict.keys.tail == k);
+                node->dict.keys.tail = prev_k;
+                node->dict.values.tail = prev_v;
+            }
+
+            v->node->dict.key_count = v->node->dict.value_count = 0;
+            v->node->dict.keys.head = v->node->dict.keys.tail = NULL;
+            v->node->dict.values.head = v->node->dict.values.tail = NULL;
+
+            yml_destroy(k->node);
+            yml_destroy(v->node);
+            free(k);
+            free(v);
+        }
+        break;
+    }
+}
+
 struct yml_node *
 yml_load(FILE *yml)
 {
@@ -112,7 +285,8 @@ yml_load(FILE *yml)
 
     struct yml_node *root = malloc(sizeof(*root));
     root->type = ROOT;
-    root->root = NULL;
+    root->root.root = NULL;
+    root->root.anchor_count = 0;
 
     struct yml_node *n = root;
 
@@ -122,6 +296,7 @@ yml_load(FILE *yml)
             //printf("yaml parser error\n");
             /* TODO: free node tree */
             root = NULL;
+            assert(false);
             break;
         }
 
@@ -152,30 +327,50 @@ yml_load(FILE *yml)
             break;
 
         case YAML_ALIAS_EVENT:
-            //printf("%*sALIAS\n", indent, "");
-            assert(false);
+            //printf("%*sALIAS %s\n", indent, "", event.data.alias.anchor);
+
+            for (size_t i = 0; i < root->root.anchor_count; i++) {
+                const struct anchor_map *map = &root->root.anchors[i];
+
+                if (strcmp(map->anchor, (const char *)event.data.alias.anchor) != 0)
+                    continue;
+
+                struct yml_node *clone = clone_node(NULL, map->node);
+                assert(clone != NULL);
+                add_node(n, clone);
+                break;
+            }
             break;
 
         case YAML_SCALAR_EVENT: {
-            /*
-             * printf("%*sSCALAR: %.*s\n", indent, "",
-             *        (int)event.data.scalar.length, event.data.scalar.value);
-             */
-            struct yml_node *s = calloc(1, sizeof(*s));
-            s->type = SCALAR;
-            s->scalar.value = strndup(
+            //printf("%*sSCALAR: %.*s\n", indent, "",
+            //(int)event.data.scalar.length, event.data.scalar.value);
+            struct yml_node *new_scalar = calloc(1, sizeof(*new_scalar));
+            new_scalar->type = SCALAR;
+            new_scalar->scalar.value = strndup(
                 (const char*)event.data.scalar.value, event.data.scalar.length);
-            add_node(n, s);
+            add_node(n, new_scalar);
+
+            if (event.data.scalar.anchor != NULL) {
+                const char *anchor = (const char *)event.data.scalar.anchor;
+                add_anchor(root, anchor, new_scalar);
+            }
+
             break;
         }
 
         case YAML_SEQUENCE_START_EVENT: {
             //printf("%*sSEQ START\n", indent, "");
             indent += 2;
-            struct yml_node *l = calloc(1, sizeof(*l));
-            l->type = LIST;
-            add_node(n, l);
-            n = l;
+            struct yml_node *new_list = calloc(1, sizeof(*new_list));
+            new_list->type = LIST;
+            add_node(n, new_list);
+            n = new_list;
+
+            if (event.data.sequence_start.anchor != NULL) {
+                const char *anchor = (const char *)event.data.sequence_start.anchor;
+                add_anchor(root, anchor, new_list);
+            }
             break;
         }
 
@@ -191,10 +386,15 @@ yml_load(FILE *yml)
             //printf("%*sMAP START\n", indent, "");
             indent += 2;
 
-            struct yml_node *m = calloc(1, sizeof(*m));
-            m->type = DICT;
-            add_node(n, m);
-            n = m;
+            struct yml_node *new_dict = calloc(1, sizeof(*new_dict));
+            new_dict->type = DICT;
+            add_node(n, new_dict);
+            n = new_dict;
+
+            if (event.data.mapping_start.anchor != NULL) {
+                const char *anchor = (const char *)event.data.mapping_start.anchor;
+                add_anchor(root, anchor, new_dict);
+            }
             break;
         }
 
@@ -210,7 +410,10 @@ yml_load(FILE *yml)
     }
 
     yaml_parser_delete(&yaml);
-    //print_node(root, 0);
+
+    print_node(root);
+    post_process(root);
+    print_node(root);
     return root;
 }
 
@@ -219,7 +422,9 @@ yml_destroy(struct yml_node *node)
 {
     switch (node->type) {
     case ROOT:
-        yml_destroy(node->root);
+        yml_destroy(node->root.root);
+        for (size_t i = 0; i < node->root.anchor_count; i++)
+            free(node->root.anchors[i].anchor);
         break;
 
     case SCALAR:
@@ -283,7 +488,7 @@ yml_get_value(const struct yml_node *node, const char *_path)
     char *path = strdup(_path);
 
     if (node->type == ROOT)
-        node = node->root;
+        node = node->root.root;
 
     for (const char *part = strtok(path, "."), *next_part = strtok(NULL, ".");
          part != NULL;
@@ -437,7 +642,7 @@ _print_node(const struct yml_node *n, int indent)
 {
     switch (n->type) {
     case ROOT:
-        _print_node(n->root, indent);
+        _print_node(n->root.root, indent);
         break;
 
     case DICT:
