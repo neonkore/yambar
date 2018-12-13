@@ -42,7 +42,6 @@ main(int argc, const char *const *argv)
 
     struct bar *bar = conf_to_bar(yml_get_value(conf, "bar"));
 
-#if 1
     struct bar_run_context bar_ctx = {
         .bar = bar,
         .abort_fd = abort_fd,
@@ -60,7 +59,7 @@ main(int argc, const char *const *argv)
 
     int res;
     thrd_join(bar_thread, &res);
-#endif
+
     bar->destroy(bar);
     yml_destroy(conf);
 
