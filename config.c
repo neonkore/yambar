@@ -13,6 +13,7 @@
 #include "particles/map.h"
 
 #include "module.h"
+#include "modules/i3/i3.h"
 #include "modules/label/label.h"
 #include "modules/clock/clock.h"
 #include "modules/xwindow/xwindow.h"
@@ -243,6 +244,34 @@ module_xwindow_from_config(const struct yml_node *node, const struct font *paren
     return module_xwindow(particle_from_config(c, parent_font));
 }
 
+static struct module *
+module_i3_from_config(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
+    const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
+
+    assert(yml_is_dict(c));
+    assert(left_spacing == NULL || yml_is_scalar(left_spacing));
+    assert(right_spacing == NULL || yml_is_scalar(right_spacing));
+
+    struct i3_workspaces workspaces[yml_dict_length(c)];
+
+    size_t idx = 0;
+    for (struct yml_dict_iter it = yml_dict_iter(c);
+         it.key != NULL;
+         yml_dict_next(&it), idx++)
+    {
+        workspaces[idx].name = yml_value_as_string(it.key);
+        workspaces[idx].content = particle_from_config(it.value, parent_font);
+    }
+
+    return module_i3(
+        workspaces, yml_dict_length(c),
+        left_spacing != NULL ? yml_value_as_int(left_spacing) : 0,
+        right_spacing != NULL ? yml_value_as_int(right_spacing) : 0);
+}
+
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -343,6 +372,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_clock_from_config(it.node, font);
                 else if (strcmp(mod_name, "xwindow") == 0)
                     mods[idx] = module_xwindow_from_config(it.node, font);
+                else if (strcmp(mod_name, "i3") == 0)
+                    mods[idx] = module_i3_from_config(it.node, font);
                 else
                     assert(false);
             }

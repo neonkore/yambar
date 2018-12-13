@@ -10,9 +10,11 @@ set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render)
-pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb)
-pkg_check_modules(YAML REQUIRED yaml-0.1)
+pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render) # Core
+pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb)        # Core
+pkg_check_modules(YAML REQUIRED yaml-0.1)                # Core (configuration)
+
+pkg_check_modules(JSON REQUIRED json-c)                  # Module/i3
 
 add_executable(foobar
   bar.c bar.h
@@ -29,6 +31,8 @@ add_executable(foobar
   particles/list.c particles/list.h
   particles/map.c particles/map.h
 
+  modules/i3/i3.c modules/i3/i3.h
+  modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
   modules/label/label.c modules/label/label.h
   modules/clock/clock.c modules/clock/clock.h
   modules/xwindow/xwindow.c modules/xwindow/xwindow.h
@@ -40,12 +44,14 @@ target_compile_options(foobar PRIVATE
   ${XCB_CFLAGS_OTHER}
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
+  ${JSON_CFLAGS_OTHER}
   )
 
 target_include_directories(foobar PRIVATE
   ${XCB_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
+  ${JSON_INCLUDE_DIRS}
   )
 
 target_link_libraries(foobar
@@ -53,4 +59,5 @@ target_link_libraries(foobar
   ${XCB_LIBRARIES}
   ${CAIRO_LIBRARIES}
   ${YAML_LIBRARIES}
+  ${JSON_LIBRARIES}
   )
