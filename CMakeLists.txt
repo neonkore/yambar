@@ -27,6 +27,7 @@ add_executable(foobar
 
   particles/string.c particles/string.h
   particles/list.c particles/list.h
+  particles/map.c particles/map.h
 
   modules/label/label.c modules/label/label.h
   modules/clock/clock.c modules/clock/clock.h

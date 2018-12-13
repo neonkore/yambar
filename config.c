@@ -10,6 +10,7 @@
 #include "particle.h"
 #include "particles/string.h"
 #include "particles/list.h"
+#include "particles/map.h"
 
 #include "module.h"
 #include "modules/label/label.h"
@@ -155,7 +156,7 @@ particle_list_from_config(const struct yml_node *node,
         right_spacing = yml_value_as_int(right_spacing_node);
 
     size_t count = yml_list_length(items_node);
-    struct particle **parts = calloc(count, sizeof(*parts));
+    struct particle *parts[count];
 
     size_t idx = 0;
     for (struct yml_list_iter it = yml_list_iter(items_node);
@@ -168,8 +169,35 @@ particle_list_from_config(const struct yml_node *node,
     struct particle *list = particle_list_new(
         parts, count, left_spacing, right_spacing, left_margin, right_margin);
 
-    free(parts);
     return list;
+}
+
+static struct particle *
+particle_map_from_config(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *tag = yml_get_value(node, "tag");
+    const struct yml_node *values = yml_get_value(node, "values");
+
+    assert(yml_is_scalar(tag));
+    assert(yml_is_dict(values));
+
+    printf("MAP tag: %s\n", yml_value_as_string(tag));
+
+    struct particle_map particle_map[yml_dict_length(values)];
+
+    size_t idx = 0;
+    for (struct yml_dict_iter it = yml_dict_iter(values);
+         it.key != NULL;
+         yml_dict_next(&it), idx++)
+    {
+        particle_map[idx].tag_value = yml_value_as_string(it.key);
+        particle_map[idx].particle = particle_from_config(it.value, parent_font);
+        assert(particle_map[idx].particle != NULL);
+    }
+
+    return particle_map_new(
+        yml_value_as_string(tag), particle_map, yml_dict_length(values),
+        NULL, 0, 0);
 }
 
 static struct particle *
@@ -185,6 +213,8 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
         return particle_string_from_config(pair.value, parent_font);
     else if (strcmp(type, "list") == 0)
         return particle_list_from_config(pair.value, parent_font);
+    else if (strcmp(type, "map") == 0)
+        return particle_map_from_config(pair.value, parent_font);
     else
         assert(false);
 }
