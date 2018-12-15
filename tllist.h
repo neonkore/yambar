@@ -82,16 +82,16 @@
  *   }
 */
 #define tll_foreach(list, it)                                           \
-    for (__typeof((list).head) it = (list).head,                        \
-             it_next = it != NULL ? it->next : NULL;                    \
+    for (__typeof__(*(list).head) *it = (list).head,                    \
+             *it_next = it != NULL ? it->next : NULL;                   \
          it != NULL;                                                    \
          it = it_next,                                                  \
              it_next = it_next != NULL ? it_next->next : NULL)
 
 /* Same as tll_foreach(), but iterates backwards */
 #define tll_rforeach(list, it)                                          \
-    for (__typeof((list).tail) it = (list).tail,                        \
-             it_prev = it != NULL ? it->prev : NULL;                    \
+    for (__typeof__(*(list).tail) *it = (list).tail,                    \
+             *it_prev = it != NULL ? it->prev : NULL;                   \
          it != NULL;                                                    \
          it = it_prev,                                                  \
              it_prev = it_prev != NULL ? it_prev->prev : NULL)
