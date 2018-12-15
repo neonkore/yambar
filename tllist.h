@@ -38,35 +38,35 @@
 #define tll_length(list) (list).length
 
 /* Adds a new item to the back of the list */
-#define tll_push_back(list, new_item)                     \
-    do {                                                  \
-        __typeof((list).head) __e = malloc(sizeof(*__e)); \
-        __e->item = (new_item);                           \
-        __e->prev = (list).tail;                          \
-        __e->next = NULL;                                 \
-        if ((list).head == NULL)                          \
-            (list).head = (list).tail = __e;              \
-        else {                                            \
-            (list).tail->next = __e;                      \
-            (list).tail = __e;                            \
-        }                                                 \
-        (list).length++;                                  \
+#define tll_push_back(list, new_item)                       \
+    do {                                                    \
+        __typeof__((list).head) __e = malloc(sizeof(*__e)); \
+        __e->item = (new_item);                             \
+        __e->prev = (list).tail;                            \
+        __e->next = NULL;                                   \
+        if ((list).head == NULL)                            \
+            (list).head = (list).tail = __e;                \
+        else {                                              \
+            (list).tail->next = __e;                        \
+            (list).tail = __e;                              \
+        }                                                   \
+        (list).length++;                                    \
     } while (0)
 
 /* Adds a new item to the front of the list */
-#define tll_push_front(list, new_item)                    \
-    do {                                                  \
-        __typeof((list).head) __e = malloc(sizeof(*__e)); \
-        __e->item = (new_item);                           \
-        __e->prev = NULL;                                 \
-        __e->next = (list).head;                          \
-        if ((list).head == NULL)                          \
-            (list).head = (list).tail = __e;              \
-        else {                                            \
-            (list).head->prev = __e;                      \
-            (list).head = __e;                            \
-        }                                                 \
-        (list).length++;                                  \
+#define tll_push_front(list, new_item)                      \
+    do {                                                    \
+        __typeof__((list).head) __e = malloc(sizeof(*__e)); \
+        __e->item = (new_item);                             \
+        __e->prev = NULL;                                   \
+        __e->next = (list).head;                            \
+        if ((list).head == NULL)                            \
+            (list).head = (list).tail = __e;                \
+        else {                                              \
+            (list).head->prev = __e;                        \
+            (list).head = __e;                              \
+        }                                                   \
+        (list).length++;                                    \
     } while (0)
 
 
@@ -100,21 +100,21 @@
  * Removes an entry from the list. <it> is an iterator. I.e. you can
  * only call this from inside a tll_foreach() or tll_rforeach() loop.
  */
-#define tll_remove(list, it)                            \
-    do {                                                \
-        assert((list).length > 0);                      \
-        __typeof((list).head) __prev = it->prev;        \
-        __typeof((list).head) __next = it->next;        \
-        if (__prev != NULL)                             \
-            __prev->next = __next;                      \
-        else                                            \
-            (list).head = __next;                       \
-        if (__next != NULL)                             \
-            __next->prev = __prev;                      \
-        else                                            \
-            (list).tail = __prev;                       \
-        free(it);                                       \
-        (list).length--;                                \
+#define tll_remove(list, it)                              \
+    do {                                                  \
+        assert((list).length > 0);                        \
+        __typeof__((list).head) __prev = it->prev;        \
+        __typeof__((list).head) __next = it->next;        \
+        if (__prev != NULL)                               \
+            __prev->next = __next;                        \
+        else                                              \
+            (list).head = __next;                         \
+        if (__next != NULL)                               \
+            __next->prev = __prev;                        \
+        else                                              \
+            (list).tail = __prev;                         \
+        free(it);                                         \
+        (list).length--;                                  \
     } while (0)
 
 /* Same as tll_remove(), but calls free_callback(it->item) */
@@ -128,17 +128,17 @@
  * Removes the first element from the list, and returns it (note:
  * returns the *actual* item, not an iterator.
  */
-#define tll_pop_front(list)                               \
-    ({__typeof((list).head) it = (list).head;             \
-        __typeof((list).head->item) __ret = it->item;     \
-        tll_remove((list), it);                           \
-        __ret;                                            \
+#define tll_pop_front(list)                                 \
+    ({__typeof__((list).head) it = (list).head;             \
+        __typeof__((list).head->item) __ret = it->item;     \
+        tll_remove((list), it);                             \
+        __ret;                                              \
     })
 
 /* Same as tll_pop_front(), but returns/removes the *last* element */
 #define tll_pop_back(list)                                              \
-    ({__typeof((list).tail) it = (list).tail;                           \
-        __typeof((list).tail->item) __ret = it->item;                   \
+    ({__typeof__((list).tail) it = (list).tail;                         \
+        __typeof__((list).tail->item) __ret = it->item;                 \
         tll_remove((list), it);                                         \
         __ret;                                                          \
     })
