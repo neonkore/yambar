@@ -2,10 +2,13 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 
 #include <yaml.h>
+
+#include "tllist.h"
 
 enum node_type {
     ROOT,
@@ -15,15 +18,10 @@ enum node_type {
 };
 
 struct yml_node;
-struct llist_element {
-    struct yml_node *node;
-    struct llist_element *prev;
-    struct llist_element *next;
-};
 
-struct llist {
-    struct llist_element *head;
-    struct llist_element *tail;
+struct dict_pair {
+    struct yml_node *key;
+    struct yml_node *value;
 };
 
 struct anchor_map {
@@ -43,38 +41,16 @@ struct yml_node {
             char *value;
         } scalar;
         struct {
-            struct llist keys;
-            struct llist values;
-            size_t key_count;
-            size_t value_count;
+            tll(struct dict_pair) pairs;
+            bool next_is_value;
         } dict;
         struct {
-            struct llist values;
+            tll(struct yml_node *) values;
         } list;
     };
 
     struct yml_node *parent;
 };
-
-static void
-llist_add(struct llist *list, struct yml_node *node)
-{
-    struct llist_element *element = malloc(sizeof(*element));
-    element->node = node;
-    element->prev = NULL;
-    element->next = NULL;
-
-    if (list->tail == NULL) {
-        assert(list->head == NULL);
-        list->head = list->tail = element;
-    } else {
-        assert(list->head != NULL);
-        list->tail->next = element;
-        element->prev = list->tail;
-    }
-
-    list->tail = element;
-}
 
 static struct yml_node *
 clone_node(struct yml_node *parent, const struct yml_node *node)
@@ -89,26 +65,18 @@ clone_node(struct yml_node *parent, const struct yml_node *node)
         break;
 
     case DICT:
-        for (const struct llist_element *k = node->dict.keys.head,
-                 *v = node->dict.values.head;
-             k != NULL;
-             k = k->next, v = v->next)
-        {
-            llist_add(&clone->dict.keys, clone_node(clone, k->node));
-            llist_add(&clone->dict.values, clone_node(clone, v->node));
+        tll_foreach(node->dict.pairs, it) {
+            struct dict_pair p = {
+                .key = clone_node(clone, it->item.key),
+                .value = clone_node(clone, it->item.value),
+            };
+            tll_push_back(clone->dict.pairs, p);
         }
-
-        clone->dict.key_count = node->dict.key_count;
-        clone->dict.value_count = node->dict.value_count;
         break;
 
     case LIST:
-        for (const struct llist_element *v = node->list.values.head;
-             v != NULL;
-             v = v->next)
-        {
-            llist_add(&clone->list.values, clone_node(clone, v->node));
-        }
+        tll_foreach(node->list.values, it)
+            tll_push_back(clone->list.values, clone_node(clone, it->item));
         break;
 
     case ROOT:
@@ -130,18 +98,18 @@ add_node(struct yml_node *parent, struct yml_node *new_node)
         break;
 
     case DICT:
-        if (parent->dict.key_count == parent->dict.value_count) {
-            llist_add(&parent->dict.keys, new_node);
-            parent->dict.key_count++;
+        if (!parent->dict.next_is_value) {
+            tll_push_back(parent->dict.pairs, (struct dict_pair){.key = new_node});
+            parent->dict.next_is_value = true;
         } else {
-            llist_add(&parent->dict.values, new_node);
-            parent->dict.value_count++;
+            tll_back(parent->dict.pairs).value = new_node;
+            parent->dict.next_is_value = false;
         }
         new_node->parent = parent;
         break;
 
     case LIST:
-        llist_add(&parent->list.values, new_node);
+        tll_push_back(parent->list.values, new_node);
         new_node->parent = parent;
         break;
 
@@ -176,94 +144,41 @@ post_process(struct yml_node *node)
         break;
 
     case LIST:
-        for (struct llist_element *v = node->list.values.head;
-             v != NULL;
-             v = v->next)
-        {
-            post_process(v->node);
-        }
+        tll_foreach(node->list.values, it)
+            post_process(it->item);
         break;
 
     case DICT:
-        for (struct llist_element *k = node->dict.keys.head,
-                 *v = node->dict.values.head;
-             k != NULL;
-             k = k->next, v = v->next)
-        {
-            post_process(k->node);
-            post_process(v->node);
+        tll_foreach(node->dict.pairs, it) {
+            post_process(it->item.key);
+            post_process(it->item.value);
         }
 
-        for (struct llist_element *k = node->dict.keys.head,
-                 *v = node->dict.values.head,
-                 *k_next = k ? k->next : NULL, *v_next = v ? v->next : NULL;
-             k != NULL;
-             k = k_next, v = v_next,
-                 k_next = k_next ? k_next->next : NULL,
-                 v_next = v_next ? v_next->next : NULL)
-        {
-            if (k->node->type != SCALAR)
+        tll_foreach(node->dict.pairs, it) {
+            if (it->item.key->type != SCALAR)
                 continue;
 
-            if (strcmp(k->node->scalar.value, "<<") != 0)
+            if (strcmp(it->item.key->scalar.value, "<<") != 0)
                 continue;
 
-            assert(v->node->type == DICT);
-
-            for (struct llist_element *mk = v->node->dict.keys.head,
-                     *mv = v->node->dict.values.head,
-                     *mk_next = mk ? mk->next : NULL,
-                     *mv_next = mv ? mv->next : NULL;
-                 mk != NULL;
-                 mk = mk_next, mv = mv_next,
-                     mk_next = mk_next ? mk_next->next : NULL,
-                     mv_next = mv_next ? mv_next->next : NULL)
-            {
-                /* TODO: verify key doesn't already exist */
-                llist_add(&node->dict.keys, mk->node);
-                llist_add(&node->dict.values, mv->node);
-
-                node->dict.key_count++;
-                node->dict.value_count++;
-
-                free(mk);
-                free(mv);
+            assert(it->item.value->type == DICT);
+            tll_foreach(it->item.value->dict.pairs, v_it) {
+                struct dict_pair p = {
+                    .key = v_it->item.key,
+                    .value = v_it->item.value,
+                };
+                tll_push_back(node->dict.pairs, p);
             }
 
-            /* Delete merge node */
-            struct llist_element *prev_k = k->prev;
-            struct llist_element *next_k = k->next;
-            struct llist_element *prev_v = v->prev;
-            struct llist_element *next_v = v->next;
+            /* Destroy list here, *without* freeing nodes (since nodes
+             * have been moved to this node), *before* destroying the
+             * key/value nodes. This ensures the dict nodes aren't
+             * free:d in the yml_destroy() below */
+            tll_free(it->item.value->dict.pairs);
 
-            if (prev_k != NULL) {
-                assert(node->dict.keys.head != k);
-                prev_k->next = next_k;
-                prev_v->next = next_v;
-            } else {
-                assert(node->dict.keys.head == k);
-                node->dict.keys.head = next_k;
-                node->dict.values.head = next_v;
-            }
-
-            if (next_k != NULL) {
-                assert(node->dict.keys.tail != k);
-                next_k->prev = prev_k;
-                next_v->prev = prev_v;
-            } else {
-                assert(node->dict.keys.tail == k);
-                node->dict.keys.tail = prev_k;
-                node->dict.values.tail = prev_v;
-            }
-
-            v->node->dict.key_count = v->node->dict.value_count = 0;
-            v->node->dict.keys.head = v->node->dict.keys.tail = NULL;
-            v->node->dict.values.head = v->node->dict.values.tail = NULL;
-
-            yml_destroy(k->node);
-            yml_destroy(v->node);
-            free(k);
-            free(v);
+            yml_destroy(it->item.key);
+            yml_destroy(it->item.value);
+            tll_remove(node->dict.pairs, it);
         }
         break;
     }
@@ -432,32 +347,15 @@ yml_destroy(struct yml_node *node)
         break;
 
     case LIST:
-        for (struct llist_element *e = node->list.values.head,
-                 *n = e ? e->next : NULL;
-             e != NULL;
-             e = n, n = n ? n->next : NULL)
-        {
-            yml_destroy(e->node);
-            free(e);
-        }
+        tll_free_and_free(node->list.values, yml_destroy);
         break;
 
     case DICT:
-        for (struct llist_element *key = node->dict.keys.head,
-                 *value = node->dict.values.head,
-                 *n_key = key ? key->next : NULL,
-                 *n_value = value ? value->next : NULL;
-             key != NULL;
-             key = n_key, value = n_value,
-                 n_key = n_key ? n_key->next : NULL,
-                 n_value = n_value ? n_value->next : NULL)
-        {
-            yml_destroy(value->node);
-            yml_destroy(key->node);
-
-            free(key);
-            free(value);
+        tll_foreach(node->dict.pairs, it) {
+            yml_destroy(it->item.key);
+            yml_destroy(it->item.value);
         }
+        tll_free(node->dict.pairs);
         break;
     }
 
@@ -496,20 +394,15 @@ yml_get_value(const struct yml_node *node, const char *_path)
     {
         assert(yml_is_dict(node));
 
-        for (const struct llist_element *key = node->dict.keys.head,
-                 *value = node->dict.values.head;
-             key != NULL;
-             key = key->next, value = value->next)
-        {
-            assert(yml_is_scalar(key->node));
-
-            if (strcmp(key->node->scalar.value, part) == 0) {
+        tll_foreach(node->dict.pairs, it) {
+            assert(yml_is_scalar(it->item.key));
+            if (strcmp(it->item.key->scalar.value, part) == 0) {
                 if (next_part == NULL) {
                     free(path);
-                    return value->node;
+                    return it->item.value;
                 }
 
-                node = value->node;
+                node = it->item.value;
                 break;
             }
         }
@@ -523,22 +416,30 @@ struct yml_list_iter
 yml_list_iter(const struct yml_node *list)
 {
     assert(yml_is_list(list));
+    tll_foreach(list->list.values, it) {
+        return (struct yml_list_iter){
+            .node = it->item,
+            .private = it,
+        };
+    }
 
-    const struct llist_element *element = list->list.values.head;
     return (struct yml_list_iter){
-        .node = element != NULL ? element->node : NULL,
-        .private = element};
+        .node = NULL,
+        .private = NULL,
+    };
 }
 
 void
 yml_list_next(struct yml_list_iter *iter)
 {
-    const struct llist_element *element = iter->private;
-    if (element == NULL)
+    if (iter->private == NULL)
         return;
 
-    const struct llist_element *next = element->next;
-    iter->node = next != NULL ? next->node : NULL;
+    const struct yml_node *d = (const void *)(uintptr_t)0xdeadbeef;
+    __typeof__(d->list.values.head) it = (__typeof__(d->list.values.head))iter->private;
+    __typeof__(d->list.values.head) next = it->next;
+
+    iter->node = next != NULL ? next->item : NULL;
     iter->private = next;
 }
 
@@ -561,43 +462,41 @@ yml_dict_iter(const struct yml_node *dict)
 {
     assert(yml_is_dict(dict));
 
-    const struct llist_element *key = dict->dict.keys.head;
-    const struct llist_element *value = dict->dict.values.head;
+    tll_foreach(dict->dict.pairs, it) {
+        return (struct yml_dict_iter){
+            .key = it->item.key,
+            .value = it->item.value,
+            .private1 = it,
+        };
+    }
 
-    assert((key == NULL && value == NULL) ||
-           (key != NULL && value != NULL));
-
-    return (struct yml_dict_iter){
-        .key = key != NULL ? key->node : NULL,
-        .value = value != NULL ? value->node : NULL,
-        .private1 = key,
-        .private2 = value,
+    return (struct yml_dict_iter) {
+        .key = NULL,
+        .value = NULL,
+        .private1 = NULL,
     };
 }
 
 void
 yml_dict_next(struct yml_dict_iter *iter)
 {
-    const struct llist_element *key = iter->private1;
-    const struct llist_element *value = iter->private2;
-    if (key == NULL)
+    const struct yml_node *d = (const void *)(uintptr_t)0xdeadbeef;
+    __typeof__(d->dict.pairs.head) it = (__typeof__(d->dict.pairs.head))iter->private1;
+
+    if (it == NULL)
         return;
 
-    const struct llist_element *next_key = key->next;
-    const struct llist_element *next_value = value->next;
-
-    iter->key = next_key != NULL ? next_key->node : NULL;
-    iter->value = next_value != NULL ? next_value->node : NULL;
-    iter->private1 = next_key;
-    iter->private2 = next_value;
+    __typeof__(d->dict.pairs.head) next = it->next;
+    iter->key = next != NULL ? next->item.key : NULL;
+    iter->value = next != NULL ? next->item.value : NULL;
+    iter->private1 = next;
 }
 
 size_t
 yml_dict_length(const struct yml_node *dict)
 {
     assert(yml_is_dict(dict));
-    assert(dict->dict.key_count == dict->dict.value_count);
-    return dict->dict.key_count;
+    return tll_length(dict->dict.pairs);
 }
 
 const char *
@@ -646,34 +545,28 @@ _print_node(const struct yml_node *n, int indent)
         break;
 
     case DICT:
-        assert(n->dict.key_count == n->dict.value_count);
-        for (const struct llist_element *k = n->dict.keys.head, *v = n->dict.values.head;
-             k != NULL; k = k->next, v = v->next)
-        {
-            _print_node(k->node, indent);
+        tll_foreach(n->dict.pairs, it) {
+            _print_node(it->item.key, indent);
             printf(": ");
 
-            if (v->node->type != SCALAR) {
+            if (it->item.value->type != SCALAR) {
                 printf("\n");
-                _print_node(v->node, indent + 2);
+                _print_node(it->item.value, indent + 2);
             } else {
-                _print_node(v->node, 0);
+                _print_node(it->item.value, 0);
                 printf("\n");
             }
         }
         break;
 
     case LIST:
-        for (const struct llist_element *v = n->list.values.head;
-             v != NULL;
-             v = v->next)
-        {
+        tll_foreach(n->list.values, it) {
             printf("%*s- ", indent, "");
-            if (v->node->type != SCALAR) {
+            if (it->item->type != SCALAR) {
                 printf("\n");
-                _print_node(v->node, indent + 2);
+                _print_node(it->item, indent + 2);
             } else {
-                _print_node(v->node, 0);
+                _print_node(it->item, 0);
             }
         }
         break;
