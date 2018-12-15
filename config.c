@@ -178,6 +178,7 @@ particle_map_from_config(const struct yml_node *node, const struct font *parent_
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *values = yml_get_value(node, "values");
+    const struct yml_node *def = yml_get_value(node, "default");
 
     assert(yml_is_scalar(tag));
     assert(yml_is_dict(values));
@@ -196,9 +197,13 @@ particle_map_from_config(const struct yml_node *node, const struct font *parent_
         assert(particle_map[idx].particle != NULL);
     }
 
+    struct particle *default_particle = NULL;
+    if (def != NULL)
+        default_particle = particle_from_config(def, parent_font);
+
     return particle_map_new(
         yml_value_as_string(tag), particle_map, yml_dict_length(values),
-        NULL, 0, 0);
+        default_particle, 0, 0);
 }
 
 static struct particle *
