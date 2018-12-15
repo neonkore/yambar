@@ -124,6 +124,9 @@
         tll_remove((list), (it));                               \
     } while (0)
 
+#define tll_front(list) (list).head->item
+#define tll_back(list) (list).tail->item
+
 /*
  * Removes the first element from the list, and returns it (note:
  * returns the *actual* item, not an iterator.
