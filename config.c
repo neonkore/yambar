@@ -197,9 +197,9 @@ particle_map_from_config(const struct yml_node *node, const struct font *parent_
         assert(particle_map[idx].particle != NULL);
     }
 
-    struct particle *default_particle = NULL;
-    if (def != NULL)
-        default_particle = particle_from_config(def, parent_font);
+    struct particle *default_particle = def != NULL
+        ? particle_from_config(def, parent_font)
+        : NULL;
 
     return particle_map_new(
         yml_value_as_string(tag), particle_map, yml_dict_length(values),
