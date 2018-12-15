@@ -203,7 +203,7 @@ particle_map_from_config(const struct yml_node *node, const struct font *parent_
 
     return particle_map_new(
         yml_value_as_string(tag), particle_map, yml_dict_length(values),
-        default_particle, 0, 0);
+        default_particle);
 }
 
 static struct particle *
