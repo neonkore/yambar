@@ -8,16 +8,16 @@
 #include "color.h"
 
 #include "particle.h"
-#include "particles/string.h"
 #include "particles/list.h"
 #include "particles/map.h"
 #include "particles/ramp.h"
+#include "particles/string.h"
 
 #include "module.h"
 #include "modules/battery/battery.h"
+#include "modules/clock/clock.h"
 #include "modules/i3/i3.h"
 #include "modules/label/label.h"
-#include "modules/clock/clock.h"
 #include "modules/xwindow/xwindow.h"
 
 static uint8_t
