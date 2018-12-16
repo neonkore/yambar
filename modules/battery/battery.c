@@ -255,7 +255,7 @@ run(struct module_run_context *ctx)
 
 struct module *
 module_battery(const char *battery, struct particle *label,
-               int poll_interval_secs, int left_spacing, int right_spacing)
+               int poll_interval_secs)
 {
     struct private *m = malloc(sizeof(*m));
     m->label = label;
