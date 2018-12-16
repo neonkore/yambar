@@ -11,6 +11,7 @@
 #include "particles/string.h"
 #include "particles/list.h"
 #include "particles/map.h"
+#include "particles/ramp.h"
 
 #include "module.h"
 #include "modules/battery/battery.h"
@@ -168,10 +169,8 @@ particle_list_from_config(const struct yml_node *node,
         parts[idx] = particle_from_config(it.node, parent_font);
     }
 
-    struct particle *list = particle_list_new(
+    return particle_list_new(
         parts, count, left_spacing, right_spacing, left_margin, right_margin);
-
-    return list;
 }
 
 static struct particle *
@@ -206,6 +205,29 @@ particle_map_from_config(const struct yml_node *node, const struct font *parent_
 }
 
 static struct particle *
+particle_ramp_from_config(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *tag = yml_get_value(node, "tag");
+    const struct yml_node *items = yml_get_value(node, "items");
+
+    assert(yml_is_scalar(tag));
+    assert(yml_is_list(items));
+
+    size_t count = yml_list_length(items);
+    struct particle *parts[count];
+
+    size_t idx = 0;
+    for (struct yml_list_iter it = yml_list_iter(items);
+         it.node != NULL;
+         yml_list_next(&it), idx++)
+    {
+        parts[idx] = particle_from_config(it.node, parent_font);
+    }
+
+    return particle_ramp_new(yml_value_as_string(tag), parts, count);
+}
+
+static struct particle *
 particle_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     assert(yml_is_dict(node));
@@ -220,6 +242,8 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
         return particle_list_from_config(pair.value, parent_font);
     else if (strcmp(type, "map") == 0)
         return particle_map_from_config(pair.value, parent_font);
+    else if (strcmp(type, "ramp") == 0)
+        return particle_ramp_from_config(pair.value, parent_font);
     else
         assert(false);
 }

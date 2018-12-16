@@ -30,6 +30,7 @@ add_executable(f00bar
   particles/string.c particles/string.h
   particles/list.c particles/list.h
   particles/map.c particles/map.h
+  particles/ramp.c particles/ramp.h
 
   modules/battery/battery.c modules/battery/battery.h
   modules/i3/i3.c modules/i3/i3.h
