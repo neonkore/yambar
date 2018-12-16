@@ -7,7 +7,11 @@
 struct private {
     char *name;
     union {
-        long value_as_int;
+        struct {
+            long value;
+            long min;
+            long max;
+        } value_as_int;
         bool value_as_bool;
         double value_as_float;
         char *value_as_string;
@@ -19,6 +23,12 @@ tag_name(const struct tag *tag)
 {
     const struct private *priv = tag->private;
     return priv->name;
+}
+
+static long
+unimpl_min_max(const struct tag *tag)
+{
+    return 0;
 }
 
 static void
@@ -38,13 +48,27 @@ destroy_string(struct tag *tag)
     destroy_int_and_float(tag);
 }
 
+static long
+int_min(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_int.min;
+}
+
+static long
+int_max(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_int.max;
+}
+
 static const char *
 int_as_string(const struct tag *tag)
 {
     static char as_string[128];
     const struct private *priv = tag->private;
 
-    snprintf(as_string, sizeof(as_string), "%ld", priv->value_as_int);
+    snprintf(as_string, sizeof(as_string), "%ld", priv->value_as_int.value);
     return as_string;
 }
 
@@ -52,21 +76,21 @@ static long
 int_as_int(const struct tag *tag)
 {
     const struct private *priv = tag->private;
-    return priv->value_as_int;
+    return priv->value_as_int.value;
 }
 
 static bool
 int_as_bool(const struct tag *tag)
 {
     const struct private *priv = tag->private;
-    return priv->value_as_int;
+    return priv->value_as_int.value;
 }
 
 static double
 int_as_float(const struct tag *tag)
 {
     const struct private *priv = tag->private;
-    return priv->value_as_int;
+    return priv->value_as_int.value;
 }
 
 static const char *
@@ -168,14 +192,24 @@ string_as_float(const struct tag *tag)
 struct tag *
 tag_new_int(const char *name, long value)
 {
+    return tag_new_int_range(name, value, value, value);
+}
+
+struct tag *
+tag_new_int_range(const char *name, long value, long min, long max)
+{
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
-    priv->value_as_int = value;
+    priv->value_as_int.value = value;
+    priv->value_as_int.min = min;
+    priv->value_as_int.max = max;
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
+    tag->min = &int_min;
+    tag->max = &int_max;
     tag->as_string = &int_as_string;
     tag->as_int = &int_as_int;
     tag->as_bool = &int_as_bool;
@@ -188,12 +222,14 @@ tag_new_bool(const char *name, bool value)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
-    priv->value_as_int = value;
+    priv->value_as_bool = value;
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
+    tag->min = &unimpl_min_max;
+    tag->max = &unimpl_min_max;
     tag->as_string = &bool_as_string;
     tag->as_int = &bool_as_int;
     tag->as_bool = &bool_as_bool;
@@ -212,6 +248,8 @@ tag_new_float(const char *name, double value)
     tag->private = priv;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
+    tag->min = &unimpl_min_max;
+    tag->max = &unimpl_min_max;
     tag->as_string = &float_as_string;
     tag->as_int = &float_as_int;
     tag->as_bool = &float_as_bool;
@@ -230,6 +268,8 @@ tag_new_string(const char *name, const char *value)
     tag->private = priv;
     tag->destroy = &destroy_string;
     tag->name = &tag_name;
+    tag->min = &unimpl_min_max;
+    tag->max = &unimpl_min_max;
     tag->as_string = &string_as_string;
     tag->as_int = &string_as_int;
     tag->as_bool = &string_as_bool;

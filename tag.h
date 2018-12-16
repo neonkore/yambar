@@ -13,6 +13,9 @@ struct tag {
     long (*as_int)(const struct tag *tag);
     bool (*as_bool)(const struct tag *tag);
     double (*as_float)(const struct tag *tag);
+
+    long (*min)(const struct tag *tag);
+    long (*max)(const struct tag *tag);
 };
 
 struct tag_set {
@@ -21,6 +24,7 @@ struct tag_set {
 };
 
 struct tag *tag_new_int(const char *name, long value);
+struct tag *tag_new_int_range(const char *name, long value, long min, long max);
 struct tag *tag_new_bool(const char *name, bool value);
 struct tag *tag_new_float(const char *name, double value);
 struct tag *tag_new_string(const char *name, const char *value);
