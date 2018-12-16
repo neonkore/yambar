@@ -28,16 +28,16 @@ add_executable(f00bar
   xcb.c xcb.h
   yml.c yml.h
 
-  particles/string.c particles/string.h
   particles/list.c particles/list.h
   particles/map.c particles/map.h
   particles/ramp.c particles/ramp.h
+  particles/string.c particles/string.h
 
   modules/battery/battery.c modules/battery/battery.h
-  modules/i3/i3.c modules/i3/i3.h
-  modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
-  modules/label/label.c modules/label/label.h
   modules/clock/clock.c modules/clock/clock.h
+  modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
+  modules/i3/i3.c modules/i3/i3.h
+  modules/label/label.c modules/label/label.h
   modules/xwindow/xwindow.c modules/xwindow/xwindow.h
   )
 
