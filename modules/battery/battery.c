@@ -11,6 +11,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <libudev.h>
+
 #include "../../bar.h"
 
 enum state { STATE_FULL, STATE_CHARGING, STATE_DISCHARGING };
@@ -183,7 +185,41 @@ run(struct module_run_context *ctx)
     int power_fd = openat(base_dir_fd, "power_now", O_RDONLY);
     assert(power_fd != -1);
 
-    do {
+    struct udev *udev = udev_new();
+    assert(udev != NULL);
+
+    struct udev_monitor *mon = udev_monitor_new_from_netlink(udev, "udev");
+    assert(mon != NULL);
+
+    int r = udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
+    assert(r == 0);
+    r = udev_monitor_enable_receiving(mon);
+    assert(r == 0);
+
+    bool first = true;
+    while (true) {
+        if (!first) {
+            struct pollfd fds[] = {
+                {.fd = ctx->abort_fd, .events = POLLIN},
+                {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
+            };
+            poll(fds, 2, m->poll_interval * 1000);
+
+            if (fds[0].revents & POLLIN)
+                break;
+
+            if (fds[1].revents & POLLIN) {
+                struct udev_device *dev = udev_monitor_receive_device(mon);
+                bool is_us = strcmp(udev_device_get_sysname(dev), m->battery) == 0;
+
+                udev_device_unref(dev);
+
+                if (!is_us)
+                    continue;
+            }
+        } else
+            first = false;
+
         const char *status = readline_from_fd(status_fd);
         if (strcmp(status, "Full") == 0)
             m->state = STATE_FULL;
@@ -207,13 +243,10 @@ run(struct module_run_context *ctx)
         //       m->capacity, m->energy, m->power);
 
         bar->refresh(bar);
+    }
 
-        struct pollfd fds[] = {{.fd = ctx->abort_fd, .events = POLLIN}};
-        poll(fds, 1, m->poll_interval * 1000);
-
-        if (fds[0].revents & POLLIN)
-            break;
-    } while (true);
+    udev_monitor_unref(mon);
+    udev_unref(udev);
 
     close(power_fd);
     close(energy_fd);

@@ -15,6 +15,7 @@ pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb)        # Core
 pkg_check_modules(YAML REQUIRED yaml-0.1)                # Core (configuration)
 
 pkg_check_modules(JSON REQUIRED json-c)                  # Module/i3
+pkg_check_modules(UDEV REQUIRED libudev)                 # Module/battery
 
 add_executable(f00bar
   bar.c bar.h
@@ -47,6 +48,7 @@ target_compile_options(f00bar PRIVATE
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
   ${JSON_CFLAGS_OTHER}
+  ${UDEV_CFLAGS_OTHER}
   )
 
 target_include_directories(f00bar PRIVATE
@@ -54,6 +56,7 @@ target_include_directories(f00bar PRIVATE
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
   ${JSON_INCLUDE_DIRS}
+  ${UDEV_INCLUDE_DIRS}
   )
 
 target_link_libraries(f00bar
@@ -62,4 +65,5 @@ target_link_libraries(f00bar
   ${CAIRO_LIBRARIES}
   ${YAML_LIBRARIES}
   ${JSON_LIBRARIES}
+  ${UDEV_LIBRARIES}
   )
