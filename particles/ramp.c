@@ -40,7 +40,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     double progress = (double)value / (max - min);
 
     size_t idx = progress * ramp->count;
-    printf("value: %lu, min: %lu, max: %lu, progress: %f, idx: %zu\n",
+    printf("ramp: value: %lu, min: %lu, max: %lu, progress: %f, idx: %zu\n",
            value, min, max, progress, idx);
     assert(idx >= 0 && idx < ramp->count);
 

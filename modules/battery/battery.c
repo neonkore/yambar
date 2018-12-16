@@ -210,8 +210,9 @@ run(struct module_run_context *ctx)
 
             if (fds[1].revents & POLLIN) {
                 struct udev_device *dev = udev_monitor_receive_device(mon);
-                bool is_us = strcmp(udev_device_get_sysname(dev), m->battery) == 0;
+                const char *sysname = udev_device_get_sysname(dev);
 
+                bool is_us = strcmp(sysname, m->battery) == 0;
                 udev_device_unref(dev);
 
                 if (!is_us)
