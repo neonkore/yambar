@@ -186,15 +186,10 @@ run(struct module_run_context *ctx)
     assert(power_fd != -1);
 
     struct udev *udev = udev_new();
-    assert(udev != NULL);
-
     struct udev_monitor *mon = udev_monitor_new_from_netlink(udev, "udev");
-    assert(mon != NULL);
 
-    int r = udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
-    assert(r == 0);
-    r = udev_monitor_enable_receiving(mon);
-    assert(r == 0);
+    udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
+    udev_monitor_enable_receiving(mon);
 
     bool first = true;
     while (true) {
