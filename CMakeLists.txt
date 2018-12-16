@@ -31,6 +31,7 @@ add_executable(f00bar
   particles/list.c particles/list.h
   particles/map.c particles/map.h
 
+  modules/battery/battery.c modules/battery/battery.h
   modules/i3/i3.c modules/i3/i3.h
   modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
   modules/label/label.c modules/label/label.h

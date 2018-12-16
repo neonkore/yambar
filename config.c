@@ -13,6 +13,7 @@
 #include "particles/map.h"
 
 #include "module.h"
+#include "modules/battery/battery.h"
 #include "modules/i3/i3.h"
 #include "modules/label/label.h"
 #include "modules/clock/clock.h"
@@ -277,6 +278,27 @@ module_i3_from_config(const struct yml_node *node, const struct font *parent_fon
         right_spacing != NULL ? yml_value_as_int(right_spacing) : 0);
 }
 
+static struct module *
+module_battery_from_config(const struct yml_node *node,
+                           const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    const struct yml_node *poll_interval = yml_get_value(node, "poll_interval");
+    const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
+    const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
+
+    assert(yml_is_dict(c));
+    assert(poll_interval == NULL || yml_is_scalar(poll_interval));
+    assert(left_spacing == NULL || yml_is_scalar(left_spacing));
+    assert(right_spacing == NULL || yml_is_scalar(right_spacing));
+
+    return module_battery(
+        "BAT0", particle_from_config(c, parent_font),
+        poll_interval != NULL ? yml_value_as_int(poll_interval) : 30,
+        left_spacing != NULL ? yml_value_as_int(left_spacing) : 0,
+        right_spacing != NULL ? yml_value_as_int(right_spacing) : 0);
+}
+
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -379,6 +401,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_xwindow_from_config(it.node, font);
                 else if (strcmp(mod_name, "i3") == 0)
                     mods[idx] = module_i3_from_config(it.node, font);
+                else if (strcmp(mod_name, "battery") == 0)
+                    mods[idx] = module_battery_from_config(it.node, font);
                 else
                     assert(false);
             }
