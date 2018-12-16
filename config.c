@@ -184,8 +184,6 @@ particle_map_from_config(const struct yml_node *node, const struct font *parent_
     assert(yml_is_scalar(tag));
     assert(yml_is_dict(values));
 
-    printf("MAP tag: %s\n", yml_value_as_string(tag));
-
     struct particle_map particle_map[yml_dict_length(values)];
 
     size_t idx = 0;
