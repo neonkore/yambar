@@ -26,6 +26,7 @@ add_executable(f00bar
   bar.c bar.h
   config.c config.h
   font.c font.h
+  log.c log.h
   main.c
   module.c module.h
   particle.c particle.h
