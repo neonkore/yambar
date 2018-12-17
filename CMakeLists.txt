@@ -14,6 +14,7 @@ pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render) # Core
 pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb)        # Core
 pkg_check_modules(YAML REQUIRED yaml-0.1)                # Core (configuration)
 
+pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)              # Module/xkb
 pkg_check_modules(JSON REQUIRED json-c)                  # Module/i3
 pkg_check_modules(UDEV REQUIRED libudev)                 # Module/battery
 
@@ -38,6 +39,7 @@ add_executable(f00bar
   modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
   modules/i3/i3.c modules/i3/i3.h
   modules/label/label.c modules/label/label.h
+  modules/xkb/xkb.c modules/xkb/xkb.h
   modules/xwindow/xwindow.c modules/xwindow/xwindow.h
   )
 
@@ -47,6 +49,7 @@ target_compile_options(f00bar PRIVATE
   ${XCB_CFLAGS_OTHER}
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
+  ${XCB_XKB_CFLAGS_OTHER}
   ${JSON_CFLAGS_OTHER}
   ${UDEV_CFLAGS_OTHER}
   )
@@ -55,6 +58,7 @@ target_include_directories(f00bar PRIVATE
   ${XCB_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
+  ${XCB_XKB_INCLUDE_DIRS}
   ${JSON_INCLUDE_DIRS}
   ${UDEV_INCLUDE_DIRS}
   )
@@ -64,6 +68,7 @@ target_link_libraries(f00bar
   ${XCB_LIBRARIES}
   ${CAIRO_LIBRARIES}
   ${YAML_LIBRARIES}
+  ${XCB_XKB_LIBRARIES}
   ${JSON_LIBRARIES}
   ${UDEV_LIBRARIES}
   )
