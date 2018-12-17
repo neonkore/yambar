@@ -1,6 +1,5 @@
 #include "xcb.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -8,6 +7,9 @@
 #include <xcb/xcb.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
+
+#define LOG_MODULE "xcb"
+#include "log.h"
 
 xcb_atom_t UTF8_STRING;
 xcb_atom_t _NET_WM_PID;
@@ -38,11 +40,11 @@ xcb_init(void)
     unsigned minor = release / 100000; release %= 100000;
     unsigned patch = release / 1000;
 
-    printf("%.*s %u.%u.%u (protocol: %u.%u)\n",
-           xcb_setup_vendor_length(setup), xcb_setup_vendor(setup),
-           major, minor, patch,
-           setup->protocol_major_version,
-           setup->protocol_minor_version);
+    LOG_INFO("%.*s %u.%u.%u (protocol: %u.%u)",
+             xcb_setup_vendor_length(setup), xcb_setup_vendor(setup),
+             major, minor, patch,
+             setup->protocol_major_version,
+             setup->protocol_minor_version);
 
     const xcb_query_extension_reply_t *randr =
         xcb_get_extension_data(conn, &xcb_randr_id);
@@ -70,12 +72,10 @@ xcb_init(void)
 
     xcb_flush(conn);
 
-    printf("  RANDR: %u.%u\n"
-           "  RENDER: %u.%u\n",
-           randr_version->major_version,
-           randr_version->minor_version,
-           render_version->major_version,
-           render_version->minor_version);
+    LOG_INFO("RANDR: %u.%u",
+             randr_version->major_version, randr_version->minor_version);
+    LOG_INFO("RENDER: %u.%u",
+             render_version->major_version, render_version->minor_version);
 
     free(randr_version);
     free(render_version);
