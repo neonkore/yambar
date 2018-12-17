@@ -20,6 +20,8 @@
 #include <cairo.h>
 #include <cairo-xcb.h>
 
+#define LOG_MODULE "bar"
+#include "log.h"
 #include "xcb.h"
 
 struct private {
@@ -193,7 +195,6 @@ run(struct bar_run_context *run_ctx)
     bar->height_with_border = bar->height + 2 * bar->border.width;
 
     /* Find monitor coordinates and width/height */
-    printf("Monitors:\n");
     for (xcb_randr_monitor_info_iterator_t it =
              xcb_randr_get_monitors_monitors_iterator(monitors);
          it.rem > 0;
@@ -202,7 +203,7 @@ run(struct bar_run_context *run_ctx)
         const xcb_randr_monitor_info_t *mon = it.data;
         char *name = get_atom_name(bar->conn, mon->name);
 
-        printf("  %s: %ux%u+%u+%u (%ux%umm)\n", name,
+        LOG_INFO("Monitor: %s: %ux%u+%u+%u (%ux%umm)", name,
                mon->width, mon->height, mon->x, mon->y,
                mon->width_in_millimeters, mon->height_in_millimeters);
 
