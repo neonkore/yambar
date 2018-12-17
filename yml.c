@@ -326,9 +326,9 @@ yml_load(FILE *yml)
 
     yaml_parser_delete(&yaml);
 
-    print_node(root);
+    //print_node(root);
     post_process(root);
-    print_node(root);
+    //print_node(root);
     return root;
 }
 
