@@ -18,6 +18,8 @@
 #include <json-c/json_util.h>
 #include <json-c/linkhash.h>
 
+#define LOG_MODULE "i3"
+#include "../../log.h"
 #include "../../bar.h"
 
 #include "dynlist-exposable.h"
@@ -160,7 +162,7 @@ handle_get_version_reply(struct private *m, const struct json_object *json)
 
     assert(version != NULL);
     assert(json_object_is_type(version, json_type_string));
-    printf("Connected to i3: %s\n", json_object_get_string(version));
+    LOG_INFO("Connected to i3: %s", json_object_get_string(version));
     return true;
 }
 
@@ -191,7 +193,7 @@ handle_get_workspaces_reply(struct private *m, const struct json_object *json)
 
     for (size_t i = 0; i < count; i++) {
         m->workspaces.v[i] = workspace_from_json(json_object_array_get_idx(json, i));
-        printf("#%zu: %s\n", i, m->workspaces.v[i].name);
+        LOG_DBG("#%zu: %s", i, m->workspaces.v[i].name);
     }
 
     return true;
@@ -418,7 +420,7 @@ content(const struct module *mod)
         }
 
         if (template == NULL) {
-            printf("no ws template for %s\n", ws->name);
+            LOG_WARN("no ws template for %s", ws->name);
             continue;
         }
 
