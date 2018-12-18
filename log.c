@@ -13,10 +13,10 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
     const char *class;
     int class_clr;
     switch (log_class) {
-    case LOG_CLASS_ERROR:    class = "error"; class_clr = 31; break;
-    case LOG_CLASS_WARNING:  class = "warning"; class_clr = 33; break;
+    case LOG_CLASS_ERROR:    class = " err"; class_clr = 31; break;
+    case LOG_CLASS_WARNING:  class = "warn"; class_clr = 33; break;
     case LOG_CLASS_INFO:     class = "info"; class_clr = 97; break;
-    case LOG_CLASS_DEBUG:    class = "debug"; class_clr = 36; break;
+    case LOG_CLASS_DEBUG:    class = " dbg"; class_clr = 36; break;
     }
 
     char clr[16];
