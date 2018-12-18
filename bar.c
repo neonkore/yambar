@@ -1,6 +1,5 @@
 #include "bar.h"
 
-#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -409,7 +408,7 @@ run(struct bar_run_context *run_ctx)
         thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, ctx);
     }
 
-    printf("modules started\n");
+    LOG_DBG("modules started");
 
     int fd = xcb_get_file_descriptor(bar->conn);
 
@@ -441,11 +440,11 @@ run(struct bar_run_context *run_ctx)
             case XCB_REPARENT_NOTIFY:
             case XCB_CONFIGURE_NOTIFY:
             case XCB_MAP_NOTIFY:
-                printf("unimplemented event\n");
+                LOG_WARN("unimplemented event");
                 break;
 
             default:
-                printf("unsupported event: %d\n", XCB_EVENT_RESPONSE_TYPE(e));
+                LOG_ERR("unsupported event: %d", XCB_EVENT_RESPONSE_TYPE(e));
                 break;
             }
 
@@ -463,7 +462,7 @@ run(struct bar_run_context *run_ctx)
     for (size_t i = 0; i < bar->right.count; i++)
         thrd_join(thrd_right[i], &mod_ret);
 
-    printf("modules joined\n");
+    LOG_DBG("modules joined");
 
     cairo_destroy(bar->cairo);
     cairo_surface_destroy(surface);
@@ -477,7 +476,7 @@ run(struct bar_run_context *run_ctx)
 
     xcb_disconnect(bar->conn);
 
-    printf("bar exiting\n");
+    LOG_DBG("bar exiting");
     return 0;
 }
 
