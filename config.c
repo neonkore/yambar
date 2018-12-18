@@ -143,7 +143,7 @@ particle_list_from_config(const struct yml_node *node,
     int left_margin = 0;
     int right_margin = 0;
     int left_spacing = 0;
-    int right_spacing = 0;
+    int right_spacing = 2;
 
     if (margin_node != NULL)
         left_margin = right_margin = yml_value_as_int(margin_node);
