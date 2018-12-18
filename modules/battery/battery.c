@@ -45,7 +45,7 @@ destroy(struct module *mod)
     m->label->destroy(m->label);
 
     free(m);
-    free(mod);
+    module_default_destroy(mod);
 }
 
 static struct exposable *
@@ -266,14 +266,10 @@ module_battery(const char *battery, struct particle *label,
     m->manufacturer = NULL;
     m->model = NULL;
 
-    struct module *mod = malloc(sizeof(*mod));
-    mod->bar = NULL;
+    struct module *mod = module_common_new();
     mod->private = m;
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
-    mod->begin_expose = &module_default_begin_expose;
-    mod->expose = &module_default_expose;
-    mod->end_expose = &module_default_end_expose;
     return mod;
 }
