@@ -13,6 +13,8 @@
 
 #include <libudev.h>
 
+#define LOG_MODULE "battery"
+#include "../../log.h"
 #include "../../bar.h"
 
 enum state { STATE_FULL, STATE_CHARGING, STATE_DISCHARGING };
@@ -169,9 +171,9 @@ run(struct module_run_context *ctx)
         close(fd);
     }
 
-    printf("%s: %s %s (at %.1f%% of original capacity)\n",
-           m->battery, m->manufacturer, m->model,
-           100.0 * m->energy_full / energy_full_design);
+    LOG_INFO("%s: %s %s (at %.1f%% of original capacity)",
+             m->battery, m->manufacturer, m->model,
+             100.0 * m->energy_full / energy_full_design);
 
     int status_fd = openat(base_dir_fd, "status", O_RDONLY);
     assert(status_fd != -1);
@@ -226,7 +228,7 @@ run(struct module_run_context *ctx)
         else if (strcmp(status, "Unknown") == 0)
             m->state = STATE_DISCHARGING;
         else {
-            printf("unrecognized battery state: %s\n", status);
+            LOG_ERR("unrecognized battery state: %s", status);
             m->state = STATE_DISCHARGING;
             assert(false && "unrecognized battery state");
         }
@@ -235,8 +237,8 @@ run(struct module_run_context *ctx)
         m->energy = readint_from_fd(energy_fd);
         m->power = readint_from_fd(power_fd);
 
-        //printf("capacity: %lu, energy: %lu, power: %lu\n",
-        //       m->capacity, m->energy, m->power);
+        LOG_DBG("capacity: %lu, energy: %lu, power: %lu",
+                m->capacity, m->energy, m->power);
 
         bar->refresh(bar);
     }
