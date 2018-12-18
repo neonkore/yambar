@@ -202,7 +202,7 @@ run(struct bar_run_context *run_ctx)
         const xcb_randr_monitor_info_t *mon = it.data;
         char *name = get_atom_name(bar->conn, mon->name);
 
-        LOG_INFO("Monitor: %s: %ux%u+%u+%u (%ux%umm)", name,
+        LOG_INFO("monitor: %s: %ux%u+%u+%u (%ux%umm)", name,
                mon->width, mon->height, mon->x, mon->y,
                mon->width_in_millimeters, mon->height_in_millimeters);
 
