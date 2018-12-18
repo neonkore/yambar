@@ -1,5 +1,6 @@
 #pragma once
 
+#include <threads.h>
 #include <cairo.h>
 
 #include "particle.h"
@@ -21,6 +22,7 @@ struct module_expose_context {
 
 struct module {
     const struct bar *bar;
+    mtx_t lock;
 
     void *private;
 
@@ -34,6 +36,10 @@ struct module {
                    cairo_t *cr, int x, int y, int height);
     void (*end_expose)(const struct module *mod, struct module_expose_context *ctx);
 };
+
+struct module *module_common_new(void);
+
+void module_default_destroy(struct module *mod);
 
 struct module_expose_context module_default_begin_expose(
     const struct module *mod, cairo_t *cr);

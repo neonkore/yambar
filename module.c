@@ -1,6 +1,29 @@
 #include "module.h"
 #include <stdlib.h>
 
+struct module *
+module_common_new(void)
+{
+    struct module *mod = malloc(sizeof(*mod));
+    mod->bar = NULL;
+    mtx_init(&mod->lock, mtx_plain);
+    mod->private = NULL;
+    mod->run = NULL;
+    mod->destroy = &module_default_destroy;
+    mod->content = NULL;
+    mod->begin_expose = &module_default_begin_expose;
+    mod->expose = &module_default_expose;
+    mod->end_expose = &module_default_end_expose;
+    return mod;
+}
+
+void
+module_default_destroy(struct module *mod)
+{
+    mtx_destroy(&mod->lock);
+    free(mod);
+}
+
 struct module_expose_context
 module_default_begin_expose(const struct module *mod, cairo_t *cr)
 {
