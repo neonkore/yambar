@@ -218,27 +218,34 @@ run(struct module_run_context *ctx)
         } else
             first = false;
 
+        long capacity = readint_from_fd(capacity_fd);
+        long energy = readint_from_fd(energy_fd);
+        long power = readint_from_fd(power_fd);
+
         const char *status = readline_from_fd(status_fd);
+        enum state state;
+
         if (strcmp(status, "Full") == 0)
-            m->state = STATE_FULL;
+            state = STATE_FULL;
         else if (strcmp(status, "Charging") == 0)
-            m->state = STATE_CHARGING;
+            state = STATE_CHARGING;
         else if (strcmp(status, "Discharging") == 0)
-            m->state = STATE_DISCHARGING;
+            state = STATE_DISCHARGING;
         else if (strcmp(status, "Unknown") == 0)
-            m->state = STATE_DISCHARGING;
+            state = STATE_DISCHARGING;
         else {
             LOG_ERR("unrecognized battery state: %s", status);
-            m->state = STATE_DISCHARGING;
+            state = STATE_DISCHARGING;
             assert(false && "unrecognized battery state");
         }
 
-        m->capacity = readint_from_fd(capacity_fd);
-        m->energy = readint_from_fd(energy_fd);
-        m->power = readint_from_fd(power_fd);
+        LOG_DBG("capacity: %ld, energy: %ld, power: %ld",
+                capacity, energy, power);
 
-        LOG_DBG("capacity: %lu, energy: %lu, power: %lu",
-                m->capacity, m->energy, m->power);
+        m->state = state;
+        m->capacity = capacity;
+        m->energy = energy;
+        m->power = power;
 
         bar->refresh(bar);
     }
