@@ -1,7 +1,6 @@
 #include "xkb.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -11,6 +10,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 
+#define LOG_MODULE "xkb"
+#include "../../log.h"
 #include "../../bar.h"
 #include "../../xcb.h"
 
@@ -55,10 +56,6 @@ content(const struct module *mod)
 {
     const struct private *m = mod->private;
 
-    printf("current: %zu\n", m->current);
-    for (size_t i = 0; i < m->layouts.count; i++)
-        printf("  %s (%s)\n", m->layouts.layouts[i].name, m->layouts.layouts[i].symbol);
-
     struct tag_set tags = {
         .tags = (struct tag *[]){
             tag_new_string("name", m->layouts.layouts[m->current].name),
@@ -95,12 +92,12 @@ get_xkb_event_base(xcb_connection_t *conn)
         conn, &xcb_xkb_id);
 
     if (reply == NULL) {
-        puts("failed to get XKB extension data");
+        LOG_ERR("failed to get XKB extension data");
         return -1;
     }
 
     if (!reply->present) {
-        puts("XKB not present");
+        LOG_ERR("XKB not present");
         return -1;
     }
 
@@ -123,7 +120,7 @@ get_layouts(xcb_connection_t *conn)
         conn, cookie, &err);
 
     if (err != NULL) {
-        printf("%d: %s\n", err->error_code, "failed to get group names and symbols");
+        LOG_ERR("failed to get group names and symbols (%d)", err->error_code);
         free(err);
         return (struct layouts){.count = -1};
     }
@@ -150,7 +147,7 @@ get_layouts(xcb_connection_t *conn)
     xcb_get_atom_name_reply_t *atom_name = xcb_get_atom_name_reply(
         conn, symbols_name_cookie, &err);
     if (err != NULL) {
-        printf("%d: failed to get atom name\n", err->error_code);
+        LOG_ERR("failed to get atom name (%d)", err->error_code);
         free(err);
         goto err;
     }
@@ -163,7 +160,7 @@ get_layouts(xcb_connection_t *conn)
     for (ssize_t i = 0; i < ret.count; i++) {
         atom_name = xcb_get_atom_name_reply(conn, group_name_cookies[i], &err);
         if (err != NULL) {
-            printf("%d: failed to get atom name\n", err->error_code);
+            LOG_ERR("failed to get atom name (%d)", err->error_code);
             free(err);
             goto err;
         }
@@ -195,24 +192,18 @@ get_layouts(xcb_connection_t *conn)
             continue;
 
         if (layout_idx >= ret.count) {
-            printf("layout vs group name count mismatch: %zd > %zd\n",
-                   layout_idx + 1, ret.count);
+            LOG_ERR("layout vs group name count mismatch: %zd > %zd",
+                    layout_idx + 1, ret.count);
             goto err;
         }
 
         char *sym = strdup(fname);
-        if (sym == NULL) {
-            printf("failed to allocate memory for symbol: %s (%d)",
-                   strerror(errno), errno);
-            goto err;
-        }
-
         ret.layouts[layout_idx++].symbol = sym;
     }
 
     if (layout_idx != ret.count) {
-        printf("layout vs group name count mismatch: %zd != %zd\n",
-               layout_idx, ret.count);
+        LOG_ERR("layout vs group name count mismatch: %zd != %zd",
+                layout_idx, ret.count);
         goto err;
     }
 
@@ -239,8 +230,7 @@ get_current_layout(xcb_connection_t *conn)
         conn, cookie, &err);
 
     if (err != NULL) {
-        printf("%d: %s\n", err->error_code, "failed to get XKB state");
-        free(err);
+        LOG_ERR("failed to get XKB state (%d)", err->error_code);
         return -1;
     }
 
@@ -273,8 +263,7 @@ register_for_events(xcb_connection_t *conn)
 
     xcb_generic_error_t *err = xcb_request_check(conn, cookie);
     if (err != NULL) {
-        printf("%d: %s\n", err->error_code, "failed to register for events");
-        free(err);
+        LOG_ERR("failed to register for events (%d)", err->error_code);
         return false;
     }
 
@@ -307,7 +296,7 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
         assert(pret == 1 && "unexpected poll(3) return value");
 
         if (pfds[1].revents & POLLHUP) {
-            puts("I/O error, server disconnect?");
+            LOG_WARN("I/O error, server disconnect?");
             break;
         }
 
@@ -324,14 +313,14 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
              _evt = xcb_poll_for_event(conn)) {
 
             if (_evt->response_type != xkb_event_base) {
-                printf("non-XKB event ignored: %d\n", _evt->response_type);
+                LOG_WARN("non-XKB event ignored: %d", _evt->response_type);
                 free(_evt);
                 continue;
             }
 
             switch(_evt->pad0) {
             default:
-                printf("unimplemented XKB event: %d\n", _evt->pad0);
+                LOG_WARN("unimplemented XKB event: %d", _evt->pad0);
                 break;
 
             case XCB_XKB_NEW_KEYBOARD_NOTIFY: {
@@ -375,11 +364,11 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
             }
 
             case XCB_XKB_MAP_NOTIFY:
-                printf("map event unimplemented\n");
+                LOG_WARN("map event unimplemented");
                 break;
 
             case XCB_XKB_INDICATOR_STATE_NOTIFY:
-                printf("indicator state event unimplemented\n");
+                LOG_WARN("indicator state event unimplemented");
                 break;
             }
 
@@ -413,7 +402,7 @@ talk_to_xkb(int abort_fd, const struct bar *bar, struct private *m,
         return false;
 
     if (current >= layouts.count) {
-        printf("current layout index: %d >= %zd\n", current, layouts.count);
+        LOG_ERR("current layout index: %d >= %zd", current, layouts.count);
         free_layouts(layouts);
         return false;
     }
@@ -444,7 +433,7 @@ run(struct module_run_context *ctx)
     //struct private *m = ctx->module->private;
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
     if (conn == NULL) {
-        puts("failed to connect to X server");
+        LOG_ERR("failed to connect to X server");
         return EXIT_FAILURE;
     }
 
