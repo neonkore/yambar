@@ -449,6 +449,9 @@ module_xkb(struct particle *label)
 {
     struct private *m = malloc(sizeof(*m));
     m->label = label;
+    m->current = 0;
+    m->layouts.count = 0;
+    m->layouts.layouts = NULL;
 
     struct module *mod = malloc(sizeof(*mod));
     mod->bar = NULL;
