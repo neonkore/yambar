@@ -120,7 +120,7 @@ readint_from_fd(int fd)
     assert(s != NULL);
 
     long ret;
-    int r = sscanf(s, "%lu", &ret);
+    int r = sscanf(s, "%ld", &ret);
     assert(r == 1);
 
     return ret;
