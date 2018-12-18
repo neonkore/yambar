@@ -12,5 +12,10 @@ void log_class(enum log_class log_class, const char *module,
     log_class(LOG_CLASS_WARNING, LOG_MODULE, __FILE__, __LINE__, fmt, ## __VA_ARGS__)
 #define LOG_INFO(fmt, ...)  \
     log_class(LOG_CLASS_INFO, LOG_MODULE, __FILE__, __LINE__, fmt, ## __VA_ARGS__)
-#define LOG_DBG(fmt, ...)  \
+
+#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
+ #define LOG_DBG(fmt, ...)  \
     log_class(LOG_CLASS_DEBUG, LOG_MODULE, __FILE__, __LINE__, fmt, ## __VA_ARGS__)
+#else
+ #define LOG_DBG(fmt, ...)
+#endif
