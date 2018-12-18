@@ -162,7 +162,7 @@ handle_get_version_reply(struct private *m, const struct json_object *json)
 
     assert(version != NULL);
     assert(json_object_is_type(version, json_type_string));
-    LOG_INFO("Connected to i3: %s", json_object_get_string(version));
+    LOG_INFO("connected to i3: %s", json_object_get_string(version));
     return true;
 }
 
