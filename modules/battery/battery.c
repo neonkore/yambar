@@ -52,6 +52,9 @@ static struct exposable *
 content(const struct module *mod)
 {
     const struct private *m = mod->private;
+
+    mtx_lock(&((struct module *)mod)->lock);
+
     assert(m->state == STATE_FULL ||
            m->state == STATE_CHARGING ||
            m->state == STATE_DISCHARGING);
@@ -88,6 +91,8 @@ content(const struct module *mod)
         },
         .count = 6,
     };
+
+    mtx_unlock(&((struct module *)mod)->lock);
 
     struct exposable *exposable = m->label->instantiate(m->label, &tags);
 
@@ -138,6 +143,8 @@ run(struct module_run_context *ctx)
     int base_dir_fd = openat(pw_fd, m->battery, O_RDONLY);
     assert(base_dir_fd != -1);
 
+    mtx_lock(&ctx->module->lock);
+
     {
         int fd = openat(base_dir_fd, "manufacturer", O_RDONLY);
         assert(fd != -1);
@@ -174,6 +181,8 @@ run(struct module_run_context *ctx)
     LOG_INFO("%s: %s %s (at %.1f%% of original capacity)",
              m->battery, m->manufacturer, m->model,
              100.0 * m->energy_full / energy_full_design);
+
+    mtx_unlock(&ctx->module->lock);
 
     int status_fd = openat(base_dir_fd, "status", O_RDONLY);
     assert(status_fd != -1);
@@ -242,10 +251,12 @@ run(struct module_run_context *ctx)
         LOG_DBG("capacity: %ld, energy: %ld, power: %ld",
                 capacity, energy, power);
 
+        mtx_lock(&ctx->module->lock);
         m->state = state;
         m->capacity = capacity;
         m->energy = energy;
         m->power = power;
+        mtx_unlock(&ctx->module->lock);
 
         bar->refresh(bar);
     }
