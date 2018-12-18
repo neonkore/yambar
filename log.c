@@ -23,11 +23,15 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
     snprintf(clr, sizeof(clr), "\e[%dm", class_clr);
     printf("%s%s%s: ", colorize ? clr : "", class, colorize ? "\e[0m" : "");
 
+    if (colorize)
+        printf("\e[2m");
 #if defined(_DEBUG)
     printf("%s:%d: ", file, lineno);
 #else
     printf("%s: ", module);
 #endif
+    if (colorize)
+        printf("\e[0m");
 
     //printf("%%s\n", buf);
     vprintf(fmt, va);
