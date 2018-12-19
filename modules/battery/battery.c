@@ -127,7 +127,10 @@ readint_from_fd(int fd)
 
     long ret;
     int r = sscanf(s, "%ld", &ret);
-    assert(r == 1);
+    if (r != 1) {
+        LOG_WARN("failed to convert \"%s\" to an integer", s);
+        return 0;
+    }
 
     return ret;
 }
@@ -136,19 +139,25 @@ static int
 initialize(struct private *m)
 {
     int pw_fd = open("/sys/class/power_supply", O_RDONLY);
-    if (pw_fd == -1)
+    if (pw_fd == -1) {
+        LOG_ERRNO("/sys/class/power_supply");
         return -1;
+    }
 
     int base_dir_fd = openat(pw_fd, m->battery, O_RDONLY);
     close(pw_fd);
 
-    if (base_dir_fd == -1)
+    if (base_dir_fd == -1) {
+        LOG_ERRNO("%s", m->battery);
         return -1;
+    }
 
     {
         int fd = openat(base_dir_fd, "manufacturer", O_RDONLY);
-        if (fd == -1)
+        if (fd == -1) {
+            LOG_ERRNO("/sys/class/power_supply/%s/manufacturer", m->battery);
             goto err;
+        }
 
         m->manufacturer = strdup(readline_from_fd(fd));
         close(fd);
@@ -156,8 +165,10 @@ initialize(struct private *m)
 
     {
         int fd = openat(base_dir_fd, "model_name", O_RDONLY);
-        if (fd == -1)
+        if (fd == -1) {
+            LOG_ERRNO("/sys/class/power_supply/%s/model_name", m->battery);
             goto err;
+        }
 
         m->model = strdup(readline_from_fd(fd));
         close(fd);
@@ -165,8 +176,10 @@ initialize(struct private *m)
 
     {
         int fd = openat(base_dir_fd, "energy_full_design", O_RDONLY);
-        if (fd == -1)
+        if (fd == -1) {
+            LOG_ERRNO("/sys/class/power_supply/%s/energy_full_design", m->battery);
             goto err;
+        }
 
         m->energy_full_design = readint_from_fd(fd);
         close(fd);
@@ -174,8 +187,10 @@ initialize(struct private *m)
 
     {
         int fd = openat(base_dir_fd, "energy_full", O_RDONLY);
-        if (fd == -1)
+        if (fd == -1) {
+            LOG_ERRNO("/sys/class/power_supply/%s/energy_full", m->battery);
             goto err;
+        }
 
         m->energy_full = readint_from_fd(fd);
         close(fd);
@@ -212,11 +227,9 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
     else {
         LOG_ERR("unrecognized battery state: %s", status);
         state = STATE_DISCHARGING;
-        assert(false && "unrecognized battery state");
     }
 
-    LOG_DBG("capacity: %ld, energy: %ld, power: %ld",
-            capacity, energy, power);
+    LOG_DBG("capacity: %ld, energy: %ld, power: %ld", capacity, energy, power);
 
     mtx_lock(&mod->lock);
     m->state = state;
