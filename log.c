@@ -2,11 +2,13 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 
 static void
 _log(enum log_class log_class, const char *module, const char *file, int lineno,
-     const char *fmt, va_list va)
+     const char *fmt, int sys_errno, va_list va)
 {
     bool colorize = true;
 
@@ -35,6 +37,10 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
 
     //printf("%%s\n", buf);
     vprintf(fmt, va);
+
+    if (sys_errno != 0)
+        printf(": %s", strerror(sys_errno));
+
     printf("\n");
 }
 
@@ -44,6 +50,16 @@ log_msg(enum log_class log_class, const char *module,
 {
     va_list ap;
     va_start(ap, fmt);
-    _log(log_class, module, file, lineno, fmt, ap);
+    _log(log_class, module, file, lineno, fmt, 0, ap);
+    va_end(ap);
+}
+
+void log_errno(enum log_class log_class, const char *module,
+               const char *file, int lineno,
+               const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    _log(log_class, module, file, lineno, fmt, errno, ap);
     va_end(ap);
 }
