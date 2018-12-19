@@ -22,7 +22,6 @@ struct private {
     struct particle *label;
 
     /* Accessed from both our thread, and the bar thread */
-    mtx_t lock;
     char *application;
     char *title;
 
@@ -68,12 +67,14 @@ update_active_window(struct private *m)
 }
 
 static void
-update_application(struct private *m)
+update_application(struct module *mod)
 {
-    mtx_lock(&m->lock);
+    struct private *m = mod->private;
+
+    mtx_lock(&mod->lock);
     free(m->application);
     m->application = NULL;
-    mtx_unlock(&m->lock);
+    mtx_unlock(&mod->lock);
 
     if (m->active_win == 0)
         return;
@@ -110,18 +111,20 @@ update_application(struct private *m)
     if (bytes == -1)
         return;
 
-    mtx_lock(&m->lock);
+    mtx_lock(&mod->lock);
     m->application = strdup(basename(cmd));
-    mtx_unlock(&m->lock);
+    mtx_unlock(&mod->lock);
 }
 
 static void
-update_title(struct private *m)
+update_title(struct module *mod)
 {
-    mtx_lock(&m->lock);
+    struct private *m = mod->private;
+
+    mtx_lock(&mod->lock);
     free(m->title);
     m->title = NULL;
-    mtx_unlock(&m->lock);
+    mtx_unlock(&mod->lock);
 
     if (m->active_win == 0)
         return;
@@ -156,11 +159,11 @@ update_title(struct private *m)
     }
 
     if (title_len > 0) {
-        mtx_lock(&m->lock);
+        mtx_lock(&mod->lock);
         m->title = malloc(title_len + 1);
         memcpy(m->title, title, title_len);
         m->title[title_len] = '\0';
-        mtx_unlock(&m->lock);
+        mtx_unlock(&mod->lock);
     }
 
     free(e1);
@@ -203,8 +206,8 @@ run(struct module_run_context *ctx)
     xcb_flush(m->conn);
 
     update_active_window(m);
-    update_application(m);
-    update_title(m);
+    update_application(mod);
+    update_title(mod);
     mod->bar->refresh(mod->bar);
 
     module_signal_ready(ctx);
@@ -230,15 +233,15 @@ run(struct module_run_context *ctx)
                 {
                     /* Active desktop and/or window changed */
                     update_active_window(m);
-                    update_application(m);
-                    update_title(m);
+                    update_application(mod);
+                    update_title(mod);
                     mod->bar->refresh(mod->bar);
                 } else if (e->atom == _NET_WM_VISIBLE_NAME ||
                            e->atom == _NET_WM_NAME ||
                            e->atom == XCB_ATOM_WM_NAME)
                 {
                     assert(e->window == m->active_win);
-                    update_title(m);
+                    update_title(mod);
                     mod->bar->refresh(mod->bar);
                 }
                 break;
@@ -261,14 +264,14 @@ content(struct module *mod)
 {
     struct private *m = mod->private;
 
-    mtx_lock(&m->lock);
+    mtx_lock(&mod->lock);
     struct tag_set tags = {
         .tags = (struct tag *[]){
             tag_new_string("application", m->application ? m->application : ""),
             tag_new_string("title", m->title ? m->title : "")},
         .count = 2,
     };
-    mtx_unlock(&m->lock);
+    mtx_unlock(&mod->lock);
 
     struct exposable *exposable = m->label->instantiate(m->label, &tags);
 
@@ -281,7 +284,6 @@ destroy(struct module *mod)
 {
     struct private *m = mod->private;
     m->label->destroy(m->label);
-    mtx_destroy(&m->lock);
     free(m->application);
     free(m->title);
     free(m);
@@ -293,7 +295,6 @@ module_xwindow(struct particle *label)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->label = label;
-    mtx_init(&m->lock, mtx_plain);
 
     struct module *mod = module_common_new();
     mod->private = m;
