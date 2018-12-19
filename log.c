@@ -39,8 +39,8 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
 }
 
 void
-log_class(enum log_class log_class, const char *module,
-          const char *file, int lineno, const char *fmt, ...)
+log_msg(enum log_class log_class, const char *module,
+        const char *file, int lineno, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
