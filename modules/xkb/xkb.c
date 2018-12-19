@@ -271,9 +271,12 @@ register_for_events(xcb_connection_t *conn)
 }
 
 static bool
-event_loop(int abort_fd, const struct bar *bar, struct private *m,
-           xcb_connection_t *conn, int xkb_event_base)
+event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
+           int xkb_event_base)
 {
+    struct private *m = ctx->module->private;
+    const struct bar *bar = ctx->module->bar;
+
     bool ret = false;
     bool has_error = false;
 
@@ -282,7 +285,7 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
 
     while (!has_error) {
         struct pollfd pfds[] = {
-            {.fd = abort_fd, .events = POLLIN },
+            {.fd = ctx->abort_fd, .events = POLLIN },
             {.fd = xcb_fd, .events = POLLIN | POLLHUP }
         };
 
@@ -338,7 +341,7 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
 
                 if (current < layouts.count) {
                     free_layouts(m->layouts);
-                    m->layouts = layouts;//json_all(layouts, current);
+                    m->layouts = layouts;
                     m->current = current;
                     bar->refresh(bar);
                 } else {
@@ -346,7 +349,6 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
                     free_layouts(layouts);
                 }
 
-                //free_layouts(layouts);
                 break;
             }
 
@@ -355,7 +357,6 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
                     (const xcb_xkb_state_notify_event_t *)_evt;
 
                 if (evt->changed & XCB_XKB_STATE_PART_GROUP_STATE) {
-                    ;//json_layout_change(evt->group);
                     m->current = evt->group;
                     bar->refresh(bar);
                 }
@@ -380,9 +381,11 @@ event_loop(int abort_fd, const struct bar *bar, struct private *m,
 }
 
 static bool
-talk_to_xkb(int abort_fd, const struct bar *bar, struct private *m,
-            xcb_connection_t *conn)
+talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
 {
+    struct private *m = ctx->module->private;
+    const struct bar *bar = ctx->module->bar;
+
     if (!xkb_enable(conn))
         return false;
 
@@ -407,24 +410,12 @@ talk_to_xkb(int abort_fd, const struct bar *bar, struct private *m,
         return false;
     }
 
-    //json_all(layouts, current);
     m->layouts = layouts;
     m->current = current;
     bar->refresh(bar);
-    //free_layouts(layouts);
 
-#if 0
-    /* Signal handlers (disconnects from X) */
-    const struct sigaction sa = { .sa_handler = &sighandler };
-    if (sigaction(SIGINT, &sa, NULL) == -1 ||
-        sigaction(SIGTERM, &sa, NULL) == -1) {
-
-        json_errno("failed to register signal handlers");
-        return false;
-    }
-#endif
-
-    return event_loop(abort_fd, bar, m, conn, xkb_event_base);
+    module_signal_ready(ctx);
+    return event_loop(ctx, conn, xkb_event_base);
 }
 
 static int
@@ -437,11 +428,7 @@ run(struct module_run_context *ctx)
         return EXIT_FAILURE;
     }
 
-    /* TODO: move this to later */
-    module_signal_ready(ctx);
-
-    int ret = talk_to_xkb(ctx->abort_fd, ctx->module->bar, ctx->module->private, conn)
-        ? EXIT_SUCCESS : EXIT_FAILURE;
+    int ret = talk_to_xkb(ctx, conn) ? EXIT_SUCCESS : EXIT_FAILURE;
 
     xcb_disconnect(conn);
     return ret;
