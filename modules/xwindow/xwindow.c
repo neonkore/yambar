@@ -283,7 +283,7 @@ destroy(struct module *mod)
     free(m->application);
     free(m->title);
     free(m);
-    free(mod);
+    module_default_destroy(mod);
 }
 
 struct module *
@@ -293,14 +293,10 @@ module_xwindow(struct particle *label)
     m->label = label;
     mtx_init(&m->lock, mtx_plain);
 
-    struct module *mod = malloc(sizeof(*mod));
-    mod->bar = NULL;
+    struct module *mod = module_common_new();
     mod->private = m;
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
-    mod->begin_expose = &module_default_begin_expose;
-    mod->expose = &module_default_expose;
-    mod->end_expose = &module_default_end_expose;
     return mod;
 }
