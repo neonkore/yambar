@@ -40,7 +40,6 @@ struct private {
     int left_spacing;
     int right_spacing;
 
-    mtx_t lock;
     struct {
         struct ws_content *v;
         size_t count;
@@ -331,7 +330,7 @@ run(struct module_run_context *ctx)
             struct json_object *json = json_tokener_parse(json_str);
             assert(json != NULL);
 
-            mtx_lock(&m->lock);
+            mtx_lock(&ctx->module->lock);
 
             switch (hdr->type) {
             case I3_IPC_REPLY_TYPE_VERSION:
@@ -363,7 +362,7 @@ run(struct module_run_context *ctx)
             default: assert(false);
             }
 
-            mtx_unlock(&m->lock);
+            mtx_unlock(&ctx->module->lock);
 
             json_object_put(json);
             json_tokener_free(tokener);
@@ -392,7 +391,6 @@ destroy(struct module *mod)
     free(m->ws_content.v);
     workspaces_free(m);
 
-    mtx_destroy(&m->lock);
     free(m);
     module_default_destroy(mod);
 }
@@ -402,7 +400,7 @@ content(struct module *mod)
 {
     struct private *m = mod->private;
 
-    mtx_lock(&m->lock);
+    mtx_lock(&mod->lock);
 
     struct exposable *particles[m->workspaces.count];
 
@@ -447,7 +445,7 @@ content(struct module *mod)
         tag_set_destroy(&tags);
     }
 
-    mtx_unlock(&m->lock);
+    mtx_unlock(&mod->lock);
     return dynlist_exposable_new(
         particles, particle_count, m->left_spacing, m->right_spacing);
 }
@@ -461,7 +459,6 @@ module_i3(struct i3_workspaces workspaces[], size_t workspace_count,
     m->left_spacing = left_spacing;
     m->right_spacing = right_spacing;
 
-    mtx_init(&m->lock, mtx_plain);
     m->ws_content.count = workspace_count;
     m->ws_content.v = malloc(workspace_count * sizeof(m->ws_content.v[0]));
 
