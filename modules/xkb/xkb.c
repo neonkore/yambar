@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -436,6 +437,9 @@ run(struct module_run_context *ctx)
         LOG_ERR("failed to connect to X server");
         return EXIT_FAILURE;
     }
+
+    /* TODO: move this to later */
+    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
 
     int ret = talk_to_xkb(ctx->abort_fd, ctx->module->bar, ctx->module->private, conn)
         ? EXIT_SUCCESS : EXIT_FAILURE;

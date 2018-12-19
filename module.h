@@ -11,6 +11,7 @@ struct module;
 
 struct module_run_context {
     struct module *module;
+    int ready_fd;
     int abort_fd;
 };
 

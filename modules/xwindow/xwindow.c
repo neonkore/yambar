@@ -207,6 +207,8 @@ run(struct module_run_context *ctx)
     update_title(m);
     mod->bar->refresh(mod->bar);
 
+    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
+
     int xcb_fd = xcb_get_file_descriptor(m->conn);
     while (true) {
         struct pollfd fds[] = {{.fd = ctx->abort_fd, .events = POLLIN},

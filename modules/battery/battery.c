@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
@@ -201,6 +202,8 @@ run(struct module_run_context *ctx)
 
     udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
     udev_monitor_enable_receiving(mon);
+
+    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
 
     bool first = true;
     while (true) {
