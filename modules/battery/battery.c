@@ -26,6 +26,7 @@ struct private {
     char *battery;
     char *manufacturer;
     char *model;
+    long energy_full_design;
     long energy_full;
 
     enum state state;
@@ -132,20 +133,22 @@ readint_from_fd(int fd)
 }
 
 static int
-run(struct module_run_context *ctx)
+initialize(struct private *m)
 {
-    const struct bar *bar = ctx->module->bar;
-    struct private *m = ctx->module->private;
-
     int pw_fd = open("/sys/class/power_supply", O_RDONLY);
-    assert(pw_fd != -1);
+    if (pw_fd == -1)
+        return -1;
 
     int base_dir_fd = openat(pw_fd, m->battery, O_RDONLY);
-    assert(base_dir_fd != -1);
+    close(pw_fd);
+
+    if (base_dir_fd == -1)
+        return -1;
 
     {
         int fd = openat(base_dir_fd, "manufacturer", O_RDONLY);
-        assert(fd != -1);
+        if (fd == -1)
+            goto err;
 
         m->manufacturer = strdup(readline_from_fd(fd));
         close(fd);
@@ -153,122 +156,156 @@ run(struct module_run_context *ctx)
 
     {
         int fd = openat(base_dir_fd, "model_name", O_RDONLY);
-        assert(fd != -1);
+        if (fd == -1)
+            goto err;
 
         m->model = strdup(readline_from_fd(fd));
         close(fd);
     }
 
-    long energy_full_design = 0;
     {
         int fd = openat(base_dir_fd, "energy_full_design", O_RDONLY);
-        assert(fd != -1);
+        if (fd == -1)
+            goto err;
 
-        energy_full_design = readint_from_fd(fd);
+        m->energy_full_design = readint_from_fd(fd);
         close(fd);
     }
 
     {
         int fd = openat(base_dir_fd, "energy_full", O_RDONLY);
-        assert(fd != -1);
+        if (fd == -1)
+            goto err;
 
         m->energy_full = readint_from_fd(fd);
         close(fd);
     }
 
+    return base_dir_fd;
+
+err:
+    close(base_dir_fd);
+    return -1;
+}
+
+static void
+update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
+              int status_fd)
+{
+    struct private *m = mod->private;
+
+    long capacity = readint_from_fd(capacity_fd);
+    long energy = readint_from_fd(energy_fd);
+    long power = readint_from_fd(power_fd);
+
+    const char *status = readline_from_fd(status_fd);
+    enum state state;
+
+    if (strcmp(status, "Full") == 0)
+        state = STATE_FULL;
+    else if (strcmp(status, "Charging") == 0)
+        state = STATE_CHARGING;
+    else if (strcmp(status, "Discharging") == 0)
+        state = STATE_DISCHARGING;
+    else if (strcmp(status, "Unknown") == 0)
+        state = STATE_DISCHARGING;
+    else {
+        LOG_ERR("unrecognized battery state: %s", status);
+        state = STATE_DISCHARGING;
+        assert(false && "unrecognized battery state");
+    }
+
+    LOG_DBG("capacity: %ld, energy: %ld, power: %ld",
+            capacity, energy, power);
+
+    mtx_lock(&mod->lock);
+    m->state = state;
+    m->capacity = capacity;
+    m->energy = energy;
+    m->power = power;
+    mtx_unlock(&mod->lock);
+}
+
+static int
+run(struct module_run_context *ctx)
+{
+    const struct bar *bar = ctx->module->bar;
+    struct private *m = ctx->module->private;
+
+    int base_dir_fd = initialize(m);
+    if (base_dir_fd == -1) {
+        module_signal_ready(ctx);
+        return -1;
+    }
+
     LOG_INFO("%s: %s %s (at %.1f%% of original capacity)",
              m->battery, m->manufacturer, m->model,
-             100.0 * m->energy_full / energy_full_design);
+             100.0 * m->energy_full / m->energy_full_design);
 
+    int ret = -1;
     int status_fd = openat(base_dir_fd, "status", O_RDONLY);
-    assert(status_fd != -1);
-
     int capacity_fd = openat(base_dir_fd, "capacity", O_RDONLY);
-    assert(capacity_fd != -1);
-
     int energy_fd = openat(base_dir_fd, "energy_now", O_RDONLY);
-    assert(energy_fd != -1);
-
     int power_fd = openat(base_dir_fd, "power_now", O_RDONLY);
-    assert(power_fd != -1);
 
     struct udev *udev = udev_new();
     struct udev_monitor *mon = udev_monitor_new_from_netlink(udev, "udev");
 
+    if (status_fd == -1 || capacity_fd == -1 || energy_fd == -1 ||
+        power_fd == -1 || udev == NULL || mon == NULL)
+    {
+        module_signal_ready(ctx);
+        goto out;
+    }
+
     udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
     udev_monitor_enable_receiving(mon);
 
+    update_status(ctx->module, capacity_fd, energy_fd, power_fd, status_fd);
     module_signal_ready(ctx);
 
-    bool first = true;
     while (true) {
-        if (!first) {
-            struct pollfd fds[] = {
-                {.fd = ctx->abort_fd, .events = POLLIN},
-                {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
-            };
-            poll(fds, 2, m->poll_interval * 1000);
+        struct pollfd fds[] = {
+            {.fd = ctx->abort_fd, .events = POLLIN},
+            {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
+        };
+        poll(fds, 2, m->poll_interval * 1000);
 
-            if (fds[0].revents & POLLIN)
-                break;
+        if (fds[0].revents & POLLIN)
+            break;
 
-            if (fds[1].revents & POLLIN) {
-                struct udev_device *dev = udev_monitor_receive_device(mon);
-                const char *sysname = udev_device_get_sysname(dev);
+        if (fds[1].revents & POLLIN) {
+            struct udev_device *dev = udev_monitor_receive_device(mon);
+            const char *sysname = udev_device_get_sysname(dev);
 
-                bool is_us = strcmp(sysname, m->battery) == 0;
-                udev_device_unref(dev);
+            bool is_us = strcmp(sysname, m->battery) == 0;
+            udev_device_unref(dev);
 
-                if (!is_us)
-                    continue;
-            }
-        } else
-            first = false;
-
-        long capacity = readint_from_fd(capacity_fd);
-        long energy = readint_from_fd(energy_fd);
-        long power = readint_from_fd(power_fd);
-
-        const char *status = readline_from_fd(status_fd);
-        enum state state;
-
-        if (strcmp(status, "Full") == 0)
-            state = STATE_FULL;
-        else if (strcmp(status, "Charging") == 0)
-            state = STATE_CHARGING;
-        else if (strcmp(status, "Discharging") == 0)
-            state = STATE_DISCHARGING;
-        else if (strcmp(status, "Unknown") == 0)
-            state = STATE_DISCHARGING;
-        else {
-            LOG_ERR("unrecognized battery state: %s", status);
-            state = STATE_DISCHARGING;
-            assert(false && "unrecognized battery state");
+            if (!is_us)
+                continue;
         }
 
-        LOG_DBG("capacity: %ld, energy: %ld, power: %ld",
-                capacity, energy, power);
-
-        mtx_lock(&ctx->module->lock);
-        m->state = state;
-        m->capacity = capacity;
-        m->energy = energy;
-        m->power = power;
-        mtx_unlock(&ctx->module->lock);
-
+        update_status(ctx->module, capacity_fd, energy_fd, power_fd, status_fd);
         bar->refresh(bar);
     }
 
-    udev_monitor_unref(mon);
-    udev_unref(udev);
+out:
+    if (mon != NULL)
+        udev_monitor_unref(mon);
+    if (udev != NULL)
+        udev_unref(udev);
 
-    close(power_fd);
-    close(energy_fd);
-    close(capacity_fd);
-    close(status_fd);
+    if (power_fd != -1)
+        close(power_fd);
+    if (energy_fd != -1)
+        close(energy_fd);
+    if (capacity_fd != -1)
+        close(capacity_fd);
+    if (status_fd != -1)
+        close(status_fd);
+
     close(base_dir_fd);
-    close(pw_fd);
-    return 0;
+    return ret;
 }
 
 struct module *
