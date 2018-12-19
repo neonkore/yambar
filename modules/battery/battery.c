@@ -143,8 +143,6 @@ run(struct module_run_context *ctx)
     int base_dir_fd = openat(pw_fd, m->battery, O_RDONLY);
     assert(base_dir_fd != -1);
 
-    mtx_lock(&ctx->module->lock);
-
     {
         int fd = openat(base_dir_fd, "manufacturer", O_RDONLY);
         assert(fd != -1);
@@ -181,8 +179,6 @@ run(struct module_run_context *ctx)
     LOG_INFO("%s: %s %s (at %.1f%% of original capacity)",
              m->battery, m->manufacturer, m->model,
              100.0 * m->energy_full / energy_full_design);
-
-    mtx_unlock(&ctx->module->lock);
 
     int status_fd = openat(base_dir_fd, "status", O_RDONLY);
     assert(status_fd != -1);
