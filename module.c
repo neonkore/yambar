@@ -25,7 +25,7 @@ module_default_destroy(struct module *mod)
 }
 
 struct module_expose_context
-module_default_begin_expose(const struct module *mod, cairo_t *cr)
+module_default_begin_expose(struct module *mod, cairo_t *cr)
 {
     struct exposable *e = mod->content(mod);
     return (struct module_expose_context){

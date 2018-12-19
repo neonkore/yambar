@@ -29,8 +29,8 @@ struct module {
     int (*run)(struct module_run_context *ctx);
     void (*destroy)(struct module *module);
 
-    struct exposable *(*content)(const struct module *mod);
-    struct module_expose_context (*begin_expose)(const struct module *mod, cairo_t *cr);
+    struct exposable *(*content)(struct module *mod);
+    struct module_expose_context (*begin_expose)(struct module *mod, cairo_t *cr);
     void (*expose)(const struct module *mod,
                    const struct module_expose_context *ctx,
                    cairo_t *cr, int x, int y, int height);
@@ -42,7 +42,7 @@ struct module *module_common_new(void);
 void module_default_destroy(struct module *mod);
 
 struct module_expose_context module_default_begin_expose(
-    const struct module *mod, cairo_t *cr);
+    struct module *mod, cairo_t *cr);
 
 void module_default_expose(
     const struct module *mod,

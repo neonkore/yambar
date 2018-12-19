@@ -397,7 +397,7 @@ destroy(struct module *mod)
 }
 
 static struct exposable *
-content(const struct module *mod)
+content(struct module *mod)
 {
     struct private *m = mod->private;
 

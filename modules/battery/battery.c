@@ -49,11 +49,11 @@ destroy(struct module *mod)
 }
 
 static struct exposable *
-content(const struct module *mod)
+content(struct module *mod)
 {
     const struct private *m = mod->private;
 
-    mtx_lock(&((struct module *)mod)->lock);
+    mtx_lock(&mod->lock);
 
     assert(m->state == STATE_FULL ||
            m->state == STATE_CHARGING ||
@@ -92,7 +92,7 @@ content(const struct module *mod)
         .count = 6,
     };
 
-    mtx_unlock(&((struct module *)mod)->lock);
+    mtx_unlock(&mod->lock);
 
     struct exposable *exposable = m->label->instantiate(m->label, &tags);
 

@@ -101,21 +101,21 @@ expose(const struct bar *_bar)
 
     struct module_expose_context ctx_left[bar->left.count];
     for (size_t i = 0; i < bar->left.count; i++) {
-        const struct module *m = bar->left.mods[i];
+        struct module *m = bar->left.mods[i];
         ctx_left[i] = m->begin_expose(m, bar->cairo);
         left_width += bar->left_spacing + ctx_left[i].width + bar->right_spacing;
     }
 
     struct module_expose_context ctx_center[bar->center.count];
     for (size_t i = 0; i < bar->center.count; i++) {
-        const struct module *m = bar->center.mods[i];
+        struct module *m = bar->center.mods[i];
         ctx_center[i] = m->begin_expose(m, bar->cairo);
         center_width += bar->left_spacing + ctx_center[i].width + bar->right_spacing;
     }
 
     struct module_expose_context ctx_right[bar->right.count];
     for (size_t i = 0; i < bar->right.count; i++) {
-        const struct module *m = bar->right.mods[i];
+        struct module *m = bar->right.mods[i];
         ctx_right[i] = m->begin_expose(m, bar->cairo);
         right_width += bar->left_spacing + ctx_right[i].width + bar->right_spacing;
     }
