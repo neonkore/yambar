@@ -393,7 +393,7 @@ destroy(struct module *mod)
 
     mtx_destroy(&m->lock);
     free(m);
-    free(mod);
+    module_default_destroy(mod);
 }
 
 static struct exposable *
@@ -472,14 +472,10 @@ module_i3(struct i3_workspaces workspaces[], size_t workspace_count,
     m->workspaces.v = NULL;
     m->workspaces.count = 0;
 
-    struct module *mod = malloc(sizeof(*mod));
-    mod->bar = NULL;
+    struct module *mod = module_common_new();
     mod->private = m;
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
-    mod->begin_expose = &module_default_begin_expose;
-    mod->expose = &module_default_expose;
-    mod->end_expose = &module_default_end_expose;
     return mod;
 }
