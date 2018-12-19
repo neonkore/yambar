@@ -1,5 +1,7 @@
 #include "module.h"
 #include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
 
 struct module *
 module_common_new(void)
@@ -22,6 +24,12 @@ module_default_destroy(struct module *mod)
 {
     mtx_destroy(&mod->lock);
     free(mod);
+}
+
+void
+module_signal_ready(struct module_run_context *ctx)
+{
+    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
 }
 
 struct module_expose_context

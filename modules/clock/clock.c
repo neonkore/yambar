@@ -1,8 +1,6 @@
 #include "clock.h"
 #include <stdlib.h>
-#include <stdint.h>
 #include <time.h>
-#include <unistd.h>
 #include <assert.h>
 
 #include <poll.h>
@@ -52,7 +50,7 @@ run(struct module_run_context *ctx)
 {
     const struct bar *bar = ctx->module->bar;
 
-    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
+    module_signal_ready(ctx);
 
     while (true) {
         time_t now = time(NULL);

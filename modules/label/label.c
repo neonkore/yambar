@@ -1,8 +1,6 @@
 #include "label.h"
 
 #include <stdlib.h>
-#include <stdint.h>
-#include <unistd.h>
 #include <assert.h>
 
 #include <poll.h>
@@ -30,7 +28,7 @@ content(struct module *mod)
 static int
 run(struct module_run_context *ctx)
 {
-    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
+    module_signal_ready(ctx);
     return 0;
 }
 

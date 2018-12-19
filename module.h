@@ -39,6 +39,7 @@ struct module {
 };
 
 struct module *module_common_new(void);
+void module_signal_ready(struct module_run_context *ctx);
 
 void module_default_destroy(struct module *mod);
 

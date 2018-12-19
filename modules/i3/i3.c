@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
@@ -287,7 +286,7 @@ run(struct module_run_context *ctx)
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\"]");
 
-    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
+    module_signal_ready(ctx);
 
     char buf[1 * 1024 * 1024];  /* Some replies are *big*. TODO: grow dynamically */
     size_t buf_idx = 0;

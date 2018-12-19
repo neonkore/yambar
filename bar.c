@@ -417,7 +417,10 @@ run(struct bar_run_context *run_ctx)
     }
 
     LOG_DBG("waiting for modules to become ready");
-    for (size_t i = 0; i < bar->left.count + bar->center.count + bar->right.count; i++) {
+
+    for (size_t i = 0; i < (bar->left.count +
+                            bar->center.count +
+                            bar->right.count); i++) {
         uint64_t b;
         read(ready_fd, &b, sizeof(b));
     }
