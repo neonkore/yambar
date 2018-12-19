@@ -262,7 +262,7 @@ tag_new_string(const char *name, const char *value)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
-    priv->value_as_string = strdup(value);
+    priv->value_as_string = value != NULL ? strdup(value) : strdup("");
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
