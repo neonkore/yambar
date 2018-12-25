@@ -109,8 +109,10 @@ readline_from_fd(int fd)
     ssize_t sz = read(fd, buf, sizeof(buf) - 1);
     lseek(fd, 0, SEEK_SET);
 
-    if (sz < 0)
+    if (sz < 0) {
+        LOG_WARN("failed to read from FD=%d", fd);
         return NULL;
+    }
 
     buf[sz] = '\0';
     for (ssize_t i = sz - 1; i >= 0 && buf[i] == '\n'; sz--)
@@ -123,7 +125,8 @@ static long
 readint_from_fd(int fd)
 {
     const char *s = readline_from_fd(fd);
-    assert(s != NULL);
+    if (s == NULL)
+        return 0;
 
     long ret;
     int r = sscanf(s, "%ld", &ret);
