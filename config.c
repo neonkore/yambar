@@ -7,6 +7,9 @@
 
 #include "color.h"
 
+#include "decoration.h"
+#include "decorations/background.h"
+
 #include "particle.h"
 #include "particles/list.h"
 #include "particles/map.h"
@@ -86,8 +89,41 @@ font_from_config(const struct yml_node *node)
         y_offset != NULL ? yml_value_as_int(y_offset) : 0);
 }
 
+static struct deco *
+deco_background_from_config(const struct yml_node *node)
+{
+    assert(yml_is_dict(node));
+
+    const struct yml_node *color = yml_get_value(node, "color");
+    assert(yml_is_scalar(color));
+
+    return deco_background(color_from_hexstr(yml_value_as_string(color)));
+}
+
+static struct deco *
+deco_from_config(const struct yml_node *node)
+{
+    assert(yml_is_dict(node));
+    assert(yml_dict_length(node) == 1);
+
+    struct yml_dict_iter it = yml_dict_iter(node);
+    const struct yml_node *deco_type = it.key;
+    const struct yml_node *deco_data = it.value;
+
+    assert(yml_is_scalar(deco_type));
+    assert(yml_is_dict(deco_data));
+
+    const char *type = yml_value_as_string(deco_type);
+
+    if (strcmp(type, "background") == 0)
+        return deco_background_from_config(deco_data);
+    else
+        assert(false);
+}
+
 static struct particle *
-particle_string_from_config(const struct yml_node *node, const struct font *parent_font)
+particle_string_from_config(const struct yml_node *node,
+                            const struct font *parent_font)
 {
     assert(yml_is_dict(node));
 
@@ -232,22 +268,36 @@ particle_ramp_from_config(const struct yml_node *node, const struct font *parent
 static struct particle *
 particle_from_config(const struct yml_node *node, const struct font *parent_font)
 {
+#if 0
+    const struct yml_node *deco_node = yml_get_value(node, "deco");
+
+    assert(deco_node == NULL || yml_is_dict(deco_node));
+#endif
     assert(yml_is_dict(node));
     assert(yml_dict_length(node) == 1);
 
     struct yml_dict_iter pair = yml_dict_iter(node);
     const char *type = yml_value_as_string(pair.key);
 
+    struct particle *ret = NULL;
     if (strcmp(type, "string") == 0)
-        return particle_string_from_config(pair.value, parent_font);
+        ret = particle_string_from_config(pair.value, parent_font);
     else if (strcmp(type, "list") == 0)
-        return particle_list_from_config(pair.value, parent_font);
+        ret = particle_list_from_config(pair.value, parent_font);
     else if (strcmp(type, "map") == 0)
-        return particle_map_from_config(pair.value, parent_font);
+        ret = particle_map_from_config(pair.value, parent_font);
     else if (strcmp(type, "ramp") == 0)
-        return particle_ramp_from_config(pair.value, parent_font);
+        ret = particle_ramp_from_config(pair.value, parent_font);
     else
         assert(false);
+
+    const struct yml_node *deco_node = yml_get_value(pair.value, "deco");
+    assert(deco_node == NULL || yml_is_dict(deco_node));
+
+    if (deco_node != NULL)
+        ret->deco = deco_from_config(deco_node);
+
+    return ret;
 }
 
 static struct module *

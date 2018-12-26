@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cairo.h>
+
 #include "color.h"
+#include "decoration.h"
 #include "font.h"
 #include "tag.h"
 
@@ -12,6 +14,7 @@ struct particle {
     void *private;
 
     int left_margin, right_margin;
+    const struct deco *deco;
 
     void (*destroy)(struct particle *particle);
     struct exposable *(*instantiate)(const struct particle *particle,
