@@ -25,6 +25,7 @@ pkg_check_modules(UDEV REQUIRED libudev)                 # Module/battery
 add_executable(f00bar
   bar.c bar.h
   config.c config.h
+  decoration.h
   font.c font.h
   log.c log.h
   main.c
@@ -33,6 +34,8 @@ add_executable(f00bar
   tag.c tag.h
   xcb.c xcb.h
   yml.c yml.h
+
+  decorations/background.c decorations/background.h
 
   particles/list.c particles/list.h
   particles/map.c particles/map.h
