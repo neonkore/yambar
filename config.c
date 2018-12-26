@@ -9,6 +9,7 @@
 
 #include "decoration.h"
 #include "decorations/background.h"
+#include "decorations/underline.h"
 
 #include "particle.h"
 #include "particles/list.h"
@@ -101,6 +102,20 @@ deco_background_from_config(const struct yml_node *node)
 }
 
 static struct deco *
+deco_underline_from_config(const struct yml_node *node)
+{
+    assert(yml_is_dict(node));
+
+    const struct yml_node *size = yml_get_value(node, "size");
+    const struct yml_node *color = yml_get_value(node, "color");
+    assert(yml_is_scalar(size));
+    assert(yml_is_scalar(color));
+
+    return deco_underline(
+        yml_value_as_int(size), color_from_hexstr(yml_value_as_string(color)));
+}
+
+static struct deco *
 deco_from_config(const struct yml_node *node)
 {
     assert(yml_is_dict(node));
@@ -117,6 +132,8 @@ deco_from_config(const struct yml_node *node)
 
     if (strcmp(type, "background") == 0)
         return deco_background_from_config(deco_data);
+    else if (strcmp(type, "underline") == 0)
+        return deco_underline_from_config(deco_data);
     else
         assert(false);
 }
@@ -268,11 +285,6 @@ particle_ramp_from_config(const struct yml_node *node, const struct font *parent
 static struct particle *
 particle_from_config(const struct yml_node *node, const struct font *parent_font)
 {
-#if 0
-    const struct yml_node *deco_node = yml_get_value(node, "deco");
-
-    assert(deco_node == NULL || yml_is_dict(deco_node));
-#endif
     assert(yml_is_dict(node));
     assert(yml_dict_length(node) == 1);
 

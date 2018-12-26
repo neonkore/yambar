@@ -36,6 +36,7 @@ add_executable(f00bar
   yml.c yml.h
 
   decorations/background.c decorations/background.h
+  decorations/underline.c decorations/underline.h
 
   particles/list.c particles/list.h
   particles/map.c particles/map.h
