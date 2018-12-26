@@ -1,6 +1,14 @@
 #include "particle.h"
 #include <stdlib.h>
 
+void
+particle_default_destroy(struct particle *particle)
+{
+    if (particle->deco != NULL)
+        particle->deco->destroy(particle->deco);
+    free(particle);
+}
+
 struct particle *
 particle_common_new(int left_margin, int right_margin)
 {

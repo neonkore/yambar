@@ -14,7 +14,7 @@ struct particle {
     void *private;
 
     int left_margin, right_margin;
-    const struct deco *deco;
+    struct deco *deco;
 
     void (*destroy)(struct particle *particle);
     struct exposable *(*instantiate)(const struct particle *particle,
@@ -35,3 +35,4 @@ struct exposable {
 };
 
 struct particle *particle_common_new(int left_margin, int right_margin);
+void particle_default_destroy(struct particle *particle);
