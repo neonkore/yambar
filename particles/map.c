@@ -53,7 +53,7 @@ particle_destroy(struct particle *particle)
     free(map->map);
     free(map->tag);
     free(map);
-    free(particle);
+    particle_default_destroy(particle);
 }
 
 struct particle *
