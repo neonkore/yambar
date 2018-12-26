@@ -101,7 +101,7 @@ particle_destroy(struct particle *particle)
         p->particles[i]->destroy(p->particles[i]);
     free(p->particles);
     free(p);
-    free(particle);
+    particle_default_destroy(particle);
 }
 
 struct particle *
