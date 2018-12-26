@@ -51,23 +51,55 @@ struct private {
     } workspaces;
 };
 
-static struct workspace
-workspace_from_json(const struct json_object *json)
+static bool
+workspace_from_json(const struct json_object *json, struct workspace *ws)
 {
     assert(json_object_is_type(json, json_type_object));
+    if (!json_object_is_type(json, json_type_object)) {
+        LOG_ERR("'workspace' object is not of type 'object'");
+        return false;
+    }
+
     struct json_object *name = json_object_object_get(json, "name");
     struct json_object *output = json_object_object_get(json, "output");
     const struct json_object *visible = json_object_object_get(json, "visible");
     const struct json_object *focused = json_object_object_get(json, "focused");
     const struct json_object *urgent = json_object_object_get(json, "urgent");
 
-    return (struct workspace) {
+    if (name == NULL || !json_object_is_type(name, json_type_string)) {
+        LOG_ERR("'workspace' object has no 'name' string value");
+        return false;
+    }
+
+    if (output == NULL || !json_object_is_type(output, json_type_string)) {
+        LOG_ERR("'workspace' object has no 'output' string value");
+        return false;
+    }
+
+    if (visible != NULL && !json_object_is_type(visible, json_type_boolean)) {
+        LOG_ERR("'workspace' object's 'visible' value is not a boolean");
+        return false;
+    }
+
+    if (focused != NULL && !json_object_is_type(focused, json_type_boolean)) {
+        LOG_ERR("'workspace' object's 'focused' value is not a boolean");
+        return false;
+    }
+
+    if (urgent != NULL && !json_object_is_type(urgent, json_type_boolean)) {
+        LOG_ERR("'workspace' object's 'urgent' value is not a boolean");
+        return false;
+    }
+
+    *ws = (struct workspace) {
         .name = strdup(json_object_get_string(name)),
         .output = strdup(json_object_get_string(output)),
         .visible = json_object_get_boolean(visible),
         .focused = json_object_get_boolean(focused),
         .urgent = json_object_get_boolean(urgent),
     };
+
+    return true;
 }
 
 static void
@@ -154,12 +186,18 @@ send_pkg(int sock, int cmd, char *data)
 static bool
 handle_get_version_reply(struct private *m, const struct json_object *json)
 {
-    assert(json_object_is_type(json, json_type_object));
+    if (!json_object_is_type(json, json_type_object)) {
+        LOG_ERR("'version' reply is not of type 'object'");
+        return false;
+    }
 
     struct json_object *version = json_object_object_get(json, "human_readable");
 
-    assert(version != NULL);
-    assert(json_object_is_type(version, json_type_string));
+    if (version == NULL || !json_object_is_type(version, json_type_string)) {
+        LOG_ERR("'version' reply did not contain a 'human_readable' string value");
+        return false;
+    }
+
     LOG_INFO("connected to i3: %s", json_object_get_string(version));
     return true;
 }
@@ -167,21 +205,33 @@ handle_get_version_reply(struct private *m, const struct json_object *json)
 static bool
 handle_subscribe_reply(struct private *m, const struct json_object *json)
 {
-    assert(json_object_is_type(json, json_type_object));
+    if (!json_object_is_type(json, json_type_object)) {
+        LOG_ERR("'subscribe' reply is not of type 'object'");
+        return false;
+    }
 
     const struct json_object *success = json_object_object_get(json, "success");
 
-    assert(success != NULL);
-    assert(json_object_is_type(success, json_type_boolean));
-    assert(json_object_get_boolean(success));
+    if (success == NULL || !json_object_is_type(success, json_type_boolean)) {
+        LOG_ERR("'subscribe' reply did not contain a 'success' boolean value");
+        return false;
+    }
 
-    return json_object_get_boolean(success);
+    if (!json_object_get_boolean(success)) {
+        LOG_ERR("failed to subscribe");
+        return false;
+    }
+
+    return true;
 }
 
 static bool
 handle_get_workspaces_reply(struct private *m, const struct json_object *json)
 {
-    assert(json_object_is_type(json, json_type_array));
+    if (!json_object_is_type(json, json_type_array)) {
+        LOG_ERR("'workspaces' reply is not of type 'array'");
+        return false;
+    }
 
     workspaces_free(m);
 
@@ -190,7 +240,12 @@ handle_get_workspaces_reply(struct private *m, const struct json_object *json)
     m->workspaces.v = malloc(count * sizeof(m->workspaces.v[0]));
 
     for (size_t i = 0; i < count; i++) {
-        m->workspaces.v[i] = workspace_from_json(json_object_array_get_idx(json, i));
+        if (!workspace_from_json(
+                json_object_array_get_idx(json, i), &m->workspaces.v[i])) {
+            workspaces_free(m);
+            return false;
+        }
+
         LOG_DBG("#%zu: %s", i, m->workspaces.v[i].name);
     }
 
@@ -200,30 +255,64 @@ handle_get_workspaces_reply(struct private *m, const struct json_object *json)
 static bool
 handle_workspace_event(struct private *m, const struct json_object *json)
 {
-    assert(json_object_is_type(json, json_type_object));
+    if (!json_object_is_type(json, json_type_object)) {
+        LOG_ERR("'workspace' event is not of type 'object'");
+        return false;
+    }
+
     struct json_object *change = json_object_object_get(json, "change");
     const struct json_object *current = json_object_object_get(json, "current");
     const struct json_object *old = json_object_object_get(json, "old");
 
+    if (change == NULL || !json_object_is_type(change, json_type_string)) {
+        LOG_ERR("'workspace' event did not contain a 'change' string value");
+        return false;
+    }
+
+    if (current == NULL || !json_object_is_type(current, json_type_object)) {
+        LOG_ERR("'workspace' event did not contain a 'current' object value");
+        return false;
+    }
+
+    struct json_object *current_name = json_object_object_get(current, "name");
+    if (current_name == NULL || !json_object_is_type(current_name, json_type_string)) {
+        LOG_ERR("'workspace' event's 'current' object did not "
+                "contain a 'name' string value");
+        return false;
+    }
+
     const char *change_str = json_object_get_string(change);
 
     if (strcmp(change_str, "init") == 0) {
-        struct json_object *current_name = json_object_object_get(current, "name");
         assert(workspace_lookup(m, json_object_get_string(current_name)) == NULL);
 
-        struct workspace ws = workspace_from_json(current);
+        struct workspace ws;
+        if (!workspace_from_json(current, &ws))
+            return false;
+
         workspace_add(m, ws);
     }
 
     else if (strcmp(change_str, "empty") == 0) {
-        struct json_object *current_name = json_object_object_get(current, "name");
         assert(workspace_lookup(m, json_object_get_string(current_name)) != NULL);
         workspace_del(m, json_object_get_string(current_name));
     }
 
     else if (strcmp(change_str, "focus") == 0) {
-        struct json_object *current_name = json_object_object_get(current, "name");
-        struct workspace *w = workspace_lookup(m, json_object_get_string(current_name));
+        if (old == NULL || !json_object_is_type(old, json_type_object)) {
+            LOG_ERR("'workspace' event did not contain a 'old' object value");
+            return false;
+        }
+
+        struct json_object *old_name = json_object_object_get(old, "name");
+        if (old_name == NULL || !json_object_is_type(old_name, json_type_string)) {
+            LOG_ERR("'workspace' event's 'old' object did not "
+                    "contain a 'name' string value");
+            return false;
+        }
+
+        struct workspace *w = workspace_lookup(
+            m, json_object_get_string(current_name));
         assert(w != NULL);
 
         /* Mark all workspaces on current's output invisible */
@@ -234,13 +323,19 @@ handle_workspace_event(struct private *m, const struct json_object *json)
         }
 
         const struct json_object *urgent = json_object_object_get(current, "urgent");
+        if (urgent == NULL || !json_object_is_type(urgent, json_type_boolean)) {
+            LOG_ERR("'workspace' event's 'current' object did not "
+                    "contain a 'urgent' boolean value");
+            return false;
+        }
+
         w->urgent = json_object_get_boolean(urgent);
         w->focused = true;
         w->visible = true;
 
         /* Old workspace is no longer focused */
-        struct json_object *old_name = json_object_object_get(old, "name");
-        struct workspace *old_w = workspace_lookup(m, json_object_get_string(old_name));
+        struct workspace *old_w = workspace_lookup(
+            m, json_object_get_string(old_name));
         if (old_w != NULL)
             old_w->focused = false;
     }
@@ -261,7 +356,11 @@ run(struct module_run_context *ctx)
     char sock_path[1024];
     {
         FILE *out = popen("i3 --get-socketpath", "r");
-        assert(out != NULL);
+        if (out == NULL) {
+            LOG_ERRNO("failed to execute 'i3 --get-socketpath'");
+            module_signal_ready(ctx);
+            return 1;
+        }
 
         fgets(sock_path, sizeof(sock_path), out);
         pclose(out);
@@ -273,13 +372,22 @@ run(struct module_run_context *ctx)
     }
 
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    assert(sock != -1);
+    if (sock == -1) {
+        LOG_ERRNO("failed to create UNIX socket");
+        module_signal_ready(ctx);
+        return 1;
+    }
 
     struct sockaddr_un addr = {.sun_family = AF_UNIX};
     strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
 
     int r = connect(sock, (const struct sockaddr *)&addr, sizeof(addr));
-    assert(r != -1);
+    if (r == -1) {
+        LOG_ERRNO("failed to connect to i3 socket");
+        close(sock);
+        module_signal_ready(ctx);
+        return 1;
+    }
 
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
@@ -297,7 +405,10 @@ run(struct module_run_context *ctx)
         };
 
         int res = poll(fds, 2, -1);
-        assert(res > 0);
+        if (res <= 0) {
+            LOG_ERRNO("failed to poll()");
+            break;
+        }
 
         if (fds[0].revents & POLLIN)
             break;
@@ -306,14 +417,25 @@ run(struct module_run_context *ctx)
         assert(sizeof(buf) > buf_idx);
 
         ssize_t bytes = read(sock, &buf[buf_idx], sizeof(buf) - buf_idx);
-        if (bytes < 0)
+        if (bytes < 0) {
+            LOG_ERRNO("failed to read from i3's socket");
             break;
+        }
 
         buf_idx += bytes;
 
-        while (buf_idx >= sizeof(i3_ipc_header_t)) {
+        bool err = false;
+        while (!err && buf_idx >= sizeof(i3_ipc_header_t)) {
             const i3_ipc_header_t *hdr = (const i3_ipc_header_t *)buf;
-            assert(strncmp(hdr->magic, I3_IPC_MAGIC, sizeof(hdr->magic)) == 0);
+            if (strncmp(hdr->magic, I3_IPC_MAGIC, sizeof(hdr->magic)) != 0) {
+                LOG_ERR(
+                    "i3 IPC header magic mismatch: expected \"%.*s\", got \"%.*s\"",
+                    (int)sizeof(hdr->magic), I3_IPC_MAGIC,
+                    (int)sizeof(hdr->magic), hdr->magic);
+
+                err = true;
+                break;
+            }
 
             size_t total_size = sizeof(i3_ipc_header_t) + hdr->size;
 
@@ -328,7 +450,11 @@ run(struct module_run_context *ctx)
 
             json_tokener *tokener = json_tokener_new();
             struct json_object *json = json_tokener_parse(json_str);
-            assert(json != NULL);
+            if (json == NULL) {
+                LOG_ERR("failed to parse json");
+                err = true;
+                break;
+            }
 
             mtx_lock(&ctx->module->lock);
 
@@ -371,6 +497,9 @@ run(struct module_run_context *ctx)
             memmove(buf, &buf[total_size], buf_idx - total_size);
             buf_idx -= total_size;
         }
+
+        if (err)
+            break;
     }
 
     close(sock);
