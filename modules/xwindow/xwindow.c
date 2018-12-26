@@ -181,7 +181,11 @@ run(struct module_run_context *ctx)
     struct private *m = mod->private;
 
     m->conn = xcb_connect(NULL, NULL);
-    assert(m->conn != NULL);
+    if (m->conn == NULL) {
+        LOG_ERR("failed to connect to X");
+        module_signal_ready(ctx);
+        return 1;
+    }
 
     const xcb_setup_t *setup = xcb_get_setup(m->conn);
     xcb_screen_t *screen = xcb_setup_roots_iterator(setup).data;
