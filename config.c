@@ -14,6 +14,7 @@
 #include "particles/string.h"
 
 #include "module.h"
+#include "modules/backlight/backlight.h"
 #include "modules/battery/battery.h"
 #include "modules/clock/clock.h"
 #include "modules/i3/i3.h"
@@ -329,6 +330,20 @@ module_xkb_from_config(const struct yml_node *node,
     return module_xkb(particle_from_config(c, parent_font));
 }
 
+static struct module *
+module_backlight_from_config(const struct yml_node *node,
+                             const struct font *parent_font)
+{
+    const struct yml_node *name = yml_get_value(node, "name");
+    const struct yml_node *c = yml_get_value(node, "content");
+
+    assert(yml_is_scalar(name));
+    assert(yml_is_dict(c));
+
+    return module_backlight(
+        yml_value_as_string(name), particle_from_config(c, parent_font));
+}
+
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -435,6 +450,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_battery_from_config(it.node, font);
                 else if (strcmp(mod_name, "xkb") == 0)
                     mods[idx] = module_xkb_from_config(it.node, font);
+                else if (strcmp(mod_name, "backlight") == 0)
+                    mods[idx] = module_backlight_from_config(it.node, font);
                 else
                     assert(false);
             }

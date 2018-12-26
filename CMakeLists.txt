@@ -39,6 +39,7 @@ add_executable(f00bar
   particles/ramp.c particles/ramp.h
   particles/string.c particles/string.h
 
+  modules/backlight/backlight.c modules/backlight/backlight.h
   modules/battery/battery.c modules/battery/battery.h
   modules/clock/clock.c modules/clock/clock.h
   modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
