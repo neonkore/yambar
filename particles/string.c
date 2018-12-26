@@ -180,7 +180,7 @@ particle_destroy(struct particle *particle)
     font_destroy(p->font);
     free(p->text);
     free(p);
-    free(particle);
+    particle_default_destroy(particle);
 }
 
 struct particle *
