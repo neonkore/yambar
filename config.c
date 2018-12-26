@@ -9,6 +9,7 @@
 
 #include "decoration.h"
 #include "decorations/background.h"
+#include "decorations/stack.h"
 #include "decorations/underline.h"
 
 #include "particle.h"
@@ -115,6 +116,29 @@ deco_underline_from_config(const struct yml_node *node)
         yml_value_as_int(size), color_from_hexstr(yml_value_as_string(color)));
 }
 
+static struct deco *deco_from_config(const struct yml_node *node);
+
+static struct deco *
+deco_stack_from_config(const struct yml_node *node)
+{
+    assert(yml_is_list(node));
+
+    size_t count = yml_list_length(node);
+    assert(count > 0);
+
+    struct deco *decos[count];
+    size_t idx = 0;
+
+    for (struct yml_list_iter it = yml_list_iter(node);
+         it.node != NULL;
+         yml_list_next(&it), idx++)
+    {
+        decos[idx] = deco_from_config(it.node);
+    }
+
+    return deco_stack(decos, count);
+}
+
 static struct deco *
 deco_from_config(const struct yml_node *node)
 {
@@ -126,7 +150,6 @@ deco_from_config(const struct yml_node *node)
     const struct yml_node *deco_data = it.value;
 
     assert(yml_is_scalar(deco_type));
-    assert(yml_is_dict(deco_data));
 
     const char *type = yml_value_as_string(deco_type);
 
@@ -134,6 +157,8 @@ deco_from_config(const struct yml_node *node)
         return deco_background_from_config(deco_data);
     else if (strcmp(type, "underline") == 0)
         return deco_underline_from_config(deco_data);
+    else if (strcmp(type, "stack") == 0)
+        return deco_stack_from_config(deco_data);
     else
         assert(false);
 }
