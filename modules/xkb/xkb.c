@@ -387,27 +387,27 @@ talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
     const struct bar *bar = ctx->module->bar;
 
     if (!xkb_enable(conn))
-        return false;
+        goto err;
 
     if (!register_for_events(conn))
-        return false;
+        goto err;
 
     int xkb_event_base = get_xkb_event_base(conn);
     if (xkb_event_base == -1)
-        return false;
+        goto err;
 
     int current = get_current_layout(conn);
     if (current == -1)
-        return false;
+        goto err;
 
     struct layouts layouts = get_layouts(conn);
     if (layouts.count == -1)
-        return false;
+        goto err;
 
     if (current >= layouts.count) {
         LOG_ERR("current layout index: %d >= %zd", current, layouts.count);
         free_layouts(layouts);
-        return false;
+        goto err;
     }
 
     m->layouts = layouts;
@@ -416,15 +416,19 @@ talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
 
     module_signal_ready(ctx);
     return event_loop(ctx, conn, xkb_event_base);
+
+err:
+    module_signal_ready(ctx);
+    return false;
 }
 
 static int
 run(struct module_run_context *ctx)
 {
-    //struct private *m = ctx->module->private;
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
     if (conn == NULL) {
         LOG_ERR("failed to connect to X server");
+        module_signal_ready(ctx);
         return EXIT_FAILURE;
     }
 
