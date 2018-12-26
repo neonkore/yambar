@@ -14,13 +14,13 @@ set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render) # Core
-pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb)        # Core
-pkg_check_modules(YAML REQUIRED yaml-0.1)                # Core (configuration)
+pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render xcb-cursor) # Core
+pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb)                   # Core
+pkg_check_modules(YAML REQUIRED yaml-0.1)                           # Core (configuration)
 
-pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)              # Module/xkb
-pkg_check_modules(JSON REQUIRED json-c)                  # Module/i3
-pkg_check_modules(UDEV REQUIRED libudev)                 # Module/battery
+pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)                         # Module/xkb
+pkg_check_modules(JSON REQUIRED json-c)                             # Module/i3
+pkg_check_modules(UDEV REQUIRED libudev)                            # Module/battery
 
 add_executable(f00bar
   bar.c bar.h

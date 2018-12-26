@@ -13,7 +13,9 @@ struct bar {
     void *private;
     int (*run)(struct bar_run_context *ctx);
     void (*destroy)(struct bar *bar);
+
     void (*refresh)(const struct bar *bar);
+    void (*set_cursor)(struct bar *bar, const char *cursor);
 };
 
 enum bar_location { BAR_TOP, BAR_BOTTOM };

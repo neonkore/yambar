@@ -13,9 +13,10 @@
 #include <sys/eventfd.h>
 
 #include <xcb/xcb.h>
-#include <xcb/xcb_event.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
+#include <xcb/xcb_cursor.h>
+#include <xcb/xcb_event.h>
 #include <xcb/xcb_ewmh.h>
 
 #include <cairo.h>
@@ -64,6 +65,8 @@ struct private {
     xcb_colormap_t colormap;
     xcb_pixmap_t pixmap;
     xcb_gc_t gc;
+    xcb_cursor_context_t *cursor_ctx;
+    xcb_cursor_t cursor;
 
     cairo_t *cairo;
 };
@@ -172,6 +175,7 @@ expose(const struct bar *_bar)
 }
 
 static void refresh(const struct bar *bar);
+static void set_cursor(struct bar *bar, const char *cursor);
 
 static int
 run(struct bar_run_context *run_ctx)
@@ -376,6 +380,12 @@ run(struct bar_run_context *run_ctx)
     bar->cairo = cairo_create(surface);
 
     xcb_map_window(bar->conn, bar->win);
+
+    if (xcb_cursor_context_new(bar->conn, screen, &bar->cursor_ctx) < 0)
+        LOG_WARN("failed to create XCB cursor context");
+    else
+        set_cursor(_bar, "left_ptr");
+
     xcb_flush(bar->conn);
 
     /* Start modules */
@@ -490,6 +500,11 @@ run(struct bar_run_context *run_ctx)
     cairo_surface_destroy(surface);
     cairo_debug_reset_static_data();
 
+    if (bar->cursor_ctx != NULL) {
+        xcb_free_cursor(bar->conn, bar->cursor);
+        xcb_cursor_context_free(bar->cursor_ctx);
+    }
+
     xcb_free_gc(bar->conn, bar->gc);
     xcb_free_pixmap(bar->conn, bar->pixmap);
     xcb_destroy_window(bar->conn, bar->win);
@@ -526,6 +541,18 @@ refresh(const struct bar *bar)
     xcb_send_event(b->conn, false, b->win, XCB_EVENT_MASK_EXPOSURE, (char *)evt);
     xcb_flush(b->conn);
     free(evt);
+}
+
+static void
+set_cursor(struct bar *bar, const char *cursor)
+{
+    struct private *b = bar->private;
+
+    if (b->cursor_ctx == NULL)
+        return;
+
+    b->cursor = xcb_cursor_load_cursor(b->cursor_ctx, cursor);
+    xcb_change_window_attributes(b->conn, b->win, XCB_CW_CURSOR, &b->cursor);
 }
 
 static void
@@ -567,6 +594,8 @@ bar_new(const struct bar_config *config)
     priv->left.count = config->left.count;
     priv->center.count = config->center.count;
     priv->right.count = config->right.count;
+    priv->cursor_ctx = NULL;
+    priv->cursor = 0;
 
     for (size_t i = 0; i < priv->left.count; i++)
         priv->left.mods[i] = config->left.mods[i];
@@ -580,6 +609,7 @@ bar_new(const struct bar_config *config)
     bar->run = &run;
     bar->destroy = &destroy;
     bar->refresh = &refresh;
+    bar->set_cursor = &set_cursor;
 
     for (size_t i = 0; i < priv->left.count; i++)
         priv->left.mods[i]->bar = bar;
