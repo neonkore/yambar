@@ -34,7 +34,7 @@ struct yml_node {
     union {
         struct {
             struct yml_node *root;
-            struct anchor_map anchors[10];
+            struct anchor_map anchors[100]; /* TODO: dynamic resize */
             size_t anchor_count;
         } root;
         struct {
