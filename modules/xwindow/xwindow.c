@@ -14,6 +14,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 
+#define LOG_MODULE "xkb"
+#include "../../log.h"
 #include "../../bar.h"
 #include "../../xcb.h"
 
@@ -212,7 +214,6 @@ run(struct module_run_context *ctx)
     update_active_window(m);
     update_application(mod);
     update_title(mod);
-    mod->bar->refresh(mod->bar);
 
     module_signal_ready(ctx);
 

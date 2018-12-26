@@ -384,7 +384,6 @@ static bool
 talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
 {
     struct private *m = ctx->module->private;
-    const struct bar *bar = ctx->module->bar;
 
     if (!xkb_enable(conn))
         goto err;
@@ -412,7 +411,6 @@ talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
 
     m->layouts = layouts;
     m->current = current;
-    bar->refresh(bar);
 
     module_signal_ready(ctx);
     return event_loop(ctx, conn, xkb_event_base);

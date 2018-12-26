@@ -171,6 +171,8 @@ expose(const struct bar *_bar)
     }
 }
 
+static void refresh(const struct bar *bar);
+
 static int
 run(struct bar_run_context *run_ctx)
 {
@@ -427,6 +429,8 @@ run(struct bar_run_context *run_ctx)
 
     close(ready_fd);
     LOG_DBG("all modules started");
+
+    refresh(_bar);
 
     int fd = xcb_get_file_descriptor(bar->conn);
 
