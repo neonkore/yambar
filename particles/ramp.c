@@ -23,7 +23,7 @@ particle_destroy(struct particle *particle)
     free(ramp->tag);
     free(ramp->particles);
     free(ramp);
-    free(particle);
+    particle_default_destroy(particle);
 }
 
 static struct exposable *
