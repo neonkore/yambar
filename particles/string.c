@@ -46,6 +46,14 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
         e->text, strlen(e->text), &glyphs, &num_glyphs,
         &clusters, &num_clusters, &cluster_flags);
 
+    const struct deco *deco = exposable->particle->deco;
+    if (deco != NULL) {
+        int width = (exposable->particle->left_margin +
+                     extents.x_advance +
+                     exposable->particle->right_margin);
+        deco->expose(deco, cr, x, y, width, height);
+    }
+
     cairo_set_source_rgba(cr,
                           e->foreground.red,
                           e->foreground.green,
@@ -59,6 +67,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     cairo_glyph_free(glyphs);
     cairo_text_cluster_free(clusters);
     /*cairo_scaled_font_destroy(scaled);*/
+
 }
 
 static void
