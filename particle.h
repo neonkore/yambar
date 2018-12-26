@@ -26,8 +26,10 @@ struct exposable {
     const struct particle *particle;
     void *private;
 
+    int width; /* Should be set by begin_expose(), at latest */
+
     void (*destroy)(struct exposable *exposable);
-    int (*begin_expose)(const struct exposable *exposable, cairo_t *cr);
+    int (*begin_expose)(struct exposable *exposable, cairo_t *cr);
     void (*expose)(const struct exposable *exposable, cairo_t *cr,
                    int x, int y, int height);
 };

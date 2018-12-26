@@ -12,21 +12,21 @@ struct private {
 };
 
 static int
-dynlist_begin_expose(const struct exposable *exposable, cairo_t *cr)
+dynlist_begin_expose(struct exposable *exposable, cairo_t *cr)
 {
     const struct private *e = exposable->private;
 
-   int width = 0;
+    exposable->width = 0;
 
     for (size_t i = 0; i < e->count; i++) {
         struct exposable *ee = e->exposables[i];
         e->widths[i] = ee->begin_expose(ee, cr);
 
-        width += e->left_spacing + e->widths[i] + e->right_spacing;
+        exposable->width += e->left_spacing + e->widths[i] + e->right_spacing;
     }
 
-    width -= e->left_spacing + e->right_spacing;
-    return width;
+    exposable->width -= e->left_spacing + e->right_spacing;
+    return exposable->width;
 }
 
 static void

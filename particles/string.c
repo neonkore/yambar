@@ -12,7 +12,7 @@ struct private {
 };
 
 static int
-begin_expose(const struct exposable *exposable, cairo_t *cr)
+begin_expose(struct exposable *exposable, cairo_t *cr)
 {
     const struct private *e = exposable->private;
 
@@ -20,9 +20,11 @@ begin_expose(const struct exposable *exposable, cairo_t *cr)
     cairo_text_extents_t extents;
     cairo_scaled_font_text_extents(scaled, e->text, &extents);
 
-    return (exposable->particle->left_margin +
-            extents.x_advance +
-            exposable->particle->right_margin);
+    exposable->width = (exposable->particle->left_margin +
+                        extents.x_advance +
+                        exposable->particle->right_margin);
+
+    return exposable->width;
 }
 
 static void
@@ -47,12 +49,8 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
         &clusters, &num_clusters, &cluster_flags);
 
     const struct deco *deco = exposable->particle->deco;
-    if (deco != NULL) {
-        int width = (exposable->particle->left_margin +
-                     extents.x_advance +
-                     exposable->particle->right_margin);
-        deco->expose(deco, cr, x, y, width, height);
-    }
+    if (deco != NULL)
+        deco->expose(deco, cr, x, y, exposable->width, height);
 
     cairo_set_source_rgba(cr,
                           e->foreground.red,

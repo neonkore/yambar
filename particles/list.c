@@ -15,28 +15,32 @@ struct exposable_private {
 };
 
 static int
-begin_expose(const struct exposable *exposable, cairo_t *cr)
+begin_expose(struct exposable *exposable, cairo_t *cr)
 {
     const struct exposable_private *e = exposable->private;
 
-    int width = exposable->particle->left_margin;
+    exposable->width = exposable->particle->left_margin;
 
     for (size_t i = 0; i < e->count; i++) {
         struct exposable *ee = e->exposables[i];
         e->widths[i] = ee->begin_expose(ee, cr);
 
-        width += e->left_spacing + e->widths[i] + e->right_spacing;
+        exposable->width += e->left_spacing + e->widths[i] + e->right_spacing;
     }
 
-    width -= e->left_spacing + e->right_spacing;
-    width += exposable->particle->right_margin;
-    return width;
+    exposable->width -= e->left_spacing + e->right_spacing;
+    exposable->width += exposable->particle->right_margin;
+    return exposable->width;
 }
 
 static void
 expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 {
     const struct exposable_private *e = exposable->private;
+
+    const struct deco *deco = exposable->particle->deco;
+    if (deco != NULL)
+        deco->expose(deco, cr, x, y, exposable->width, height);
 
     int left_margin = exposable->particle->left_margin;
     int left_spacing = e->left_spacing;
