@@ -24,6 +24,7 @@
 #include "modules/clock/clock.h"
 #include "modules/i3/i3.h"
 #include "modules/label/label.h"
+#include "modules/mpd/mpd.h"
 #include "modules/xkb/xkb.h"
 #include "modules/xwindow/xwindow.h"
 
@@ -431,6 +432,24 @@ module_backlight_from_config(const struct yml_node *node,
         yml_value_as_string(name), particle_from_config(c, parent_font));
 }
 
+static struct module *
+module_mpd_from_config(const struct yml_node *node,
+                       const struct font *parent_font)
+{
+    const struct yml_node *host = yml_get_value(node, "host");
+    const struct yml_node *port = yml_get_value(node, "port");
+    const struct yml_node *c = yml_get_value(node, "content");
+
+    assert(yml_is_scalar(host));
+    assert(port == NULL || yml_is_scalar(port));
+    assert(yml_is_dict(c));
+
+    return module_mpd(
+        yml_value_as_string(host),
+        port != NULL ? yml_value_as_int(port) : 0,
+        particle_from_config(c, parent_font));
+}
+
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -539,6 +558,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_xkb_from_config(it.node, font);
                 else if (strcmp(mod_name, "backlight") == 0)
                     mods[idx] = module_backlight_from_config(it.node, font);
+                else if (strcmp(mod_name, "mpd") == 0)
+                    mods[idx] = module_mpd_from_config(it.node, font);
                 else
                     assert(false);
             }

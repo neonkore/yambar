@@ -21,6 +21,7 @@ pkg_check_modules(YAML REQUIRED yaml-0.1)                           # Core (conf
 pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)                         # Module/xkb
 pkg_check_modules(JSON REQUIRED json-c)                             # Module/i3
 pkg_check_modules(UDEV REQUIRED libudev)                            # Module/battery
+pkg_check_modules(MPD REQUIRED libmpdclient)                        # Module/mpd
 
 add_executable(f00bar
   bar.c bar.h
@@ -50,6 +51,7 @@ add_executable(f00bar
   modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
   modules/i3/i3.c modules/i3/i3.h
   modules/label/label.c modules/label/label.h
+  modules/mpd/mpd.c modules/mpd/mpd.h
   modules/xkb/xkb.c modules/xkb/xkb.h
   modules/xwindow/xwindow.c modules/xwindow/xwindow.h
   )
@@ -63,6 +65,7 @@ target_compile_options(f00bar PRIVATE
   ${XCB_XKB_CFLAGS_OTHER}
   ${JSON_CFLAGS_OTHER}
   ${UDEV_CFLAGS_OTHER}
+  ${MPD_CFLAGS_OTHER}
   )
 
 target_include_directories(f00bar PRIVATE
@@ -72,6 +75,7 @@ target_include_directories(f00bar PRIVATE
   ${XCB_XKB_INCLUDE_DIRS}
   ${JSON_INCLUDE_DIRS}
   ${UDEV_INCLUDE_DIRS}
+  ${MPD_INCLUDE_DIRS}
   )
 
 target_link_libraries(f00bar
@@ -82,4 +86,5 @@ target_link_libraries(f00bar
   ${XCB_XKB_LIBRARIES}
   ${JSON_LIBRARIES}
   ${UDEV_LIBRARIES}
+  ${MPD_LIBRARIES}
   )
