@@ -40,6 +40,7 @@ add_executable(f00bar
   decorations/stack.c decorations/stack.h
   decorations/underline.c decorations/underline.h
 
+  particles/empty.c particles/empty.h
   particles/list.c particles/list.h
   particles/map.c particles/map.h
   particles/ramp.c particles/ramp.h

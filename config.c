@@ -13,6 +13,7 @@
 #include "decorations/underline.h"
 
 #include "particle.h"
+#include "particles/empty.h"
 #include "particles/list.h"
 #include "particles/map.h"
 #include "particles/ramp.h"
@@ -162,6 +163,21 @@ deco_from_config(const struct yml_node *node)
         return deco_stack_from_config(deco_data);
     else
         assert(false);
+}
+
+static struct particle *
+particle_empty_from_config(const struct yml_node *node,
+                           const struct font *parent_font)
+{
+    const struct yml_node *left_margin = yml_get_value(node, "left_margin");
+    const struct yml_node *right_margin = yml_get_value(node, "right_margin");
+
+    assert(left_margin == NULL || yml_is_scalar(left_margin));
+    assert(right_margin == NULL || yml_is_scalar(right_margin));
+
+    return particle_empty_new(
+        left_margin != NULL ? yml_value_as_int(left_margin) : 0,
+        right_margin != NULL ? yml_value_as_int(right_margin) : 0);
 }
 
 static struct particle *
@@ -318,7 +334,9 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
     const char *type = yml_value_as_string(pair.key);
 
     struct particle *ret = NULL;
-    if (strcmp(type, "string") == 0)
+    if (strcmp(type, "empty") == 0)
+        ret = particle_empty_from_config(pair.value, parent_font);
+    else if (strcmp(type, "string") == 0)
         ret = particle_string_from_config(pair.value, parent_font);
     else if (strcmp(type, "list") == 0)
         ret = particle_list_from_config(pair.value, parent_font);
