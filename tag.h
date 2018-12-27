@@ -4,6 +4,11 @@
 
 #include <stdbool.h>
 
+enum tag_realtime_unit {
+    TAG_REALTIME_NONE,
+    TAG_REALTIME_SECONDS
+};
+
 struct tag {
     void *private;
 
@@ -16,6 +21,7 @@ struct tag {
 
     long (*min)(const struct tag *tag);
     long (*max)(const struct tag *tag);
+    enum tag_realtime_unit (*realtime)(const struct tag *tag);
 };
 
 struct tag_set {
@@ -25,6 +31,8 @@ struct tag_set {
 
 struct tag *tag_new_int(const char *name, long value);
 struct tag *tag_new_int_range(const char *name, long value, long min, long max);
+struct tag *tag_new_int_realtime(const char *name, long value, long min,
+                                 long max, enum tag_realtime_unit unit);
 struct tag *tag_new_bool(const char *name, bool value);
 struct tag *tag_new_float(const char *name, double value);
 struct tag *tag_new_string(const char *name, const char *value);

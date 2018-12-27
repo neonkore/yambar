@@ -11,6 +11,7 @@ struct private {
             long value;
             long min;
             long max;
+            enum tag_realtime_unit realtime_unit;
         } value_as_int;
         bool value_as_bool;
         double value_as_float;
@@ -29,6 +30,12 @@ static long
 unimpl_min_max(const struct tag *tag)
 {
     return 0;
+}
+
+static enum tag_realtime_unit
+no_realtime(const struct tag *tag)
+{
+    return TAG_REALTIME_NONE;
 }
 
 static void
@@ -60,6 +67,13 @@ int_max(const struct tag *tag)
 {
     const struct private *priv = tag->private;
     return priv->value_as_int.max;
+}
+
+static enum tag_realtime_unit
+int_realtime(const struct tag *tag)
+{
+    const struct private *priv = tag->private;
+    return priv->value_as_int.realtime_unit;
 }
 
 static const char *
@@ -198,11 +212,19 @@ tag_new_int(const char *name, long value)
 struct tag *
 tag_new_int_range(const char *name, long value, long min, long max)
 {
+    return tag_new_int_realtime(name, value, min, max, TAG_REALTIME_NONE);
+}
+
+struct tag *
+tag_new_int_realtime(const char *name, long value, long min, long max,
+                     enum tag_realtime_unit unit)
+{
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
     priv->value_as_int.value = value;
     priv->value_as_int.min = min;
     priv->value_as_int.max = max;
+    priv->value_as_int.realtime_unit = unit;
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
@@ -210,6 +232,7 @@ tag_new_int_range(const char *name, long value, long min, long max)
     tag->name = &tag_name;
     tag->min = &int_min;
     tag->max = &int_max;
+    tag->realtime = &int_realtime;
     tag->as_string = &int_as_string;
     tag->as_int = &int_as_int;
     tag->as_bool = &int_as_bool;
@@ -230,6 +253,7 @@ tag_new_bool(const char *name, bool value)
     tag->name = &tag_name;
     tag->min = &unimpl_min_max;
     tag->max = &unimpl_min_max;
+    tag->realtime = &no_realtime;
     tag->as_string = &bool_as_string;
     tag->as_int = &bool_as_int;
     tag->as_bool = &bool_as_bool;
@@ -250,6 +274,7 @@ tag_new_float(const char *name, double value)
     tag->name = &tag_name;
     tag->min = &unimpl_min_max;
     tag->max = &unimpl_min_max;
+    tag->realtime = &no_realtime;
     tag->as_string = &float_as_string;
     tag->as_int = &float_as_int;
     tag->as_bool = &float_as_bool;
@@ -270,6 +295,7 @@ tag_new_string(const char *name, const char *value)
     tag->name = &tag_name;
     tag->min = &unimpl_min_max;
     tag->max = &unimpl_min_max;
+    tag->realtime = &no_realtime;
     tag->as_string = &string_as_string;
     tag->as_int = &string_as_int;
     tag->as_bool = &string_as_bool;
