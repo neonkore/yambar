@@ -95,7 +95,9 @@ content(struct module *mod)
             tag_new_string("pos", pos),
             tag_new_string("end", end),
             tag_new_int("duration", m->duration),
-            tag_new_int_range("elapsed", m->elapsed, 0, m->duration),
+            tag_new_int_realtime(
+                "elapsed", m->elapsed, 0, m->duration,
+                m->state == STATE_PLAY ? TAG_REALTIME_SECONDS : TAG_REALTIME_NONE),
         },
         .count = 8,
     };
