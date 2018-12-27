@@ -16,6 +16,7 @@
 #include "particles/empty.h"
 #include "particles/list.h"
 #include "particles/map.h"
+#include "particles/progress_bar.h"
 #include "particles/ramp.h"
 #include "particles/string.h"
 
@@ -325,6 +326,42 @@ particle_ramp_from_config(const struct yml_node *node, const struct font *parent
 }
 
 static struct particle *
+particle_progress_bar_from_config(const struct yml_node *node,
+                                  const struct font *parent_font)
+{
+    const struct yml_node *tag = yml_get_value(node, "tag");
+    const struct yml_node *length = yml_get_value(node, "length");
+    const struct yml_node *start = yml_get_value(node, "start");
+    const struct yml_node *end = yml_get_value(node, "end");
+    const struct yml_node *fill = yml_get_value(node, "fill");
+    const struct yml_node *empty = yml_get_value(node, "empty");
+    const struct yml_node *indicator = yml_get_value(node, "indicator");
+    const struct yml_node *left_margin = yml_get_value(node, "left_margin");
+    const struct yml_node *right_margin = yml_get_value(node, "right_margin");
+
+    assert(tag != NULL && yml_is_scalar(tag));
+    assert(length != NULL && yml_is_scalar(length));
+    assert(start != NULL);
+    assert(end != NULL);
+    assert(fill != NULL);
+    assert(empty != NULL);
+    assert(indicator != NULL);
+    assert(left_margin == NULL || yml_is_scalar(left_margin));
+    assert(right_margin == NULL || yml_is_scalar(right_margin));
+
+    return particle_progress_bar_new(
+        yml_value_as_string(tag),
+        yml_value_as_int(length),
+        particle_from_config(start, parent_font),
+        particle_from_config(end, parent_font),
+        particle_from_config(fill, parent_font),
+        particle_from_config(empty, parent_font),
+        particle_from_config(indicator, parent_font),
+        left_margin != NULL ? yml_value_as_int(left_margin) : 0,
+        right_margin != NULL ? yml_value_as_int(right_margin) : 0);
+}
+
+static struct particle *
 particle_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     assert(yml_is_dict(node));
@@ -344,6 +381,8 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
         ret = particle_map_from_config(pair.value, parent_font);
     else if (strcmp(type, "ramp") == 0)
         ret = particle_ramp_from_config(pair.value, parent_font);
+    else if (strcmp(type, "progress_bar") == 0)
+        ret = particle_progress_bar_from_config(pair.value, parent_font);
     else
         assert(false);
 

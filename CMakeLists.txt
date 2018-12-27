@@ -43,6 +43,7 @@ add_executable(f00bar
   particles/empty.c particles/empty.h
   particles/list.c particles/list.h
   particles/map.c particles/map.h
+  particles/progress_bar.c particles/progress_bar.h
   particles/ramp.c particles/ramp.h
   particles/string.c particles/string.h
 
