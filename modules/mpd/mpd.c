@@ -43,6 +43,7 @@ struct private {
     } elapsed;
     uint64_t duration;
 
+    thrd_t refresh_thread_id;
     int refresh_abort_fd;
 };
 
@@ -50,8 +51,14 @@ static void
 destroy(struct module *mod)
 {
     struct private *m = mod->private;
-    if (m->refresh_abort_fd != -1)
+    if (m->refresh_thread_id != 0) {
+        assert(m->refresh_abort_fd != -1);
         write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+
+        int res;
+        thrd_join(m->refresh_thread_id, &res);
+        close(m->refresh_abort_fd);
+    };
 
     free(m->host);
     free(m->album);
@@ -340,7 +347,6 @@ refresh_in_thread(void *arg)
 {
     struct refresh_context *ctx = arg;
     struct module *mod = ctx->mod;
-    struct private *m = mod->private;
 
     /* Extract data from context so that we can free it */
     int abort_fd = ctx->abort_fd;
@@ -353,17 +359,15 @@ refresh_in_thread(void *arg)
     struct pollfd fds[] = {{.fd = abort_fd, .events = POLLIN}};
     int r = poll(fds, 1, milli_seconds);
 
-    /* Close abort eventfd */
-    mtx_lock(&mod->lock);
-    close(abort_fd);
-    if (m->refresh_abort_fd == abort_fd)
-        m->refresh_abort_fd = -1;
-    mtx_unlock(&mod->lock);
+    if (r < 0) {
+        LOG_ERRNO("failed to poll() in refresh thread");
+        return 1;
+    }
 
     /* Aborted? */
     if (r == 1) {
         assert(fds[0].revents & POLLIN);
-        LOG_DBG("aborted");
+        LOG_DBG("refresh thread aborted");
         return 0;
     }
 
@@ -379,15 +383,22 @@ refresh_in(struct module *mod, long milli_seconds)
     struct private *m = mod->private;
 
     /* Abort currently running refresh thread */
-    mtx_lock(&mod->lock);
-    if (m->refresh_abort_fd != -1) {
+    if (m->refresh_thread_id != 0) {
         LOG_DBG("aborting current refresh thread");
+
+        /* Signal abort to thread */
+        assert(m->refresh_abort_fd != -1);
         write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
 
-        /* Closed by thread */
+        /* Wait for it to finish */
+        int res;
+        thrd_join(m->refresh_thread_id, &res);
+
+        /* Close and cleanup */
+        close(m->refresh_abort_fd);
         m->refresh_abort_fd = -1;
+        m->refresh_thread_id = 0;
     }
-    mtx_unlock(&mod->lock);
 
     /* Create a new eventfd, to be able to signal abort to the thread */
     int abort_fd = eventfd(0, EFD_CLOEXEC);
@@ -403,13 +414,18 @@ refresh_in(struct module *mod, long milli_seconds)
     ctx->milli_seconds = milli_seconds;
 
     /* Create thread */
-    thrd_t tid;
-    int r = thrd_create(&tid, &refresh_in_thread, ctx);
-    if (r != 0)
+    int r = thrd_create(&m->refresh_thread_id, &refresh_in_thread, ctx);
+
+    if (r != 0) {
         LOG_ERR("failed to create refresh thread");
+        close(m->refresh_abort_fd);
+        m->refresh_abort_fd = -1;
+        m->refresh_thread_id = 0;
+        free(ctx);
+    }
 
     /* Detach - we don't want to have to thrd_join() it */
-    thrd_detach(tid);
+    //thrd_detach(tid);
     return r == 0;
 }
 
@@ -428,6 +444,7 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->elapsed.value = 0;
     priv->elapsed.when.tv_sec = priv->elapsed.when.tv_nsec = 0;
     priv->duration = 0;
+    priv->refresh_thread_id = 0;
     priv->refresh_abort_fd = -1;
 
     struct module *mod = module_common_new();
