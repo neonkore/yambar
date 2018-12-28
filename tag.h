@@ -9,8 +9,11 @@ enum tag_realtime_unit {
     TAG_REALTIME_SECONDS
 };
 
+struct module;
+
 struct tag {
     void *private;
+    struct module *owner;
 
     void (*destroy)(struct tag *tag);
     const char *(*name)(const struct tag *tag);
@@ -29,13 +32,16 @@ struct tag_set {
     size_t count;
 };
 
-struct tag *tag_new_int(const char *name, long value);
-struct tag *tag_new_int_range(const char *name, long value, long min, long max);
-struct tag *tag_new_int_realtime(const char *name, long value, long min,
-                                 long max, enum tag_realtime_unit unit);
-struct tag *tag_new_bool(const char *name, bool value);
-struct tag *tag_new_float(const char *name, double value);
-struct tag *tag_new_string(const char *name, const char *value);
+struct tag *tag_new_int(struct module *owner, const char *name, long value);
+struct tag *tag_new_int_range(
+    struct module *owner, const char *name, long value, long min, long max);
+struct tag *tag_new_int_realtime(
+    struct module *owner, const char *name, long value, long min,
+    long max, enum tag_realtime_unit unit);
+struct tag *tag_new_bool(struct module *owner, const char *name, bool value);
+struct tag *tag_new_float(struct module *owner, const char *name, double value);
+struct tag *tag_new_string(
+    struct module *owner, const char *name, const char *value);
 
 const struct tag *tag_for_name(const struct tag_set *set, const char *name);
 void tag_set_destroy(struct tag_set *set);

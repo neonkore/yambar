@@ -559,11 +559,11 @@ content(struct module *mod)
 
         struct tag_set tags = {
             .tags = (struct tag *[]){
-                tag_new_string("name", ws->name),
-                tag_new_bool("visible", ws->visible),
-                tag_new_bool("focused", ws->focused),
-                tag_new_bool("urgent", ws->urgent),
-                tag_new_string("state", state),
+                tag_new_string(mod, "name", ws->name),
+                tag_new_bool(mod, "visible", ws->visible),
+                tag_new_bool(mod, "focused", ws->focused),
+                tag_new_bool(mod, "urgent", ws->urgent),
+                tag_new_string(mod, "state", state),
             },
             .count = 5,
         };

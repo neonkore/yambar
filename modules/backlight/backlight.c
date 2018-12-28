@@ -44,8 +44,9 @@ content(struct module *mod)
     mtx_lock(&mod->lock);
     struct tag_set tags = {
         .tags = (struct tag *[]){
-            tag_new_int_range("brightness", m->current_brightness, 0, m->max_brightness),
-            tag_new_int("max_brightness", m->max_brightness),
+            tag_new_int_range(mod, "brightness", m->current_brightness,
+                              0, m->max_brightness),
+            tag_new_int(mod, "max_brightness", m->max_brightness),
         },
         .count = 2,
     };

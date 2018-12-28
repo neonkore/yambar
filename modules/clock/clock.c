@@ -34,8 +34,8 @@ content(struct module *mod)
     strftime(date_str, sizeof(date_str), "%e %b", tm);
 
     struct tag_set tags = {
-        .tags = (struct tag *[]){tag_new_string("time", time_str),
-                                 tag_new_string("date", date_str)},
+        .tags = (struct tag *[]){tag_new_string(mod, "time", time_str),
+                                 tag_new_string(mod, "date", date_str)},
         .count = 2,
     };
 

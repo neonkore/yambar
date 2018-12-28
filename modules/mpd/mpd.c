@@ -88,13 +88,13 @@ content(struct module *mod)
 
     struct tag_set tags = {
         .tags = (struct tag *[]){
-            tag_new_string("state", state_str),
-            tag_new_string("album", m->album),
-            tag_new_string("artist", m->artist),
-            tag_new_string("title", m->title),
-            tag_new_string("pos", pos),
-            tag_new_string("end", end),
-            tag_new_int("duration", m->duration),
+            tag_new_string(mod, "state", state_str),
+            tag_new_string(mod, "album", m->album),
+            tag_new_string(mod, "artist", m->artist),
+            tag_new_string(mod, "title", m->title),
+            tag_new_string(mod, "pos", pos),
+            tag_new_string(mod, "end", end),
+            tag_new_int(mod, "duration", m->duration),
             tag_new_int_realtime(
                 "elapsed", m->elapsed, 0, m->duration,
                 m->state == STATE_PLAY ? TAG_REALTIME_SECONDS : TAG_REALTIME_NONE),

@@ -58,8 +58,8 @@ content(struct module *mod)
 
     struct tag_set tags = {
         .tags = (struct tag *[]){
-            tag_new_string("name", m->layouts.layouts[m->current].name),
-            tag_new_string("symbol", m->layouts.layouts[m->current].symbol)},
+            tag_new_string(mod, "name", m->layouts.layouts[m->current].name),
+            tag_new_string(mod, "symbol", m->layouts.layouts[m->current].symbol)},
         .count = 2,
     };
 

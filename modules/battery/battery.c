@@ -79,16 +79,16 @@ content(struct module *mod)
 
     struct tag_set tags = {
         .tags = (struct tag *[]){
-            tag_new_string("name", m->battery),
-            tag_new_string("manufacturer", m->manufacturer),
-            tag_new_string("model", m->model),
-            tag_new_string("state",
+            tag_new_string(mod, "name", m->battery),
+            tag_new_string(mod, "manufacturer", m->manufacturer),
+            tag_new_string(mod, "model", m->model),
+            tag_new_string(mod, "state",
                            m->state == STATE_FULL ? "full" :
                            m->state == STATE_CHARGING ? "charging" :
                            m->state == STATE_DISCHARGING ? "discharging" :
                            "unknown"),
-            tag_new_int_range("capacity", m->capacity, 0, 100),
-            tag_new_string("estimate", estimate),
+            tag_new_int_range(mod, "capacity", m->capacity, 0, 100),
+            tag_new_string(mod, "estimate", estimate),
         },
         .count = 6,
     };

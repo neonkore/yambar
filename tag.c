@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "module.h"
+
 struct private {
     char *name;
     union {
@@ -204,20 +206,21 @@ string_as_float(const struct tag *tag)
 }
 
 struct tag *
-tag_new_int(const char *name, long value)
+tag_new_int(struct module *owner, const char *name, long value)
 {
-    return tag_new_int_range(name, value, value, value);
+    return tag_new_int_range(owner, name, value, value, value);
 }
 
 struct tag *
-tag_new_int_range(const char *name, long value, long min, long max)
+tag_new_int_range(struct module *owner, const char *name, long value,
+                  long min, long max)
 {
-    return tag_new_int_realtime(name, value, min, max, TAG_REALTIME_NONE);
+    return tag_new_int_realtime(owner, name, value, min, max, TAG_REALTIME_NONE);
 }
 
 struct tag *
-tag_new_int_realtime(const char *name, long value, long min, long max,
-                     enum tag_realtime_unit unit)
+tag_new_int_realtime(struct module *owner, const char *name, long value,
+                     long min, long max, enum tag_realtime_unit unit)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
@@ -228,11 +231,13 @@ tag_new_int_realtime(const char *name, long value, long min, long max,
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
+    tag->owner = owner;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
     tag->min = &int_min;
     tag->max = &int_max;
     tag->realtime = &int_realtime;
+    tag->refresh_in = &int_refresh_in;
     tag->as_string = &int_as_string;
     tag->as_int = &int_as_int;
     tag->as_bool = &int_as_bool;
@@ -241,7 +246,7 @@ tag_new_int_realtime(const char *name, long value, long min, long max,
 }
 
 struct tag *
-tag_new_bool(const char *name, bool value)
+tag_new_bool(struct module *owner, const char *name, bool value)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
@@ -249,6 +254,7 @@ tag_new_bool(const char *name, bool value)
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
+    tag->owner = owner;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
     tag->min = &unimpl_min_max;
@@ -262,7 +268,7 @@ tag_new_bool(const char *name, bool value)
 }
 
 struct tag *
-tag_new_float(const char *name, double value)
+tag_new_float(struct module *owner, const char *name, double value)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
@@ -270,6 +276,7 @@ tag_new_float(const char *name, double value)
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
+    tag->owner = owner;
     tag->destroy = &destroy_int_and_float;
     tag->name = &tag_name;
     tag->min = &unimpl_min_max;
@@ -283,7 +290,7 @@ tag_new_float(const char *name, double value)
 }
 
 struct tag *
-tag_new_string(const char *name, const char *value)
+tag_new_string(struct module *owner, const char *name, const char *value)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->name = strdup(name);
@@ -291,6 +298,7 @@ tag_new_string(const char *name, const char *value)
 
     struct tag *tag = malloc(sizeof(*tag));
     tag->private = priv;
+    tag->owner = owner;
     tag->destroy = &destroy_string;
     tag->name = &tag_name;
     tag->min = &unimpl_min_max;

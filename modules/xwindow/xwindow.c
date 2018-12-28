@@ -272,8 +272,9 @@ content(struct module *mod)
     mtx_lock(&mod->lock);
     struct tag_set tags = {
         .tags = (struct tag *[]){
-            tag_new_string("application", m->application ? m->application : ""),
-            tag_new_string("title", m->title ? m->title : "")},
+            tag_new_string(mod, "application", m->application),
+            tag_new_string(mod, "title", m->title),
+        },
         .count = 2,
     };
     mtx_unlock(&mod->lock);
