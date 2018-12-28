@@ -39,10 +39,10 @@ struct private {
     char *title;
 
     struct {
-        unsigned value;
-        time_t when;
+        uint64_t value;
+        struct timespec when;
     } elapsed;
-    unsigned duration;
+    uint64_t duration;
 
     int refresh_abort_fd;
 };
@@ -67,14 +67,33 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static uint64_t
+timespec_diff_milli_seconds(const struct timespec *a, const struct timespec *b)
+{
+    /* TODO */
+    uint64_t nsecs_a = a->tv_sec * 1000000000 + a->tv_nsec;
+    uint64_t nsecs_b = b->tv_sec * 1000000000 + b->tv_nsec;
+
+    assert(nsecs_a >= nsecs_b);
+    uint64_t nsec_diff = nsecs_a - nsecs_b;
+    return nsec_diff / 1000000;
+}
+
 static struct exposable *
 content(struct module *mod)
 {
     struct private *m = mod->private;
 
     /* Calculate what elapsed is now */
-    time_t now = time(NULL);
-    unsigned elapsed = m->elapsed.value + (now - m->elapsed.when);
+
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    uint64_t elapsed = m->elapsed.value +
+        timespec_diff_milli_seconds(&now, &m->elapsed.when);
+
+    unsigned elapsed_secs = elapsed / 1000;
+    unsigned duration_secs = m->duration / 1000;
 
     mtx_lock(&mod->lock);
 
@@ -88,22 +107,23 @@ content(struct module *mod)
 
     char pos[16], end[16];
 
-    if (elapsed >= 60 * 60)
+    if (elapsed_secs >= 60 * 60)
         snprintf(pos, sizeof(pos), "%02u:%02u:%02u",
-                 elapsed / (60 * 60),
-                 elapsed % (60 * 60) / 60,
-                 elapsed % 60);
+                 elapsed_secs / (60 * 60),
+                 elapsed_secs % (60 * 60) / 60,
+                 elapsed_secs % 60);
     else
-        snprintf(pos, sizeof(pos), "%02u:%02u", elapsed / 60, elapsed % 60);
+        snprintf(pos, sizeof(pos), "%02u:%02u",
+                 elapsed_secs / 60, elapsed_secs % 60);
 
-    if (m->duration >= 60 * 60)
+    if (duration_secs >= 60 * 60)
         snprintf(end, sizeof(end), "%02u:%02u:%02u",
-                 m->duration / (60 * 60),
-                 m->duration % (60 * 60) / 60,
-                 m->duration % 60);
+                 duration_secs / (60 * 60),
+                 duration_secs % (60 * 60) / 60,
+                 duration_secs % 60);
     else
         snprintf(end, sizeof(end), "%02u:%02u",
-                 m->duration / 60, m->duration % 60);
+                 duration_secs / 60, duration_secs % 60);
 
     struct tag_set tags = {
         .tags = (struct tag *[]){
@@ -116,7 +136,7 @@ content(struct module *mod)
             tag_new_int(mod, "duration", m->duration),
             tag_new_int_realtime(
                 mod, "elapsed", elapsed, 0, m->duration,
-                m->state == STATE_PLAY ? TAG_REALTIME_SECONDS : TAG_REALTIME_NONE),
+                m->state == STATE_PLAY ? TAG_REALTIME_MSECS : TAG_REALTIME_NONE),
         },
         .count = 8,
     };
@@ -165,12 +185,13 @@ update_status(struct module *mod)
         return false;
     }
 
-    time_t now = time(NULL);
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
 
     mtx_lock(&mod->lock);
     m->state = mpd_status_get_state(status);
-    m->duration = mpd_status_get_total_time(status);
-    m->elapsed.value = mpd_status_get_elapsed_time(status);
+    m->duration = mpd_status_get_total_time(status) * 1000;
+    m->elapsed.value = mpd_status_get_elapsed_ms(status);
     m->elapsed.when = now;
     mtx_unlock(&mod->lock);
 
@@ -236,7 +257,8 @@ run(struct module_run_context *ctx)
         free(m->artist); m->artist = NULL;
         free(m->title); m->title = NULL;
         m->state = STATE_OFFLINE;
-        m->elapsed.value = m->elapsed.when = m->duration = 0;
+        m->elapsed.value = m->duration = 0;
+        m->elapsed.when.tv_sec = m->elapsed.when.tv_nsec = 0;
         mtx_unlock(&mod->lock);
 
         /* Keep trying to connect, until we succeed */
@@ -422,7 +444,7 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->artist = NULL;
     priv->title = NULL;
     priv->elapsed.value = 0;
-    priv->elapsed.when = 0;
+    priv->elapsed.when.tv_sec = priv->elapsed.when.tv_nsec = 0;
     priv->duration = 0;
     priv->refresh_abort_fd = 0;
 
