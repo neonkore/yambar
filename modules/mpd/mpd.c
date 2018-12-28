@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <assert.h>
 #include <poll.h>
 
@@ -31,7 +32,10 @@ struct private {
     char *artist;
     char *title;
 
-    unsigned elapsed;
+    struct {
+        unsigned value;
+        time_t when;
+    } elapsed;
     unsigned duration;
 };
 
@@ -56,6 +60,10 @@ content(struct module *mod)
 {
     struct private *m = mod->private;
 
+    /* Calculate what elapsed is now */
+    time_t now = time(NULL);
+    unsigned elapsed = m->elapsed.value + (now - m->elapsed.when);
+
     mtx_lock(&mod->lock);
 
     const char *state_str = NULL;
@@ -68,14 +76,13 @@ content(struct module *mod)
 
     char pos[16], end[16];
 
-    if (m->elapsed >= 60 * 60)
+    if (elapsed >= 60 * 60)
         snprintf(pos, sizeof(pos), "%02u:%02u:%02u",
-                 m->elapsed / (60 * 60),
-                 m->elapsed % (60 * 60) / 60,
-                 m->elapsed % 60);
+                 elapsed / (60 * 60),
+                 elapsed % (60 * 60) / 60,
+                 elapsed % 60);
     else
-        snprintf(pos, sizeof(pos), "%02u:%02u",
-                 m->elapsed / 60, m->elapsed % 60);
+        snprintf(pos, sizeof(pos), "%02u:%02u", elapsed / 60, elapsed % 60);
 
     if (m->duration >= 60 * 60)
         snprintf(end, sizeof(end), "%02u:%02u:%02u",
@@ -96,7 +103,7 @@ content(struct module *mod)
             tag_new_string(mod, "end", end),
             tag_new_int(mod, "duration", m->duration),
             tag_new_int_realtime(
-                "elapsed", m->elapsed, 0, m->duration,
+                mod, "elapsed", elapsed, 0, m->duration,
                 m->state == STATE_PLAY ? TAG_REALTIME_SECONDS : TAG_REALTIME_NONE),
         },
         .count = 8,
@@ -149,7 +156,8 @@ update_status(struct module *mod)
     mtx_lock(&mod->lock);
     m->state = mpd_status_get_state(status);
     m->duration = mpd_status_get_total_time(status);
-    m->elapsed = mpd_status_get_elapsed_time(status);
+    m->elapsed.value = mpd_status_get_elapsed_time(status);
+    m->elapsed.when = now;
     mtx_unlock(&mod->lock);
 
     mpd_status_free(status);
@@ -208,7 +216,7 @@ run(struct module_run_context *ctx)
         free(m->artist); m->artist = NULL;
         free(m->title); m->title = NULL;
         m->state = STATE_OFFLINE;
-        m->elapsed = m->duration = 0;
+        m->elapsed.value = m->elapsed.when = m->duration = 0;
         mtx_unlock(&mod->lock);
 
         /* Keep trying to connect, until we succeed */
@@ -291,7 +299,8 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->album = NULL;
     priv->artist = NULL;
     priv->title = NULL;
-    priv->elapsed = 0;
+    priv->elapsed.value = 0;
+    priv->elapsed.when = 0;
     priv->duration = 0;
 
     struct module *mod = module_common_new();
