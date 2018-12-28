@@ -308,7 +308,9 @@ run(struct module_run_context *ctx)
             }
 
             if (fds[1].revents & POLLIN) {
-                enum mpd_idle idle = mpd_recv_idle(m->conn, true);
+                enum mpd_idle idle __attribute__ ((unused)) =
+                    mpd_recv_idle(m->conn, true);
+
                 LOG_DBG("IDLE mask: %d", idle);
 
                 if (!update_status(mod))
