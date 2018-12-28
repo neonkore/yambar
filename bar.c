@@ -397,7 +397,7 @@ run(struct bar_run_context *run_ctx)
     struct module_run_context run_ctx_center[bar->center.count];
     struct module_run_context run_ctx_right[bar->right.count];
 
-    int ready_fd = eventfd(0, EFD_SEMAPHORE);
+    int ready_fd = eventfd(0, EFD_CLOEXEC | EFD_SEMAPHORE);
     assert(ready_fd != -1);
 
     for (size_t i = 0; i < bar->left.count; i++) {
