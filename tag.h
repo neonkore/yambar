@@ -6,7 +6,7 @@
 
 enum tag_realtime_unit {
     TAG_REALTIME_NONE,
-    TAG_REALTIME_SECONDS
+    TAG_REALTIME_SECS,
 };
 
 struct module;
@@ -26,7 +26,7 @@ struct tag {
     long (*max)(const struct tag *tag);
     enum tag_realtime_unit (*realtime)(const struct tag *tag);
 
-    bool (*refresh_in)(const struct tag *tag, long milli_seconds);
+    bool (*refresh_in)(const struct tag *tag, long units);
 };
 
 struct tag_set {

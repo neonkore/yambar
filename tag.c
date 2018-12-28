@@ -42,7 +42,7 @@ no_realtime(const struct tag *tag)
 }
 
 static bool
-unimpl_refresh_in(const struct tag *tag, long milli_seconds)
+unimpl_refresh_in(const struct tag *tag, long units)
 {
     return false;
 }
@@ -117,7 +117,7 @@ int_as_float(const struct tag *tag)
 }
 
 static bool
-int_refresh_in(const struct tag *tag, long milli_seconds)
+int_refresh_in(const struct tag *tag, long units)
 {
     const struct private *priv = tag->private;
     if (priv->value_as_int.realtime_unit == TAG_REALTIME_NONE)
@@ -125,6 +125,10 @@ int_refresh_in(const struct tag *tag, long milli_seconds)
 
     if (tag->owner == NULL || tag->owner->refresh_in == NULL)
         return false;
+
+    long milli_seconds = units;
+    if (priv->value_as_int.realtime_unit == TAG_REALTIME_SECS)
+        milli_seconds *= 1000;
 
     return tag->owner->refresh_in(tag->owner, milli_seconds);
 }

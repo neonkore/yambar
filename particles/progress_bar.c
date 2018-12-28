@@ -129,10 +129,6 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     if (rt == TAG_REALTIME_NONE)
         return exposable;
-    else if (rt != TAG_REALTIME_SECONDS) {
-        LOG_WARN("unimplemented tag realtime unit: %d", rt);
-        return exposable;
-    }
 
 #if 0
     long units_per_segment = (max - min) / p->width;
@@ -155,7 +151,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
 #endif
 
-    if (!tag->refresh_in(tag, units_til_next_segment * 1000))
+    if (!tag->refresh_in(tag, units_til_next_segment))
         LOG_WARN("failed to schedule update of tag");
 
     return exposable;
