@@ -31,7 +31,6 @@ struct private {
     struct particle *label;
 
     struct mpd_connection *conn;
-    int refresh_fd;
 
     enum state state;
     char *album;
@@ -58,7 +57,6 @@ destroy(struct module *mod)
     free(m->album);
     free(m->artist);
     free(m->title);
-    close(m->refresh_fd);
     assert(m->conn == NULL);
 
     m->label->destroy(m->label);
@@ -236,12 +234,6 @@ run(struct module_run_context *ctx)
     const struct bar *bar = mod->bar;
     struct private *m = mod->private;
 
-    m->refresh_fd = eventfd(0, EFD_CLOEXEC);
-    if (m->refresh_fd == -1) {
-        LOG_ERRNO("failed to create eventfd (for refresh)");
-        return 1;
-    }
-
     bool aborted = false;
 
     while (!aborted) {
@@ -291,7 +283,6 @@ run(struct module_run_context *ctx)
             struct pollfd fds[] = {
                 {.fd = ctx->abort_fd, .events = POLLIN},
                 {.fd = mpd_connection_get_fd(m->conn), .events = POLLIN},
-                {.fd = m->refresh_fd, .events = POLLIN},
             };
 
             if (!mpd_send_idle(m->conn)) {
@@ -300,7 +291,7 @@ run(struct module_run_context *ctx)
                 break;
             }
 
-            poll(fds, 3, -1);
+            poll(fds, 2, -1);
 
             if (fds[0].revents & POLLIN) {
                 aborted = true;
@@ -315,21 +306,6 @@ run(struct module_run_context *ctx)
             if (fds[1].revents & POLLIN) {
                 enum mpd_idle idle = mpd_recv_idle(m->conn, true);
                 LOG_DBG("IDLE mask: %d", idle);
-
-                if (!update_status(mod))
-                    break;
-
-                bar->refresh(bar);
-            }
-
-            if (fds[2].revents & POLLIN) {
-                LOG_DBG("got refresh event");
-
-                uint64_t v;
-                read(m->refresh_fd, &v, sizeof(v));
-                LOG_DBG("v = 0x%lx", v);
-
-                mpd_run_noidle(m->conn);
 
                 if (!update_status(mod))
                     break;
@@ -384,9 +360,9 @@ refresh_in_thread(void *arg)
         return 0;
     }
 
-    /* Timeout - signal refresh to module main thread */
-    /* TODO: could juse call bar->refresh()? */
-    write(m->refresh_fd, &(uint64_t){1}, sizeof(uint64_t));
+    LOG_DBG("timed refresh");
+    mod->bar->refresh(mod->bar);
+
     return 0;
 }
 
@@ -438,7 +414,6 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->port = port;
     priv->label = label;
     priv->conn = NULL;
-    priv->refresh_fd = -1;
     priv->state = STATE_OFFLINE;
     priv->album = NULL;
     priv->artist = NULL;
