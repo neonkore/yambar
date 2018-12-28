@@ -350,7 +350,8 @@ refresh_in_thread(void *arg)
     /* Close abort eventfd */
     mtx_lock(&mod->lock);
     close(abort_fd);
-    m->refresh_abort_fd = 0;
+    if (m->refresh_abort_fd == abort_fd)
+        m->refresh_abort_fd = -1;
     mtx_unlock(&mod->lock);
 
     /* Aborted? */
