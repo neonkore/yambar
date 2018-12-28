@@ -214,6 +214,10 @@ update_status(struct module *mod)
         const char *title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
 
         mtx_lock(&mod->lock);
+        free(m->album);
+        free(m->artist);
+        free(m->title);
+
         m->album = strdup(album);
         m->artist = strdup(artist);
         m->title = strdup(title);
