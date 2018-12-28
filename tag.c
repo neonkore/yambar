@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "module.h"
 
@@ -38,6 +39,12 @@ static enum tag_realtime_unit
 no_realtime(const struct tag *tag)
 {
     return TAG_REALTIME_NONE;
+}
+
+static bool
+unimpl_refresh_in(const struct tag *tag, long milli_seconds)
+{
+    return false;
 }
 
 static void
@@ -107,6 +114,19 @@ int_as_float(const struct tag *tag)
 {
     const struct private *priv = tag->private;
     return priv->value_as_int.value;
+}
+
+static bool
+int_refresh_in(const struct tag *tag, long milli_seconds)
+{
+    const struct private *priv = tag->private;
+    if (priv->value_as_int.realtime_unit == TAG_REALTIME_NONE)
+        return false;
+
+    if (tag->owner == NULL || tag->owner->refresh_in == NULL)
+        return false;
+
+    return tag->owner->refresh_in(tag->owner, milli_seconds);
 }
 
 static const char *
@@ -260,6 +280,7 @@ tag_new_bool(struct module *owner, const char *name, bool value)
     tag->min = &unimpl_min_max;
     tag->max = &unimpl_min_max;
     tag->realtime = &no_realtime;
+    tag->refresh_in = &unimpl_refresh_in;
     tag->as_string = &bool_as_string;
     tag->as_int = &bool_as_int;
     tag->as_bool = &bool_as_bool;
@@ -282,6 +303,7 @@ tag_new_float(struct module *owner, const char *name, double value)
     tag->min = &unimpl_min_max;
     tag->max = &unimpl_min_max;
     tag->realtime = &no_realtime;
+    tag->refresh_in = &unimpl_refresh_in;
     tag->as_string = &float_as_string;
     tag->as_int = &float_as_int;
     tag->as_bool = &float_as_bool;
@@ -304,6 +326,7 @@ tag_new_string(struct module *owner, const char *name, const char *value)
     tag->min = &unimpl_min_max;
     tag->max = &unimpl_min_max;
     tag->realtime = &no_realtime;
+    tag->refresh_in = &unimpl_refresh_in;
     tag->as_string = &string_as_string;
     tag->as_int = &string_as_int;
     tag->as_bool = &string_as_bool;

@@ -25,6 +25,8 @@ struct tag {
     long (*min)(const struct tag *tag);
     long (*max)(const struct tag *tag);
     enum tag_realtime_unit (*realtime)(const struct tag *tag);
+
+    bool (*refresh_in)(const struct tag *tag, long milli_seconds);
 };
 
 struct tag_set {
