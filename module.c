@@ -10,12 +10,17 @@ module_common_new(void)
     mod->bar = NULL;
     mtx_init(&mod->lock, mtx_plain);
     mod->private = NULL;
-    mod->run = NULL;
+
     mod->destroy = &module_default_destroy;
-    mod->content = NULL;
     mod->begin_expose = &module_default_begin_expose;
     mod->expose = &module_default_expose;
     mod->end_expose = &module_default_end_expose;
+
+    /* No defaults for these; must be provided by implementation */
+    mod->run = NULL;
+    mod->content = NULL;
+    mod->refresh_in = NULL;
+
     return mod;
 }
 
