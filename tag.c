@@ -126,6 +126,9 @@ int_refresh_in(const struct tag *tag, long units)
     if (tag->owner == NULL || tag->owner->refresh_in == NULL)
         return false;
 
+    assert(priv->value_as_int.realtime_unit == TAG_REALTIME_SECS ||
+           priv->value_as_int.realtime_unit == TAG_REALTIME_MSECS);
+
     long milli_seconds = units;
     if (priv->value_as_int.realtime_unit == TAG_REALTIME_SECS)
         milli_seconds *= 1000;

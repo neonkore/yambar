@@ -7,6 +7,7 @@
 enum tag_realtime_unit {
     TAG_REALTIME_NONE,
     TAG_REALTIME_SECS,
+    TAG_REALTIME_MSECS,
 };
 
 struct module;
