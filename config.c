@@ -462,7 +462,7 @@ module_battery_from_config(const struct yml_node *node,
     return module_battery(
         yml_value_as_string(name),
         particle_from_config(c, parent_font),
-        poll_interval != NULL ? yml_value_as_int(poll_interval) : 30);
+        poll_interval != NULL ? yml_value_as_int(poll_interval) : 60);
 }
 
 static struct module *
