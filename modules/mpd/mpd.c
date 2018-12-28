@@ -84,24 +84,42 @@ timespec_diff_milli_seconds(const struct timespec *a, const struct timespec *b)
     return nsec_diff / 1000000;
 }
 
+static void
+secs_to_str(unsigned secs, char *s, size_t sz)
+{
+    unsigned hours = secs / (60 * 60);
+    unsigned minutes = secs % (60 * 60) / 60;
+    secs %= 60;
+
+    if (hours > 0)
+        snprintf(s, sz, "%02u:%02u:%02u", hours, minutes, secs);
+    else
+        snprintf(s, sz, "%02u:%02u", minutes, secs);
+}
+
 static struct exposable *
 content(struct module *mod)
 {
-    struct private *m = mod->private;
-
-    /* Calculate what elapsed is now */
+    const struct private *m = mod->private;
 
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
+    mtx_lock(&mod->lock);
+
+    /* Calculate what 'elapsed' is now */
     uint64_t elapsed = m->elapsed.value +
         timespec_diff_milli_seconds(&now, &m->elapsed.when);
 
     unsigned elapsed_secs = elapsed / 1000;
     unsigned duration_secs = m->duration / 1000;
 
-    mtx_lock(&mod->lock);
+    /* elapsed/duration as strings (e.g. 03:37) */
+    char pos[16], end[16];
+    secs_to_str(elapsed_secs, pos, sizeof(pos));
+    secs_to_str(duration_secs, end, sizeof(end));
 
+    /* State as string */
     const char *state_str = NULL;
     switch (m->state) {
     case STATE_OFFLINE: state_str = "offline"; break;
@@ -110,25 +128,9 @@ content(struct module *mod)
     case STATE_PLAY:    state_str = "playing"; break;
     }
 
-    char pos[16], end[16];
-
-    if (elapsed_secs >= 60 * 60)
-        snprintf(pos, sizeof(pos), "%02u:%02u:%02u",
-                 elapsed_secs / (60 * 60),
-                 elapsed_secs % (60 * 60) / 60,
-                 elapsed_secs % 60);
-    else
-        snprintf(pos, sizeof(pos), "%02u:%02u",
-                 elapsed_secs / 60, elapsed_secs % 60);
-
-    if (duration_secs >= 60 * 60)
-        snprintf(end, sizeof(end), "%02u:%02u:%02u",
-                 duration_secs / (60 * 60),
-                 duration_secs % (60 * 60) / 60,
-                 duration_secs % 60);
-    else
-        snprintf(end, sizeof(end), "%02u:%02u",
-                 duration_secs / 60, duration_secs % 60);
+    /* Tell particle to real-time track? */
+    enum tag_realtime_unit realtime = m->state == STATE_PLAY
+        ? TAG_REALTIME_MSECS : TAG_REALTIME_NONE;
 
     struct tag_set tags = {
         .tags = (struct tag *[]){
@@ -140,8 +142,7 @@ content(struct module *mod)
             tag_new_string(mod, "end", end),
             tag_new_int(mod, "duration", m->duration),
             tag_new_int_realtime(
-                mod, "elapsed", elapsed, 0, m->duration,
-                m->state == STATE_PLAY ? TAG_REALTIME_MSECS : TAG_REALTIME_NONE),
+                mod, "elapsed", elapsed, 0, m->duration, realtime),
         },
         .count = 8,
     };
