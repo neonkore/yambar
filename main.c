@@ -37,7 +37,7 @@ main(int argc, const char *const *argv)
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
 
-    int abort_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+    int abort_fd = eventfd(0, EFD_CLOEXEC);
     assert(abort_fd >= 0);
 
     struct bar *bar = conf_to_bar(yml_get_value(conf, "bar"));
