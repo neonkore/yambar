@@ -14,7 +14,7 @@
 #include <mpd/client.h>
 
 #define LOG_MODULE "mpd"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../../log.h"
 #include "../../bar.h"
 
