@@ -4,8 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <threads.h>
+#include <unistd.h>
 #include <assert.h>
 #include <poll.h>
+
+#include <sys/eventfd.h>
 
 #include <mpd/client.h>
 
@@ -27,6 +31,8 @@ struct private {
     struct particle *label;
 
     struct mpd_connection *conn;
+    int refresh_fd;
+
     enum state state;
     char *album;
     char *artist;
@@ -37,16 +43,22 @@ struct private {
         time_t when;
     } elapsed;
     unsigned duration;
+
+    int refresh_abort_fd;
 };
 
 static void
 destroy(struct module *mod)
 {
     struct private *m = mod->private;
+    if (m->refresh_abort_fd != 0)
+        write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+
     free(m->host);
     free(m->album);
     free(m->artist);
     free(m->title);
+    close(m->refresh_fd);
     assert(m->conn == NULL);
 
     m->label->destroy(m->label);
@@ -153,6 +165,8 @@ update_status(struct module *mod)
         return false;
     }
 
+    time_t now = time(NULL);
+
     mtx_lock(&mod->lock);
     m->state = mpd_status_get_state(status);
     m->duration = mpd_status_get_total_time(status);
@@ -200,6 +214,12 @@ run(struct module_run_context *ctx)
     struct module *mod = ctx->module;
     const struct bar *bar = mod->bar;
     struct private *m = mod->private;
+
+    m->refresh_fd = eventfd(0, EFD_CLOEXEC);
+    if (m->refresh_fd == -1) {
+        LOG_ERRNO("failed to create eventfd (for refresh)");
+        return 1;
+    }
 
     bool aborted = false;
 
@@ -249,6 +269,7 @@ run(struct module_run_context *ctx)
             struct pollfd fds[] = {
                 {.fd = ctx->abort_fd, .events = POLLIN},
                 {.fd = mpd_connection_get_fd(m->conn), .events = POLLIN},
+                {.fd = m->refresh_fd, .events = POLLIN},
             };
 
             if (!mpd_send_idle(m->conn)) {
@@ -257,7 +278,7 @@ run(struct module_run_context *ctx)
                 break;
             }
 
-            poll(fds, 2, -1);
+            poll(fds, 3, -1);
 
             if (fds[0].revents & POLLIN) {
                 aborted = true;
@@ -269,13 +290,30 @@ run(struct module_run_context *ctx)
                 break;
             }
 
-            enum mpd_idle idle = mpd_recv_idle(m->conn, true);
-            LOG_DBG("IDLE mask: %d", idle);
+            if (fds[1].revents & POLLIN) {
+                enum mpd_idle idle = mpd_recv_idle(m->conn, true);
+                LOG_DBG("IDLE mask: %d", idle);
 
-            if (!update_status(mod))
-                break;
+                if (!update_status(mod))
+                    break;
 
-            bar->refresh(bar);
+                bar->refresh(bar);
+            }
+
+            if (fds[2].revents & POLLIN) {
+                LOG_DBG("got refresh event");
+
+                uint64_t v;
+                read(m->refresh_fd, &v, sizeof(v));
+                LOG_DBG("v = 0x%lx", v);
+
+                mpd_run_noidle(m->conn);
+
+                if (!update_status(mod))
+                    break;
+
+                bar->refresh(bar);
+            }
         }
     }
 
@@ -287,6 +325,89 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
+struct refresh_context {
+    struct module *mod;
+    int abort_fd;
+    long milli_seconds;
+};
+
+static int
+refresh_in_thread(void *arg)
+{
+    struct refresh_context *ctx = arg;
+    struct module *mod = ctx->mod;
+    struct private *m = mod->private;
+
+    /* Extract data from context so that we can free it */
+    int abort_fd = ctx->abort_fd;
+    long milli_seconds = ctx->milli_seconds;
+    free(ctx);
+
+    LOG_DBG("going to sleep for %ldms", milli_seconds);
+
+    /* Wait for timeout, or abort signal */
+    struct pollfd fds[] = {{.fd = abort_fd, .events = POLLIN}};
+    int r = poll(fds, 1, milli_seconds);
+
+    /* Close abort eventfd */
+    mtx_lock(&mod->lock);
+    close(abort_fd);
+    m->refresh_abort_fd = 0;
+    mtx_unlock(&mod->lock);
+
+    /* Aborted? */
+    if (r == 1) {
+        assert(fds[0].revents & POLLIN);
+        LOG_DBG("aborted");
+        return 0;
+    }
+
+    /* Timeout - signal refresh to module main thread */
+    /* TODO: could juse call bar->refresh()? */
+    write(m->refresh_fd, &(uint64_t){1}, sizeof(uint64_t));
+    return 0;
+}
+
+static bool
+refresh_in(struct module *mod, long milli_seconds)
+{
+    struct private *m = mod->private;
+
+    /* Abort currently running refresh thread */
+    mtx_lock(&mod->lock);
+    if (m->refresh_abort_fd != 0) {
+        LOG_DBG("aborting current refresh thread");
+        write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+
+        /* Closed by thread */
+        m->refresh_abort_fd = 0;
+    }
+    mtx_unlock(&mod->lock);
+
+    /* Create a new eventfd, to be able to signal abort to the thread */
+    int abort_fd = eventfd(0, EFD_CLOEXEC);
+    if (abort_fd == -1) {
+        LOG_ERRNO("failed to create eventfd");
+        return false;
+    }
+
+    /* Thread context */
+    struct refresh_context *ctx = malloc(sizeof(*ctx));
+    ctx->mod = mod;
+    ctx->abort_fd = m->refresh_abort_fd = abort_fd;
+    ctx->milli_seconds = milli_seconds;
+
+    /* Create thread */
+    thrd_t tid;
+    int r = thrd_create(&tid, &refresh_in_thread, ctx);
+    if (r != 0)
+        LOG_ERR("failed to create refresh thread");
+
+    /* Detach - we don't want to have to thrd_join() it */
+    thrd_detach(tid);
+    return r == 0;
+}
+
 struct module *
 module_mpd(const char *host, uint16_t port, struct particle *label)
 {
@@ -295,6 +416,7 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->port = port;
     priv->label = label;
     priv->conn = NULL;
+    priv->refresh_fd = -1;
     priv->state = STATE_OFFLINE;
     priv->album = NULL;
     priv->artist = NULL;
@@ -302,11 +424,13 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->elapsed.value = 0;
     priv->elapsed.when = 0;
     priv->duration = 0;
+    priv->refresh_abort_fd = 0;
 
     struct module *mod = module_common_new();
     mod->private = priv;
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->refresh_in = &refresh_in;
     return mod;
 }
