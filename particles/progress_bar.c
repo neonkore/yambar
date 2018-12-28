@@ -4,6 +4,10 @@
 #include <string.h>
 #include <assert.h>
 
+#define LOG_MODULE "progress_bar"
+#define LOG_ENABLE_DBG 1
+#include "../log.h"
+
 struct private {
     char *tag;
     int width;
@@ -120,6 +124,39 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
+
+    enum tag_realtime_unit rt = tag->realtime(tag);
+
+    if (rt == TAG_REALTIME_NONE)
+        return exposable;
+    else if (rt != TAG_REALTIME_SECONDS) {
+        LOG_WARN("unimplemented tag realtime unit: %d", rt);
+        return exposable;
+    }
+
+#if 0
+    long units_per_segment = (max - min) / p->width;
+    long units_filled = fill_count * (max - min) / p->width;
+    long units_til_next_segment = units_per_segment - (value - units_filled);
+
+    LOG_DBG("tag: %s, value: %ld, "
+            "units-per-segment: %ld, units-filled: %ld, units-til-next: %ld",
+            tag->name(tag), value,
+            units_per_segment, units_filled, units_til_next_segment);
+#else
+    double units_per_segment = (double)(max - min) / p->width;
+    double units_filled = fill_count * units_per_segment;
+    double units_til_next_segment = units_per_segment - ((double)value - units_filled);
+
+    LOG_DBG("tag: %s, value: %ld, "
+            "units-per-segment: %f, units-filled: %f, units-til-next: %f",
+            tag->name(tag), value,
+            units_per_segment, units_filled, units_til_next_segment);
+
+#endif
+
+    if (!tag->refresh_in(tag, units_til_next_segment * 1000))
+        LOG_WARN("failed to schedule update of tag");
 
     return exposable;
 }
