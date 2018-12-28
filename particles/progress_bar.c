@@ -94,6 +94,8 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     long min = tag->min(tag);
     long max = tag->max(tag);
 
+    LOG_DBG("%s: value=%ld, min=%ld, max=%ld", tag->name(tag), value, min, max);
+
     long fill_count = max == min ? 0 : p->width * value / (max - min);
     long empty_count = p->width - fill_count;
 
