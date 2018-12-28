@@ -50,7 +50,7 @@ static void
 destroy(struct module *mod)
 {
     struct private *m = mod->private;
-    if (m->refresh_abort_fd != 0)
+    if (m->refresh_abort_fd != -1)
         write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
 
     free(m->host);
@@ -373,12 +373,12 @@ refresh_in(struct module *mod, long milli_seconds)
 
     /* Abort currently running refresh thread */
     mtx_lock(&mod->lock);
-    if (m->refresh_abort_fd != 0) {
+    if (m->refresh_abort_fd != -1) {
         LOG_DBG("aborting current refresh thread");
         write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
 
         /* Closed by thread */
-        m->refresh_abort_fd = 0;
+        m->refresh_abort_fd = -1;
     }
     mtx_unlock(&mod->lock);
 
@@ -421,7 +421,7 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->elapsed.value = 0;
     priv->elapsed.when.tv_sec = priv->elapsed.when.tv_nsec = 0;
     priv->duration = 0;
-    priv->refresh_abort_fd = 0;
+    priv->refresh_abort_fd = -1;
 
     struct module *mod = module_common_new();
     mod->private = priv;
