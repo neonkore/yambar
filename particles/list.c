@@ -5,13 +5,13 @@
 #define LOG_ENABLE_DBG 1
 #include "../log.h"
 
-struct particle_private {
+struct private {
     struct particle **particles;
     size_t count;
     int left_spacing, right_spacing;
 };
 
-struct exposable_private {
+struct eprivate {
     struct exposable **exposables;
     int *widths;
     size_t count;
@@ -22,7 +22,7 @@ struct exposable_private {
 static void
 exposable_destroy(struct exposable *exposable)
 {
-    struct exposable_private *e = exposable->private;
+    struct eprivate *e = exposable->private;
     for (size_t i = 0; i < e->count; i++)
         e->exposables[i]->destroy(e->exposables[i]);
 
@@ -35,7 +35,7 @@ exposable_destroy(struct exposable *exposable)
 static int
 begin_expose(struct exposable *exposable, cairo_t *cr)
 {
-    const struct exposable_private *e = exposable->private;
+    const struct eprivate *e = exposable->private;
 
     exposable->width = exposable->particle->left_margin;
 
@@ -54,7 +54,7 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 static void
 expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 {
-    const struct exposable_private *e = exposable->private;
+    const struct eprivate *e = exposable->private;
 
     const struct deco *deco = exposable->particle->deco;
     if (deco != NULL)
@@ -77,7 +77,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
          enum mouse_event event, int x, int y)
 {
     const struct particle *p = exposable->particle;
-    const struct exposable_private *e = exposable->private;
+    const struct eprivate *e = exposable->private;
 
     if (exposable->on_click != NULL) {
         /* We have our own handler */
@@ -105,9 +105,9 @@ on_mouse(struct exposable *exposable, struct bar *bar,
 static struct exposable *
 instantiate(const struct particle *particle, const struct tag_set *tags)
 {
-    const struct particle_private *p = particle->private;
+    const struct private *p = particle->private;
 
-    struct exposable_private *e = malloc(sizeof(*e));
+    struct eprivate *e = malloc(sizeof(*e));
     e->exposables = malloc(p->count * sizeof(*e->exposables));
     e->widths = malloc(p->count * sizeof(*e->widths));
     e->count = p->count;
@@ -135,7 +135,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 static void
 particle_destroy(struct particle *particle)
 {
-    struct particle_private *p = particle->private;
+    struct private *p = particle->private;
     for (size_t i = 0; i < p->count; i++)
         p->particles[i]->destroy(p->particles[i]);
     free(p->particles);
@@ -149,7 +149,7 @@ particle_list_new(
     int left_spacing, int right_spacing, int left_margin, int right_margin,
     const char *on_click_template)
 {
-    struct particle_private *p = malloc(sizeof(*p));
+    struct private *p = malloc(sizeof(*p));
     p->particles = malloc(count * sizeof(p->particles[0]));
     p->count = count;
     p->left_spacing = left_spacing;

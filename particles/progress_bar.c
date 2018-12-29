@@ -19,7 +19,7 @@ struct private {
     struct particle *indicator;
 };
 
-struct exposable_private {
+struct eprivate {
     size_t count;
     struct exposable **exposables;
 };
@@ -43,7 +43,7 @@ particle_destroy(struct particle *particle)
 static void
 exposable_destroy(struct exposable *exposable)
 {
-    struct exposable_private *e = exposable->private;
+    struct eprivate *e = exposable->private;
     for (size_t i = 0; i < e->count; i++)
         e->exposables[i]->destroy(e->exposables[i]);
     free(e->exposables);
@@ -54,7 +54,7 @@ exposable_destroy(struct exposable *exposable)
 static int
 begin_expose(struct exposable *exposable, cairo_t *cr)
 {
-    struct exposable_private *e = exposable->private;
+    struct eprivate *e = exposable->private;
 
     /* Margins */
     exposable->width = exposable->particle->left_margin +
@@ -70,7 +70,7 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 static void
 expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 {
-    const struct exposable_private *e = exposable->private;
+    const struct eprivate *e = exposable->private;
 
     const struct deco *deco = exposable->particle->deco;
     if (deco != NULL)
@@ -144,7 +144,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     long fill_count = max == min ? 0 : p->width * value / (max - min);
     long empty_count = p->width - fill_count;
 
-    struct exposable_private *epriv = malloc(sizeof(*epriv));
+    struct eprivate *epriv = malloc(sizeof(*epriv));
     epriv->count = (
         1 +             /* Start marker */
         fill_count +    /* Before current position */
