@@ -258,7 +258,7 @@ run(struct module_run_context *ctx)
              m->battery, m->manufacturer, m->model,
              100.0 * m->energy_full / m->energy_full_design);
 
-    int ret = -1;
+    int ret = 1;
     int status_fd = openat(base_dir_fd, "status", O_RDONLY);
     int capacity_fd = openat(base_dir_fd, "capacity", O_RDONLY);
     int energy_fd = openat(base_dir_fd, "energy_now", O_RDONLY);
@@ -287,8 +287,10 @@ run(struct module_run_context *ctx)
         };
         poll(fds, 2, m->poll_interval * 1000);
 
-        if (fds[0].revents & POLLIN)
+        if (fds[0].revents & POLLIN) {
+            ret = 0;
             break;
+        }
 
         if (fds[1].revents & POLLIN) {
             struct udev_device *dev = udev_monitor_receive_device(mon);
