@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../module.h"
-#include "../../particle.h"
+#include "../module.h"
+#include "../particle.h"
 
 /* Maps workspace name to a content particle. */
 struct i3_workspaces {

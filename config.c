@@ -21,14 +21,14 @@
 #include "particles/string.h"
 
 #include "module.h"
-#include "modules/backlight/backlight.h"
-#include "modules/battery/battery.h"
-#include "modules/clock/clock.h"
-#include "modules/i3/i3.h"
-#include "modules/label/label.h"
-#include "modules/mpd/mpd.h"
-#include "modules/xkb/xkb.h"
-#include "modules/xwindow/xwindow.h"
+#include "modules/backlight.h"
+#include "modules/battery.h"
+#include "modules/clock.h"
+#include "modules/i3.h"
+#include "modules/label.h"
+#include "modules/mpd.h"
+#include "modules/xkb.h"
+#include "modules/xwindow.h"
 
 static uint8_t
 hex_nibble(char hex)

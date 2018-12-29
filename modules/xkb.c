@@ -11,9 +11,9 @@
 #include <xcb/xkb.h>
 
 #define LOG_MODULE "xkb"
-#include "../../log.h"
-#include "../../bar.h"
-#include "../../xcb.h"
+#include "../log.h"
+#include "../bar.h"
+#include "../xcb.h"
 
 struct layout {
     char *name;
