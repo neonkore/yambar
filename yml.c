@@ -161,23 +161,53 @@ post_process(struct yml_node *node)
             if (strcmp(it->item.key->scalar.value, "<<") != 0)
                 continue;
 
-            assert(it->item.value->type == DICT);
-            tll_foreach(it->item.value->dict.pairs, v_it) {
-                struct dict_pair p = {
-                    .key = v_it->item.key,
-                    .value = v_it->item.value,
-                };
-                tll_push_back(node->dict.pairs, p);
-            }
+            if (it->item.value->type == LIST) {
+                /*
+                 * Merge value is a list (of dictionaries)
+                 * e.g. <<: [*foo, *bar]
+                 */
+                tll_foreach(it->item.value->list.values, v_it) {
+                    assert(v_it->item->type == DICT);
+                    tll_foreach(v_it->item->dict.pairs, vv_it) {
+                        struct dict_pair p = {
+                            .key = vv_it->item.key,
+                            .value = vv_it->item.value,
+                        };
+                        tll_push_back(node->dict.pairs, p);
+                    }
 
-            /* Destroy list here, *without* freeing nodes (since nodes
-             * have been moved to this node), *before* destroying the
-             * key/value nodes. This ensures the dict nodes aren't
-             * free:d in the yml_destroy() below */
-            tll_free(it->item.value->dict.pairs);
+                    /* Destroy lits, but don't free (since its nodes
+                     * have been moved to this node), *before*
+                     * destroying the key/value nodes. This ensures
+                     * the dict nodes aren't free:d in the
+                     * yml_destroy() below). */
+                    tll_free(v_it->item->dict.pairs);
+                }
+            } else {
+                /*
+                 * Merge value is a dictionary only
+                 * e.g. <<: *foo
+                 */
+                assert(it->item.value->type == DICT);
+                tll_foreach(it->item.value->dict.pairs, v_it) {
+                    struct dict_pair p = {
+                        .key = v_it->item.key,
+                        .value = v_it->item.value,
+                    };
+                    tll_push_back(node->dict.pairs, p);
+                }
+
+                /* Destroy list here, *without* freeing nodes (since
+                 * nodes have been moved to this node), *before*
+                 * destroying the key/value nodes. This ensures the
+                 * dict nodes aren't free:d in the yml_destroy()
+                 * below */
+                tll_free(it->item.value->dict.pairs);
+            }
 
             yml_destroy(it->item.key);
             yml_destroy(it->item.value);
+
             tll_remove(node->dict.pairs, it);
         }
         break;
