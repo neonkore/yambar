@@ -262,8 +262,10 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
     struct private *b = bar->private;
 
     if ((y < b->border.width || y >= (b->height_with_border - b->border.width)) ||
-        (x < b->border.width || x >= (b->width - b->border.width))) {
-        LOG_DBG("mouse at border");
+        (x < b->border.width || x >= (b->width - b->border.width)))
+    {
+        set_cursor(bar, "left_ptr");
+        return;
     }
 
     int left_width, center_width, right_width;
@@ -314,7 +316,6 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
         mx += e->width + b->right_spacing;
     }
 
-    LOG_DBG("mouse at NOTHING");
     set_cursor(bar, "left_ptr");
 }
 
