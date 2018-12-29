@@ -640,13 +640,26 @@ run(struct bar_run_context *run_ctx)
     }
 
     /* Wait for modules to terminate */
+    int ret = 0;
     int mod_ret;
-    for (size_t i = 0; i < bar->left.count; i++)
+    for (size_t i = 0; i < bar->left.count; i++) {
         thrd_join(thrd_left[i], &mod_ret);
-    for (size_t i = 0; i < bar->center.count; i++)
+        if (mod_ret != 0)
+            LOG_ERR("module: LEFT #%zu: non-zero exit value: %d", i, mod_ret);
+        ret = ret == 0 && mod_ret != 0 ? mod_ret : ret;
+    }
+    for (size_t i = 0; i < bar->center.count; i++) {
         thrd_join(thrd_center[i], &mod_ret);
-    for (size_t i = 0; i < bar->right.count; i++)
+        if (mod_ret != 0)
+            LOG_ERR("module: CENTER #%zu: non-zero exit value: %d", i, mod_ret);
+        ret = ret == 0 && mod_ret != 0 ? mod_ret : ret;
+    }
+    for (size_t i = 0; i < bar->right.count; i++) {
         thrd_join(thrd_right[i], &mod_ret);
+        if (mod_ret != 0)
+            LOG_ERR("module: RIGHT #%zu: non-zero exit value: %d", i, mod_ret);
+        ret = ret == 0 && mod_ret != 0 ? mod_ret : ret;
+    }
 
     LOG_DBG("modules joined");
 
@@ -671,7 +684,7 @@ run(struct bar_run_context *run_ctx)
     xcb_disconnect(bar->conn);
 
     LOG_DBG("bar exiting");
-    return 0;
+    return ret;
 }
 
 static void
