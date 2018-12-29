@@ -175,7 +175,7 @@ particle_progress_bar_new(const char *tag, int width,
     priv->empty = empty;
     priv->indicator = indicator;
 
-    struct particle *particle = particle_common_new(left_margin, right_margin);
+    struct particle *particle = particle_common_new(left_margin, right_margin, NULL);
     particle->private = priv;
     particle->destroy = &particle_destroy;
     particle->instantiate = &instantiate;

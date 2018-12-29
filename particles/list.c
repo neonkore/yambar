@@ -123,7 +123,7 @@ particle_list_new(
     for (size_t i = 0; i < count; i++)
         p->particles[i] = particles[i];
 
-    struct particle *particle = particle_common_new(left_margin, right_margin);
+    struct particle *particle = particle_common_new(left_margin, right_margin, NULL);
 
     particle->private = p;
     particle->destroy = &particle_destroy;

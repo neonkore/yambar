@@ -7,6 +7,7 @@
 #include "font.h"
 #include "tag.h"
 
+struct bar;
 struct exposable;
 
 struct particle {
@@ -14,6 +15,7 @@ struct particle {
 
     int left_margin, right_margin;
     struct deco *deco;
+    char *on_click_template;
 
     void (*destroy)(struct particle *particle);
     struct exposable *(*instantiate)(const struct particle *particle,
@@ -30,6 +32,7 @@ struct exposable {
     void *private;
 
     int width; /* Should be set by begin_expose(), at latest */
+    char *on_click;
 
     void (*destroy)(struct exposable *exposable);
     int (*begin_expose)(struct exposable *exposable, cairo_t *cr);
@@ -40,7 +43,8 @@ struct exposable {
                      enum mouse_event event, int x, int y);
 };
 
-struct particle *particle_common_new(int left_margin, int right_margin);
+struct particle *particle_common_new(int left_margin, int right_margin,
+                                     const char *on_click_template);
 void particle_default_destroy(struct particle *particle);
 
 struct exposable *exposable_common_new(

@@ -61,7 +61,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 struct particle *
 particle_ramp_new(const char *tag, struct particle *particles[], size_t count)
 {
-    struct particle *particle = particle_common_new(0, 0);
+    struct particle *particle = particle_common_new(0, 0, NULL);
     particle->destroy = &particle_destroy;
     particle->instantiate = &instantiate;
 

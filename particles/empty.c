@@ -30,7 +30,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 struct particle *
 particle_empty_new(int left_margin, int right_margin)
 {
-    struct particle *particle = particle_common_new(left_margin, right_margin);
+    struct particle *particle = particle_common_new(left_margin, right_margin, NULL);
     particle->destroy = &particle_default_destroy;
     particle->instantiate = &instantiate;
     return particle;
