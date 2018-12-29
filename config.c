@@ -324,6 +324,7 @@ particle_progress_bar_from_config(const struct yml_node *node,
     const struct yml_node *indicator = yml_get_value(node, "indicator");
     const struct yml_node *left_margin = yml_get_value(node, "left_margin");
     const struct yml_node *right_margin = yml_get_value(node, "right_margin");
+    const struct yml_node *on_click = yml_get_value(node, "on_click");
 
     assert(tag != NULL && yml_is_scalar(tag));
     assert(length != NULL && yml_is_scalar(length));
@@ -334,6 +335,7 @@ particle_progress_bar_from_config(const struct yml_node *node,
     assert(indicator != NULL);
     assert(left_margin == NULL || yml_is_scalar(left_margin));
     assert(right_margin == NULL || yml_is_scalar(right_margin));
+    assert(on_click == NULL || yml_is_scalar(on_click));
 
     return particle_progress_bar_new(
         yml_value_as_string(tag),
@@ -344,7 +346,8 @@ particle_progress_bar_from_config(const struct yml_node *node,
         particle_from_config(empty, parent_font),
         particle_from_config(indicator, parent_font),
         left_margin != NULL ? yml_value_as_int(left_margin) : 0,
-        right_margin != NULL ? yml_value_as_int(right_margin) : 0);
+        right_margin != NULL ? yml_value_as_int(right_margin) : 0,
+        on_click != NULL ? yml_value_as_string(on_click) : NULL);
 }
 
 static struct particle *

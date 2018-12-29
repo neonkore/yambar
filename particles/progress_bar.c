@@ -83,6 +83,51 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     }
 }
 
+static void
+on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
+         int x, int y)
+{
+    if (exposable->on_click == NULL) {
+        exposable_default_on_mouse(exposable, bar, event, x, y);
+        return;
+    }
+
+    /*
+     * Hack-warning!
+     *
+     * In order to pass the *clicked* position to the on_click
+     * handler, we expand the handler *again* (first time would be
+     * when the particle instantiated us).
+     *
+     * We pass a single tag, "where", which is a percentage value.
+     *
+     * Keep a reference to the un-expanded string, to be able to reset
+     * it after executing the handler.
+     */
+
+    char *original = exposable->on_click;
+
+    assert(x >= 0 && x < exposable->width);
+    long where = exposable->width > 0
+        ? 100 * x / exposable->width
+        : 0;
+
+    struct tag_set tags = {
+        .tags = (struct tag *[]){tag_new_int(NULL, "where", where)},
+        .count = 1,
+    };
+
+    exposable->on_click = tags_expand_template(exposable->on_click, &tags);
+    tag_set_destroy(&tags);
+
+    /* Call default implementation, which will execute our handler */
+    exposable_default_on_mouse(exposable, bar, event, x, y);
+
+    /* Reset handler string */
+    free(exposable->on_click);
+    exposable->on_click = original;
+}
+
 static struct exposable *
 instantiate(const struct particle *particle, const struct tag_set *tags)
 {
@@ -120,11 +165,16 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     assert(idx == epriv->count);
 
-    struct exposable *exposable = exposable_common_new(particle, NULL);
+    char *on_click = tags_expand_template(particle->on_click_template, tags);
+
+    struct exposable *exposable = exposable_common_new(particle, on_click);
+    free(on_click);
+
     exposable->private = epriv;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
+    exposable->on_mouse = &on_mouse;
 
     enum tag_realtime_unit rt = tag->realtime(tag);
 
@@ -164,7 +214,8 @@ particle_progress_bar_new(const char *tag, int width,
                           struct particle *end_marker,
                           struct particle *fill, struct particle *empty,
                           struct particle *indicator,
-                          int left_margin, int right_margin)
+                          int left_margin, int right_margin,
+                          const char *on_click_template)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->tag = strdup(tag);
@@ -175,7 +226,8 @@ particle_progress_bar_new(const char *tag, int width,
     priv->empty = empty;
     priv->indicator = indicator;
 
-    struct particle *particle = particle_common_new(left_margin, right_margin, NULL);
+    struct particle *particle = particle_common_new(
+        left_margin, right_margin, on_click_template);
     particle->private = priv;
     particle->destroy = &particle_destroy;
     particle->instantiate = &instantiate;
