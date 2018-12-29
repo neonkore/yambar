@@ -103,5 +103,5 @@ main(int argc, const char *const *argv)
     yml_destroy(conf);
 
     close(abort_fd);
-    return 0;
+    return res;
 }
