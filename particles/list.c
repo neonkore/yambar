@@ -80,6 +80,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
     const struct exposable_private *e = exposable->private;
 
     if (exposable->on_click != NULL) {
+        /* We have our own handler */
         exposable_default_on_mouse(exposable, bar, event, x, y);
         return;
     }
@@ -97,7 +98,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
         px += e->left_spacing + e->exposables[i]->width + e->right_spacing;
     }
 
-    LOG_DBG("on_mouse missed all sub-particles");
+    /* We're between sub-particles (or in the left/right margin) */
     exposable_default_on_mouse(exposable, bar, event, x, y);
 }
 
