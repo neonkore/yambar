@@ -230,6 +230,8 @@ particle_list_from_config(const struct yml_node *node,
     const struct yml_node *_left_spacing = yml_get_value(node, "left_spacing");
     const struct yml_node *_right_spacing = yml_get_value(node, "right_spacing");
 
+    const struct yml_node *on_click = yml_get_value(node, "on_click");
+
     int left_margin = margin != NULL ? yml_value_as_int(margin) :
         _left_margin != NULL ? yml_value_as_int(_left_margin) : 0;
     int right_margin = margin != NULL ? yml_value_as_int(margin) :
@@ -251,7 +253,8 @@ particle_list_from_config(const struct yml_node *node,
     }
 
     return particle_list_new(
-        parts, count, left_spacing, right_spacing, left_margin, right_margin);
+        parts, count, left_spacing, right_spacing, left_margin, right_margin,
+        on_click != NULL ? yml_value_as_string(on_click) : NULL);
 }
 
 static struct particle *

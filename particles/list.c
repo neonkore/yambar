@@ -118,7 +118,8 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         e->exposables[i] = pp->instantiate(pp, tags);
     }
 
-    struct exposable *exposable = exposable_common_new(particle, NULL);
+    struct exposable *exposable = exposable_common_new(
+        particle, particle->on_click_template);
     exposable->private = e;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
@@ -141,7 +142,8 @@ particle_destroy(struct particle *particle)
 struct particle *
 particle_list_new(
     struct particle *particles[], size_t count,
-    int left_spacing, int right_spacing, int left_margin, int right_margin)
+    int left_spacing, int right_spacing, int left_margin, int right_margin,
+    const char *on_click_template)
 {
     struct particle_private *p = malloc(sizeof(*p));
     p->particles = malloc(count * sizeof(p->particles[0]));
@@ -152,7 +154,8 @@ particle_list_new(
     for (size_t i = 0; i < count; i++)
         p->particles[i] = particles[i];
 
-    struct particle *particle = particle_common_new(left_margin, right_margin, NULL);
+    struct particle *particle = particle_common_new(
+        left_margin, right_margin, on_click_template);
 
     particle->private = p;
     particle->destroy = &particle_destroy;
