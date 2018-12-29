@@ -2,10 +2,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <assert.h>
 
+#include <sys/wait.h>
+
 #define LOG_MODULE "particle"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "bar.h"
 
@@ -59,10 +62,56 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
     LOG_DBG("on_mouse: exposable=%p, event=%s, x=%d, y=%d", exposable,
             event == ON_MOUSE_MOTION ? "motion" : "click", x, y);
 
-    assert(exposable->particle != NULL);
+    /* If we have a handler, change cursor to a hand */
+    bar->set_cursor(bar, exposable->on_click == NULL ? "left_ptr" : "hand2");
 
-    if (exposable->on_click == NULL)
-        bar->set_cursor(bar, "left_ptr");
-    else
-        bar->set_cursor(bar, "hand2");
+    /* If this is a mouse click, and we have a handler, execute it */
+    if (exposable->on_click != NULL && event == ON_MOUSE_CLICK) {
+        /* Need a writeable copy, whose scope *we* control */
+        char *cmd = strdup(exposable->on_click);
+        const char *end = cmd + strlen(cmd);
+
+        char *argv[1024];
+        size_t tokens = 0;
+
+        /* Tokenize the command string */
+        for (char *ctx, *tok = strtok_r(cmd, " ", &ctx);
+             tok != NULL;
+             /*tok = strtok_r(NULL, " ", &ctx)*/)
+        {
+            argv[tokens++] = tok;
+
+            /* Is the beginning of the next token a quote? */
+            bool next_is_quoted = &tok[strlen(tok) + 1] < end &&
+                tok[strlen(tok) + 1] == '"';
+            tok = strtok_r(NULL, next_is_quoted ? "\"" : " ", &ctx);
+        }
+
+        /* NULL-terminate list (for execvp) */
+        argv[tokens] = NULL;
+
+        pid_t pid = fork();
+        if (pid == -1)
+            LOG_ERRNO("failed to run on_click handler (fork)");
+        else if (pid > 0) {
+            /* Parent */
+            free(cmd);
+
+            if (waitpid(pid, NULL, 0) == -1)
+                LOG_ERRNO("failed to wait for on_click handler");
+        } else {
+
+            LOG_DBG("ARGV:");
+            for (size_t i = 0; i < tokens; i++)
+                LOG_DBG("  #%zu: \"%s\" ", i, argv[i]);
+
+            LOG_DBG("daemonizing on-click handler");
+            daemon(0, 0);
+
+            LOG_DBG("executing on-click handler: %s", cmd);
+            execvp(argv[0], argv);
+
+            LOG_ERRNO("failed to run on_click handler (exec)");
+        }
+    }
 }
