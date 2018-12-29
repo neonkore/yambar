@@ -10,7 +10,6 @@
 struct exposable;
 
 struct particle {
-    struct particle *parent;
     void *private;
 
     int left_margin, right_margin;

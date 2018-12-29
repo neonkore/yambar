@@ -73,11 +73,7 @@ particle_map_new(const char *tag, const struct particle_map *particle_map,
     for (size_t i = 0; i < count; i++) {
         map->map[i].tag_value = strdup(particle_map[i].tag_value);
         map->map[i].particle = particle_map[i].particle;
-        map->map[i].particle->parent = particle;
     }
-
-    if (map->default_particle != NULL)
-        map->default_particle->parent = particle;
 
     particle->private = map;
     return particle;

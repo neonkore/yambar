@@ -124,9 +124,5 @@ particle_list_new(
     particle->destroy = &particle_destroy;
     particle->instantiate = &instantiate;
 
-    /* Claim ownership */
-    for (size_t i = 0; i < count; i++)
-        p->particles[i]->parent = particle;
-
     return particle;
 }
