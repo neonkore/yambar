@@ -365,3 +365,85 @@ tag_set_destroy(struct tag_set *set)
     set->tags = NULL;
     set->count = 0;
 }
+
+struct sbuf {
+    char *s;
+    size_t size;
+    size_t len;
+};
+
+static void
+sbuf_strncat(struct sbuf *s1, const char *s2, size_t n)
+{
+    size_t s2_actual_len = strlen(s2);
+    size_t s2_len = s2_actual_len < n ? s2_actual_len : n;
+
+    if (s1->len + s2_len >= s1->size) {
+        size_t required_size = s1->len + s2_len + 1;
+        s1->size = 2 * required_size;
+
+        s1->s = realloc(s1->s, s1->size);
+        s1->s[s1->len] = '\0';
+    }
+
+    strncat(s1->s, s2, s2_len);
+    s1->len += s2_len;
+}
+
+static void
+sbuf_strcat(struct sbuf *s1, const char *s2)
+{
+    sbuf_strncat(s1, s2, strlen(s2));
+}
+
+char *
+tags_expand_template(const char *template, const struct tag_set *tags)
+{
+    struct sbuf formatted = {0};
+
+    while (true) {
+        /* Find next tag opening '{' */
+        const char *begin = strchr(template, '{');
+
+        if (begin == NULL) {
+            /* No more tags, copy remaining characters */
+            sbuf_strcat(&formatted, template);
+            break;
+        }
+
+        /* Find closing '}' */
+        const char *end = strchr(begin, '}');
+        if (end == NULL) {
+            /* Wasn't actually a tag, copy as-is instead */
+            sbuf_strncat(&formatted, template, begin - template + 1);
+            template = begin + 1;
+            continue;
+        }
+
+        /* Extract tag name */
+        char tag_name[end - begin];
+        strncpy(tag_name, begin + 1, end - begin - 1);
+        tag_name[end - begin - 1] = '\0';
+
+        /* Lookup tag */
+        const struct tag *tag = tag_for_name(tags, tag_name);
+        if (tag == NULL) {
+            /* No such tag, copy as-is instead */
+            sbuf_strncat(&formatted, template, begin - template + 1);
+            template = begin + 1;
+            continue;
+        }
+
+        /* Copy characters preceeding the tag (name) */
+        sbuf_strncat(&formatted, template, begin - template);
+
+        /* Copy tag value */
+        const char *value = tag->as_string(tag);
+        sbuf_strcat(&formatted, value);
+
+        /* Skip past tag name + closing '}' */
+        template = end + 1;
+    }
+
+    return formatted.s;
+}

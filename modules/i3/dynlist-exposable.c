@@ -2,6 +2,9 @@
 
 #include <stdlib.h>
 
+#define LOG_MODULE "dynlist"
+#include "../../log.h"
+
 struct private {
     int left_spacing;
     int right_spacing;
@@ -10,6 +13,21 @@ struct private {
     size_t count;
     int *widths;
 };
+
+static void
+dynlist_destroy(struct exposable *exposable)
+{
+    struct private *e = exposable->private;
+    for (size_t i = 0; i < e->count; i++) {
+        struct exposable *ee = e->exposables[i];
+        ee->destroy(ee);
+    }
+
+    free(e->exposables);
+    free(e->widths);
+    free(e);
+    free(exposable);
+}
 
 static int
 dynlist_begin_expose(struct exposable *exposable, cairo_t *cr)
@@ -47,18 +65,32 @@ dynlist_expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int
 }
 
 static void
-dynlist_destroy(struct exposable *exposable)
+on_mouse(struct exposable *exposable, struct bar *bar,
+         enum mouse_event event, int x, int y)
 {
-    struct private *e = exposable->private;
-    for (size_t i = 0; i < e->count; i++) {
-        struct exposable *ee = e->exposables[i];
-        ee->destroy(ee);
+    //const struct particle *p = exposable->particle;
+    const struct private *e = exposable->private;
+
+    if (exposable->on_click != NULL) {
+        exposable_default_on_mouse(exposable, bar, event, x, y);
+        return;
     }
 
-    free(e->exposables);
-    free(e->widths);
-    free(e);
-    free(exposable);
+    int px = /*p->left_margin;*/0;
+    for (size_t i = 0; i < e->count; i++) {
+        if (x >= px && x < px + e->exposables[i]->width) {
+            if (e->exposables[i]->on_mouse != NULL) {
+                e->exposables[i]->on_mouse(
+                    e->exposables[i], bar, event, x - px, y);
+            }
+            return;
+        }
+
+        px += e->left_spacing + e->exposables[i]->width + e->right_spacing;
+    }
+
+    LOG_DBG("on_mouse missed all sub-particles");
+    exposable_default_on_mouse(exposable, bar, event, x, y);
 }
 
 struct exposable *
@@ -75,11 +107,11 @@ dynlist_exposable_new(struct exposable **exposables, size_t count,
     for (size_t i = 0; i < count; i++)
         e->exposables[i] = exposables[i];
 
-    struct exposable *exposable = malloc(sizeof(*exposable));
+    struct exposable *exposable = exposable_common_new(NULL, NULL);
     exposable->private = e;
-    exposable->particle = NULL;
     exposable->destroy = &dynlist_destroy;
     exposable->begin_expose = &dynlist_begin_expose;
     exposable->expose = &dynlist_expose;
+    exposable->on_mouse = &on_mouse;
     return exposable;
 }

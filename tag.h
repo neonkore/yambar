@@ -48,3 +48,6 @@ struct tag *tag_new_string(
 
 const struct tag *tag_for_name(const struct tag_set *set, const char *name);
 void tag_set_destroy(struct tag_set *set);
+
+/* Utility functions */
+char *tags_expand_template(const char *template, const struct tag_set *tags);

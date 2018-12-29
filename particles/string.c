@@ -77,90 +77,13 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 
 }
 
-struct sbuf {
-    char *s;
-    size_t size;
-    size_t len;
-};
-
-static void
-sbuf_strncat(struct sbuf *s1, const char *s2, size_t n)
-{
-    size_t s2_actual_len = strlen(s2);
-    size_t s2_len = s2_actual_len < n ? s2_actual_len : n;
-
-    if (s1->len + s2_len >= s1->size) {
-        size_t required_size = s1->len + s2_len + 1;
-        s1->size = 2 * required_size;
-
-        s1->s = realloc(s1->s, s1->size);
-        s1->s[s1->len] = '\0';
-    }
-
-    strncat(s1->s, s2, s2_len);
-    s1->len += s2_len;
-}
-
-static void
-sbuf_strcat(struct sbuf *s1, const char *s2)
-{
-    sbuf_strncat(s1, s2, strlen(s2));
-}
-
 static struct exposable *
 instantiate(const struct particle *particle, const struct tag_set *tags)
 {
     const struct private *p = particle->private;
     struct private *e = malloc(sizeof(*e));
 
-    struct sbuf formatted = {0};
-    const char *src = p->text;
-
-    while (true) {
-        /* Find next tag opening '{' */
-        const char *begin = strchr(src, '{');
-
-        if (begin == NULL) {
-            /* No more tags, copy remaining characters */
-            sbuf_strcat(&formatted, src);
-            break;
-        }
-
-        /* Find closing '}' */
-        const char *end = strchr(begin, '}');
-        if (end == NULL) {
-            /* Wasn't actually a tag, copy as-is instead */
-            sbuf_strncat(&formatted, src, begin - src + 1);
-            src = begin + 1;
-            continue;
-        }
-
-        /* Extract tag name */
-        char tag_name[end - begin];
-        strncpy(tag_name, begin + 1, end - begin - 1);
-        tag_name[end - begin - 1] = '\0';
-
-        /* Lookup tag */
-        const struct tag *tag = tag_for_name(tags, tag_name);
-        if (tag == NULL) {
-            /* No such tag, copy as-is instead */
-            sbuf_strncat(&formatted, src, begin - src + 1);
-            src = begin + 1;
-            continue;
-        }
-
-        /* Copy characters preceeding the tag (name) */
-        sbuf_strncat(&formatted, src, begin - src);
-
-        /* Copy tag value */
-        const char *value = tag->as_string(tag);
-        sbuf_strcat(&formatted, value);
-
-        /* Skip past tag name + closing '}' */
-        src = end + 1;
-    }
-
-    e->text = formatted.s;
+    e->text = tags_expand_template(p->text, tags);
     e->font = p->font;
     e->foreground = p->foreground;
 
