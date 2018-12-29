@@ -31,6 +31,20 @@ struct module {
     void (*destroy)(struct module *module);
 
     /*
+     * Called by module_default_begin_expose(). Should return an
+     * exposable (an instantiated particle).
+     *
+     * You may also choose to implement begin_expose(), expose() and
+     * end_expose() yourself, in which case you do *not* have to
+     * implement content().
+     */
+    struct exposable *(*content)(struct module *mod);
+
+    /* refresh_in() should schedule a module content refresh after the
+     * specified number of milliseconds */
+    bool (*refresh_in)(struct module *mod, long milli_seconds);
+
+    /*
      * Called by bar when it needs to refresh
      *
      * begin_expose() should return a module_expose_context, where the
@@ -44,7 +58,7 @@ struct module {
      *
      * Note that for most modules, using the default implementations
      * (module_default_*) is good enough. In this case, implement
-     * 'content()' instead (see below).
+     * 'content()' instead (see above).
      */
     struct module_expose_context (*begin_expose)(struct module *mod, cairo_t *cr);
     void (*expose)(const struct module *mod,
@@ -52,15 +66,6 @@ struct module {
                    cairo_t *cr, int x, int y, int height);
     void (*end_expose)(const struct module *mod, struct module_expose_context *ctx);
 
-    /*
-     * Called by module_default_begin_expose(). Should return an
-     * exposable (an instantiated particle).
-     */
-    struct exposable *(*content)(struct module *mod);
-
-    /* refresh_in() should schedule a module content refresh after the
-     * specified number of milliseconds */
-    bool (*refresh_in)(struct module *mod, long milli_seconds);
 };
 
 struct module *module_common_new(void);
