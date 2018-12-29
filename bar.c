@@ -612,8 +612,15 @@ run(struct bar_run_context *run_ctx)
                 break;
             }
 
-            case XCB_BUTTON_RELEASE:
             case XCB_BUTTON_PRESS:
+                break;
+
+            case XCB_BUTTON_RELEASE: {
+                const xcb_button_release_event_t *evt = (void *)e;
+                on_mouse(_bar, ON_MOUSE_CLICK, evt->event_x, evt->event_y);
+                break;
+            }
+
             case XCB_DESTROY_NOTIFY:
             case XCB_REPARENT_NOTIFY:
             case XCB_CONFIGURE_NOTIFY:
