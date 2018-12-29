@@ -9,12 +9,17 @@
 
 #include <threads.h>
 
+#include <sys/types.h>
 #include <sys/eventfd.h>
+#include <pwd.h>
 
 #include "bar.h"
 #include "config.h"
 #include "yml.h"
 #include "xcb.h"
+
+#define LOG_MODULE "main"
+#include "log.h"
 
 static volatile sig_atomic_t aborted = 0;
 
@@ -24,11 +29,39 @@ signal_handler(int signo)
     aborted = 1;
 }
 
+static FILE *
+open_config(void)
+{
+    struct passwd *passwd = getpwuid(getuid());
+    if (passwd == NULL) {
+        LOG_ERRNO("failed to lookup user");
+        return NULL;
+    }
+
+    const char *home_dir = passwd->pw_dir;
+    LOG_DBG("user's home directory: %s", home_dir);
+
+    long path_max = sysconf(_PC_PATH_MAX);
+    if (path_max == -1)
+        path_max = 1024;
+
+    char path[path_max];
+    snprintf(path, path_max, "%s/.config/f00bar/config.yml", home_dir);
+
+    FILE *ret = fopen(path, "r");
+    if (ret == NULL)
+        LOG_ERRNO("%s: failed to open", path);
+
+    return ret;
+}
+
 int
 main(int argc, const char *const *argv)
 {
-    FILE *conf_file = fopen("config.yml", "r");
-    assert(conf_file != NULL);
+    FILE *conf_file = open_config();
+    if (conf_file == NULL)
+        return 1;
+
     struct yml_node *conf = yml_load(conf_file);
     fclose(conf_file);
 
