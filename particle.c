@@ -33,21 +33,6 @@ particle_common_new(int left_margin, int right_margin,
     return p;
 }
 
-struct exposable *
-exposable_common_new(const struct particle *particle, const char *on_click)
-{
-    struct exposable *exposable = malloc(sizeof(*exposable));
-    exposable->particle = particle;
-    exposable->private = NULL;
-    exposable->width = 0;
-    exposable->on_click = on_click != NULL ? strdup(on_click) : NULL;
-    exposable->destroy = &exposable_default_destroy;
-    exposable->on_mouse = &exposable_default_on_mouse;
-    exposable->begin_expose = NULL;
-    exposable->expose = NULL;
-    return exposable;
-}
-
 void
 exposable_default_destroy(struct exposable *exposable)
 {
@@ -114,4 +99,19 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
             LOG_ERRNO("failed to run on_click handler (exec)");
         }
     }
+}
+
+struct exposable *
+exposable_common_new(const struct particle *particle, const char *on_click)
+{
+    struct exposable *exposable = malloc(sizeof(*exposable));
+    exposable->particle = particle;
+    exposable->private = NULL;
+    exposable->width = 0;
+    exposable->on_click = on_click != NULL ? strdup(on_click) : NULL;
+    exposable->destroy = &exposable_default_destroy;
+    exposable->on_mouse = &exposable_default_on_mouse;
+    exposable->begin_expose = NULL;
+    exposable->expose = NULL;
+    return exposable;
 }
