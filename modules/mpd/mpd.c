@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include <time.h>
 #include <threads.h>
 #include <unistd.h>
@@ -108,8 +109,18 @@ content(struct module *mod)
     mtx_lock(&mod->lock);
 
     /* Calculate what 'elapsed' is now */
-    uint64_t elapsed = m->elapsed.value +
-        timespec_diff_milli_seconds(&now, &m->elapsed.when);
+    uint64_t elapsed = m->elapsed.value;
+
+    if (m->state == STATE_PLAY) {
+        elapsed += timespec_diff_milli_seconds(&now, &m->elapsed.when);
+        if (elapsed > m->duration) {
+            LOG_WARN(
+                "dynamic update of elapsed overflowed: "
+                "elapsed=%"PRIu64", duration=%"PRIu64, elapsed, m->duration);
+            elapsed = m->duration;
+        }
+
+    }
 
     unsigned elapsed_secs = elapsed / 1000;
     unsigned duration_secs = m->duration / 1000;
