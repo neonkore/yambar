@@ -399,8 +399,10 @@ sbuf_strcat(struct sbuf *s1, const char *s2)
 char *
 tags_expand_template(const char *template, const struct tag_set *tags)
 {
-    struct sbuf formatted = {0};
+    if (template == NULL)
+        return NULL;
 
+    struct sbuf formatted = {0};
     while (true) {
         /* Find next tag opening '{' */
         const char *begin = strchr(template, '{');
