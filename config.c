@@ -220,40 +220,30 @@ static struct particle *
 particle_list_from_config(const struct yml_node *node,
                           const struct font *parent_font)
 {
-    const struct yml_node *items_node = yml_get_value(node, "items");
+    const struct yml_node *items = yml_get_value(node, "items");
 
-    const struct yml_node *margin_node = yml_get_value(node, "margin");
-    const struct yml_node *left_margin_node = yml_get_value(node, "left_margin");
-    const struct yml_node *right_margin_node = yml_get_value(node, "right_margin");
+    const struct yml_node *margin = yml_get_value(node, "margin");
+    const struct yml_node *_left_margin = yml_get_value(node, "left_margin");
+    const struct yml_node *_right_margin = yml_get_value(node, "right_margin");
 
-    const struct yml_node *spacing_node = yml_get_value(node, "spacing");
-    const struct yml_node *left_spacing_node = yml_get_value(node, "left_spacing");
-    const struct yml_node *right_spacing_node = yml_get_value(node, "right_spacing");
+    const struct yml_node *spacing = yml_get_value(node, "spacing");
+    const struct yml_node *_left_spacing = yml_get_value(node, "left_spacing");
+    const struct yml_node *_right_spacing = yml_get_value(node, "right_spacing");
 
-    int left_margin = 0;
-    int right_margin = 0;
-    int left_spacing = 0;
-    int right_spacing = 2;
+    int left_margin = margin != NULL ? yml_value_as_int(margin) :
+        _left_margin != NULL ? yml_value_as_int(_left_margin) : 0;
+    int right_margin = margin != NULL ? yml_value_as_int(margin) :
+        _right_margin != NULL ? yml_value_as_int(_right_margin) : 0;
+    int left_spacing = spacing != NULL ? yml_value_as_int(spacing) :
+        _left_spacing != NULL ? yml_value_as_int(_left_spacing) : 0;
+    int right_spacing = spacing != NULL ? yml_value_as_int(spacing) :
+        _right_spacing != NULL ? yml_value_as_int(_right_spacing) : 2;;
 
-    if (margin_node != NULL)
-        left_margin = right_margin = yml_value_as_int(margin_node);
-    if (left_margin_node != NULL)
-        left_margin = yml_value_as_int(left_margin_node);
-    if (right_margin_node != NULL)
-        right_margin = yml_value_as_int(right_margin_node);
-
-    if (spacing_node != NULL)
-        left_spacing = right_spacing = yml_value_as_int(spacing_node);
-    if (left_spacing_node != NULL)
-        left_spacing = yml_value_as_int(left_spacing_node);
-    if (right_spacing_node != NULL)
-        right_spacing = yml_value_as_int(right_spacing_node);
-
-    size_t count = yml_list_length(items_node);
+    size_t count = yml_list_length(items);
     struct particle *parts[count];
 
     size_t idx = 0;
-    for (struct yml_list_iter it = yml_list_iter(items_node);
+    for (struct yml_list_iter it = yml_list_iter(items);
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
