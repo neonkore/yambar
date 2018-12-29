@@ -2,6 +2,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+
+#define LOG_MODULE "particle"
+#define LOG_ENABLE_DBG 1
+#include "log.h"
+#include "bar.h"
 
 void
 particle_default_destroy(struct particle *particle)
@@ -44,4 +50,19 @@ exposable_default_destroy(struct exposable *exposable)
 {
     free(exposable->on_click);
     free(exposable);
+}
+
+void
+exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
+                           enum mouse_event event, int x, int y)
+{
+    LOG_DBG("on_mouse: exposable=%p, event=%s, x=%d, y=%d", exposable,
+            event == ON_MOUSE_MOTION ? "motion" : "click", x, y);
+
+    assert(exposable->particle != NULL);
+
+    if (exposable->on_click == NULL)
+        bar->set_cursor(bar, "left_ptr");
+    else
+        bar->set_cursor(bar, "hand2");
 }
