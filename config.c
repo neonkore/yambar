@@ -187,37 +187,28 @@ particle_string_from_config(const struct yml_node *node,
 {
     assert(yml_is_dict(node));
 
-    const struct yml_node *text_node = yml_get_value(node, "text");
-    const struct yml_node *font_node = yml_get_value(node, "font");
-    const struct yml_node *foreground_node = yml_get_value(node, "foreground");
-    const struct yml_node *margin_node = yml_get_value(node, "margin");
-    const struct yml_node *left_margin_node = yml_get_value(node, "left_margin");
-    const struct yml_node *right_margin_node = yml_get_value(node, "right_margin");
+    const struct yml_node *text = yml_get_value(node, "text");
+    const struct yml_node *font = yml_get_value(node, "font");
+    const struct yml_node *foreground = yml_get_value(node, "foreground");
+    const struct yml_node *margin = yml_get_value(node, "margin");
+    const struct yml_node *left_margin = yml_get_value(node, "left_margin");
+    const struct yml_node *right_margin = yml_get_value(node, "right_margin");
 
-    /* TODO: inherit values? At least color... */
-    struct rgba foreground = {1.0, 1.0, 1.0, 1.0};
-    int left_margin = 0;
-    int right_margin = 0;
+    assert(text != NULL && yml_is_scalar(text));
 
-    struct font *font = NULL;
-    if (font_node != NULL)
-        font = font_from_config(font_node);
-    else
-        font = font_clone(parent_font);
+    struct rgba fg_color = foreground != NULL
+        ? color_from_hexstr(yml_value_as_string(foreground)) :
+        (struct rgba){1.0, 1.0, 1.0, 1.0};
 
-    if (foreground_node != NULL)
-        foreground = color_from_hexstr(yml_value_as_string(foreground_node));
+    int left = margin != NULL ? yml_value_as_int(margin) :
+        left_margin != NULL ? yml_value_as_int(left_margin) : 0;
+    int right = margin != NULL ? yml_value_as_int(margin) :
+        right_margin != NULL ? yml_value_as_int(right_margin) : 0;
 
-    if (margin_node != NULL)
-        left_margin = right_margin = yml_value_as_int(margin_node);
-    if (left_margin_node != NULL)
-        left_margin = yml_value_as_int(left_margin_node);
-    if (right_margin_node != NULL)
-        right_margin = yml_value_as_int(right_margin_node);
-
-    assert(text_node != NULL);
     return particle_string_new(
-        yml_value_as_string(text_node), font, foreground, left_margin, right_margin);
+        yml_value_as_string(text),
+        font != NULL ? font_from_config(font) : font_clone(parent_font),
+        fg_color, left, right);
 }
 
 static struct particle * particle_from_config(
