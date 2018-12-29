@@ -23,6 +23,7 @@
 #include <cairo-xcb.h>
 
 #define LOG_MODULE "bar"
+#define LOG_ENABLE_DBG 1
 #include "log.h"
 #include "xcb.h"
 
@@ -42,14 +43,17 @@ struct private {
 
     struct {
         struct module **mods;
+        struct module_expose_context *exps;
         size_t count;
     } left;
     struct {
         struct module **mods;
+        struct module_expose_context *exps;
         size_t count;
     } center;
     struct {
         struct module **mods;
+        struct module_expose_context *exps;
         size_t count;
     } right;
 
@@ -67,9 +71,45 @@ struct private {
     xcb_gc_t gc;
     xcb_cursor_context_t *cursor_ctx;
     xcb_cursor_t cursor;
+    char *cursor_name;
 
     cairo_t *cairo;
 };
+
+/*
+ * Calculate total width of left/center/rigth groups.
+ * Note: begin_expose() must have been called
+ */
+static void
+calculate_widths(const struct private *b, int *left, int *center, int *right)
+{
+    *left = 0;
+    *center = 0;
+    *right = 0;
+
+    for (size_t i = 0; i < b->left.count; i++) {
+        struct module_expose_context *e = &b->left.exps[i];
+        assert(e->exposable != NULL);
+        *left += b->left_spacing + e->width + b->right_spacing;
+    }
+
+    for (size_t i = 0; i < b->center.count; i++) {
+        struct module_expose_context *e = &b->center.exps[i];
+        assert(e->exposable != NULL);
+        *center += b->left_spacing + e->width + b->right_spacing;
+    }
+
+    for (size_t i = 0; i < b->right.count; i++) {
+        struct module_expose_context *e = &b->right.exps[i];
+        assert(e->exposable != NULL);
+        *right += b->left_spacing + e->width + b->right_spacing;
+    }
+
+    /* No spacing on the edges (that's what the margins are for) */
+    *left -= b->left_spacing + b->right_spacing;
+    *center -= b->left_spacing + b->right_spacing;
+    *right -= b->left_spacing + b->right_spacing;
+}
 
 static void
 expose(const struct bar *_bar)
@@ -100,49 +140,54 @@ expose(const struct bar *_bar)
         cairo_stroke(bar->cairo);
     }
 
-    int left_width = 0;
-    int center_width = 0;
-    int right_width = 0;
-
-    struct module_expose_context ctx_left[bar->left.count];
     for (size_t i = 0; i < bar->left.count; i++) {
         struct module *m = bar->left.mods[i];
-        ctx_left[i] = m->begin_expose(m, bar->cairo);
-        left_width += bar->left_spacing + ctx_left[i].width + bar->right_spacing;
+        struct module_expose_context *e = &bar->left.exps[i];
+
+        if (e->exposable != NULL)
+            m->end_expose(m, e);
+
+        *e = m->begin_expose(m, bar->cairo);
     }
 
-    struct module_expose_context ctx_center[bar->center.count];
     for (size_t i = 0; i < bar->center.count; i++) {
         struct module *m = bar->center.mods[i];
-        ctx_center[i] = m->begin_expose(m, bar->cairo);
-        center_width += bar->left_spacing + ctx_center[i].width + bar->right_spacing;
+        struct module_expose_context *e = &bar->center.exps[i];
+
+        if (e->exposable != NULL)
+            m->end_expose(m, e);
+
+        *e = m->begin_expose(m, bar->cairo);
     }
 
-    struct module_expose_context ctx_right[bar->right.count];
     for (size_t i = 0; i < bar->right.count; i++) {
         struct module *m = bar->right.mods[i];
-        ctx_right[i] = m->begin_expose(m, bar->cairo);
-        right_width += bar->left_spacing + ctx_right[i].width + bar->right_spacing;
+        struct module_expose_context *e = &bar->right.exps[i];
+
+        if (e->exposable != NULL)
+            m->end_expose(m, e);
+
+        *e = m->begin_expose(m, bar->cairo);
     }
 
-    /* No spacing on the edges (that's what the margins are for) */
-    left_width -= bar->left_spacing + bar->right_spacing;
-    center_width -= bar->left_spacing + bar->right_spacing;
-    right_width -= bar->left_spacing + bar->right_spacing;
+    int left_width, center_width, right_width;
+    calculate_widths(bar, &left_width, &center_width, &right_width);
 
     int y = bar->border.width;
     int x = bar->border.width + bar->left_margin - bar->left_spacing;
     for (size_t i = 0; i < bar->left.count; i++) {
         const struct module *m = bar->left.mods[i];
-        m->expose(m, &ctx_left[i], bar->cairo, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + ctx_left[i].width + bar->right_spacing;
+        const struct module_expose_context *e = &bar->left.exps[i];
+        m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     x = bar->width / 2 - center_width / 2 - bar->left_spacing;
     for (size_t i = 0; i < bar->center.count; i++) {
         const struct module *m = bar->center.mods[i];
-        m->expose(m, &ctx_center[i], bar->cairo, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + ctx_center[i].width + bar->right_spacing;
+        const struct module_expose_context *e = &bar->center.exps[i];
+        m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     x = bar->width - (
@@ -153,29 +198,125 @@ expose(const struct bar *_bar)
 
     for (size_t i = 0; i < bar->right.count; i++) {
         const struct module *m = bar->right.mods[i];
-        m->expose(m, &ctx_right[i], bar->cairo, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + ctx_right[i].width + bar->right_spacing;
+        const struct module_expose_context *e = &bar->right.exps[i];
+        m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     xcb_copy_area(bar->conn, bar->pixmap, bar->win, bar->gc,
                   0, 0, 0, 0, bar->width, bar->height_with_border);
-
-    for (size_t i = 0; i < bar->left.count; i++) {
-        const struct module *m = bar->left.mods[i];
-        m->end_expose(m, &ctx_left[i]);
-    }
-    for (size_t i = 0; i < bar->center.count; i++) {
-        const struct module *m = bar->center.mods[i];
-        m->end_expose(m, &ctx_center[i]);
-    }
-    for (size_t i = 0; i < bar->right.count; i++) {
-        const struct module *m = bar->right.mods[i];
-        m->end_expose(m, &ctx_right[i]);
-    }
 }
 
-static void refresh(const struct bar *bar);
-static void set_cursor(struct bar *bar, const char *cursor);
+
+static void
+refresh(const struct bar *bar)
+{
+    const struct private *b = bar->private;
+
+    /* Send an event to handle refresh from main thread */
+
+    /* Note: docs say that all X11 events are 32 bytes, reglardless of
+     * the size of the event structure */
+    xcb_expose_event_t *evt = calloc(32, 1);
+
+    *evt = (xcb_expose_event_t){
+        .response_type = XCB_EXPOSE,
+        .window = b->win,
+        .x = 0,
+        .y = 0,
+        .width = b->width,
+        .height = b->height,
+        .count = 1
+    };
+
+    xcb_send_event(b->conn, false, b->win, XCB_EVENT_MASK_EXPOSURE, (char *)evt);
+    xcb_flush(b->conn);
+    free(evt);
+}
+
+static void
+set_cursor(struct bar *bar, const char *cursor)
+{
+    struct private *b = bar->private;
+
+    if (b->cursor_name != NULL && strcmp(b->cursor_name, cursor) == 0)
+        return;
+
+    if (b->cursor_ctx == NULL)
+        return;
+
+    if (b->cursor != 0) {
+        xcb_free_cursor(b->conn, b->cursor);
+        free(b->cursor_name);
+        b->cursor_name = NULL;
+    }
+
+    b->cursor_name = strdup(cursor);
+    b->cursor = xcb_cursor_load_cursor(b->cursor_ctx, cursor);
+    xcb_change_window_attributes(b->conn, b->win, XCB_CW_CURSOR, &b->cursor);
+}
+
+static void
+on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
+{
+    struct private *b = bar->private;
+
+    if ((y < b->border.width || y >= (b->height_with_border - b->border.width)) ||
+        (x < b->border.width || x >= (b->width - b->border.width))) {
+        LOG_DBG("mouse at border");
+    }
+
+    int left_width, center_width, right_width;
+    calculate_widths(b, &left_width, &center_width, &right_width);
+
+    int mx = b->border.width + b->left_margin - b->left_spacing;
+    for (size_t i = 0; i < b->left.count; i++) {
+        const struct module_expose_context *e = &b->left.exps[i];
+
+        mx += b->left_spacing;
+        if (x >= mx && x < mx + e->width) {
+            assert(e->exposable != NULL);
+            if (e->exposable->on_mouse != NULL)
+                e->exposable->on_mouse(e->exposable, bar, event, x - mx, y);
+            return;
+        }
+
+        mx += e->width + b->right_spacing;
+    }
+
+    mx = b->width / 2 - center_width / 2 - b->left_spacing;
+    for (size_t i = 0; i < b->center.count; i++) {
+        const struct module_expose_context *e = &b->center.exps[i];
+
+        mx += b->left_spacing;
+        if (x >= mx && x < mx + e->width) {
+            assert(e->exposable != NULL);
+            if (e->exposable->on_mouse != NULL)
+                e->exposable->on_mouse(e->exposable, bar, event, x - mx, y);
+            return;
+        }
+
+        mx += e->width + b->right_spacing;
+    }
+
+    mx = b->width - (right_width + b->left_spacing + b->right_margin + b->border.width);
+    for (size_t i = 0; i < b->right.count; i++) {
+        const struct module_expose_context *e = &b->right.exps[i];
+
+        mx += b->left_spacing;
+        if (x >= mx && x < mx + e->width) {
+            assert(e->exposable != NULL);
+            if (e->exposable->on_mouse != NULL)
+                e->exposable->on_mouse(e->exposable, bar, event, x - mx, y);
+            return;
+        }
+
+        mx += e->width + b->right_spacing;
+    }
+
+    LOG_DBG("mouse at NOTHING");
+    set_cursor(bar, "left_ptr");
+}
 
 static int
 run(struct bar_run_context *run_ctx)
@@ -465,9 +606,14 @@ run(struct bar_run_context *run_ctx)
                 expose(_bar);
                 break;
 
+            case XCB_MOTION_NOTIFY: {
+                const xcb_motion_notify_event_t *evt = (void *)e;
+                on_mouse(_bar, ON_MOUSE_MOTION, evt->event_x, evt->event_y);
+                break;
+            }
+
             case XCB_BUTTON_RELEASE:
             case XCB_BUTTON_PRESS:
-            case XCB_MOTION_NOTIFY:
             case XCB_DESTROY_NOTIFY:
             case XCB_REPARENT_NOTIFY:
             case XCB_CONFIGURE_NOTIFY:
@@ -503,6 +649,9 @@ run(struct bar_run_context *run_ctx)
     if (bar->cursor_ctx != NULL) {
         xcb_free_cursor(bar->conn, bar->cursor);
         xcb_cursor_context_free(bar->cursor_ctx);
+
+        free(bar->cursor_name);
+        bar->cursor_name = NULL;
     }
 
     xcb_free_gc(bar->conn, bar->gc);
@@ -518,58 +667,41 @@ run(struct bar_run_context *run_ctx)
 }
 
 static void
-refresh(const struct bar *bar)
-{
-    const struct private *b = bar->private;
-
-    /* Send an event to handle refresh from main thread */
-
-    /* Note: docs say that all X11 events are 32 bytes, reglardless of
-     * the size of the event structure */
-    xcb_expose_event_t *evt = calloc(32, 1);
-
-    *evt = (xcb_expose_event_t){
-        .response_type = XCB_EXPOSE,
-        .window = b->win,
-        .x = 0,
-        .y = 0,
-        .width = b->width,
-        .height = b->height,
-        .count = 1
-    };
-
-    xcb_send_event(b->conn, false, b->win, XCB_EVENT_MASK_EXPOSURE, (char *)evt);
-    xcb_flush(b->conn);
-    free(evt);
-}
-
-static void
-set_cursor(struct bar *bar, const char *cursor)
-{
-    struct private *b = bar->private;
-
-    if (b->cursor_ctx == NULL)
-        return;
-
-    b->cursor = xcb_cursor_load_cursor(b->cursor_ctx, cursor);
-    xcb_change_window_attributes(b->conn, b->win, XCB_CW_CURSOR, &b->cursor);
-}
-
-static void
 destroy(struct bar *bar)
 {
     struct private *b = bar->private;
 
-    for (size_t i = 0; i < b->left.count; i++)
-        b->left.mods[i]->destroy(b->left.mods[i]);
-    for (size_t i = 0; i < b->center.count; i++)
-        b->center.mods[i]->destroy(b->center.mods[i]);
-    for (size_t i = 0; i < b->right.count; i++)
-        b->right.mods[i]->destroy(b->right.mods[i]);
+    for (size_t i = 0; i < b->left.count; i++) {
+        struct module *m = b->left.mods[i];
+        struct module_expose_context *e = &b->left.exps[i];
+
+        if (e->exposable != NULL)
+            m->end_expose(m, e);
+        m->destroy(m);
+    }
+    for (size_t i = 0; i < b->center.count; i++) {
+        struct module *m = b->center.mods[i];
+        struct module_expose_context *e = &b->center.exps[i];
+
+        if (e->exposable != NULL)
+            m->end_expose(m, e);
+        m->destroy(m);
+    }
+    for (size_t i = 0; i < b->right.count; i++) {
+        struct module *m = b->right.mods[i];
+        struct module_expose_context *e = &b->right.exps[i];
+
+        if (e->exposable != NULL)
+            m->end_expose(m, e);
+        m->destroy(m);
+    }
 
     free(b->left.mods);
+    free(b->left.exps);
     free(b->center.mods);
+    free(b->center.exps);
     free(b->right.mods);
+    free(b->right.exps);
 
     free(bar->private);
     free(bar);
@@ -589,20 +721,30 @@ bar_new(const struct bar_config *config)
     priv->border.width = config->border.width;
     priv->border.color = config->border.color;
     priv->left.mods = malloc(config->left.count * sizeof(priv->left.mods[0]));
+    priv->left.exps = malloc(config->left.count * sizeof(priv->left.exps[0]));
     priv->center.mods = malloc(config->center.count * sizeof(priv->center.mods[0]));
+    priv->center.exps = malloc(config->center.count * sizeof(priv->center.exps[0]));
     priv->right.mods = malloc(config->right.count * sizeof(priv->right.mods[0]));
+    priv->right.exps = malloc(config->right.count * sizeof(priv->right.exps[0]));
     priv->left.count = config->left.count;
     priv->center.count = config->center.count;
     priv->right.count = config->right.count;
     priv->cursor_ctx = NULL;
     priv->cursor = 0;
+    priv->cursor_name = NULL;
 
-    for (size_t i = 0; i < priv->left.count; i++)
+    for (size_t i = 0; i < priv->left.count; i++) {
         priv->left.mods[i] = config->left.mods[i];
-    for (size_t i = 0; i < priv->center.count; i++)
+        priv->left.exps[i].exposable = NULL;
+    }
+    for (size_t i = 0; i < priv->center.count; i++) {
         priv->center.mods[i] = config->center.mods[i];
-    for (size_t i = 0; i < priv->right.count; i++)
+        priv->center.exps[i].exposable = NULL;
+    }
+    for (size_t i = 0; i < priv->right.count; i++) {
         priv->right.mods[i] = config->right.mods[i];
+        priv->right.exps[i].exposable = NULL;
+    }
 
     struct bar *bar = malloc(sizeof(*bar));
     bar->private = priv;
