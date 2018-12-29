@@ -20,6 +20,10 @@ struct particle {
                                      const struct tag_set *tags);
 };
 
+enum mouse_event {
+    ON_MOUSE_MOTION,
+    ON_MOUSE_CLICK,
+};
 
 struct exposable {
     const struct particle *particle;
@@ -31,6 +35,9 @@ struct exposable {
     int (*begin_expose)(struct exposable *exposable, cairo_t *cr);
     void (*expose)(const struct exposable *exposable, cairo_t *cr,
                    int x, int y, int height);
+
+    void (*on_mouse)(struct exposable *exposable, struct bar *bar,
+                     enum mouse_event event, int x, int y);
 };
 
 struct particle *particle_common_new(int left_margin, int right_margin);
