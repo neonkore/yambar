@@ -164,7 +164,8 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     e->font = p->font;
     e->foreground = p->foreground;
 
-    struct exposable *exposable = exposable_common_new(particle, NULL);
+    struct exposable *exposable = exposable_common_new(
+        particle, particle->on_click_template);
     exposable->private = e;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
@@ -184,14 +185,16 @@ particle_destroy(struct particle *particle)
 
 struct particle *
 particle_string_new(const char *text, struct font *font,
-                    struct rgba foreground, int left_margin, int right_margin)
+                    struct rgba foreground, int left_margin, int right_margin,
+                    const char *on_click_template)
 {
     struct private *p = malloc(sizeof(*p));
     p->text = strdup(text);
     p->font = font;
     p->foreground = foreground;
 
-    struct particle *particle = particle_common_new(left_margin, right_margin);
+    struct particle *particle = particle_common_new(
+        left_margin, right_margin, on_click_template);
 
     particle->private = p;
     particle->destroy = &particle_destroy;

@@ -193,6 +193,7 @@ particle_string_from_config(const struct yml_node *node,
     const struct yml_node *margin = yml_get_value(node, "margin");
     const struct yml_node *left_margin = yml_get_value(node, "left_margin");
     const struct yml_node *right_margin = yml_get_value(node, "right_margin");
+    const struct yml_node *on_click = yml_get_value(node, "on_click");
 
     assert(text != NULL && yml_is_scalar(text));
 
@@ -208,7 +209,8 @@ particle_string_from_config(const struct yml_node *node,
     return particle_string_new(
         yml_value_as_string(text),
         font != NULL ? font_from_config(font) : font_clone(parent_font),
-        fg_color, left, right);
+        fg_color, left, right,
+        on_click != NULL ? yml_value_as_string(on_click) : NULL);
 }
 
 static struct particle * particle_from_config(
