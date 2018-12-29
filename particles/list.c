@@ -118,9 +118,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         e->exposables[i] = pp->instantiate(pp, tags);
     }
 
-    char *on_click = particle->on_click_template != NULL
-        ? tags_expand_template(particle->on_click_template, tags)
-        : NULL;
+    char *on_click = tags_expand_template(particle->on_click_template, tags);
 
     struct exposable *exposable = exposable_common_new(particle, on_click);
     exposable->private = e;
