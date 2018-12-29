@@ -11,6 +11,15 @@ struct private {
     struct rgba foreground;
 };
 
+static void
+exposable_destroy(struct exposable *exposable)
+{
+    struct private *e = exposable->private;
+    free(e->text);
+    free(e);
+    exposable_default_destroy(exposable);
+}
+
 static int
 begin_expose(struct exposable *exposable, cairo_t *cr)
 {
@@ -66,15 +75,6 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     cairo_text_cluster_free(clusters);
     /*cairo_scaled_font_destroy(scaled);*/
 
-}
-
-static void
-exposable_destroy(struct exposable *exposable)
-{
-    struct private *e = exposable->private;
-    free(e->text);
-    free(e);
-    free(exposable);
 }
 
 struct sbuf {
@@ -164,8 +164,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     e->font = p->font;
     e->foreground = p->foreground;
 
-    struct exposable *exposable = malloc(sizeof(*exposable));
-    exposable->particle = particle;
+    struct exposable *exposable = exposable_common_new(particle, NULL);
     exposable->private = e;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;

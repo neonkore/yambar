@@ -48,7 +48,7 @@ exposable_destroy(struct exposable *exposable)
         e->exposables[i]->destroy(e->exposables[i]);
     free(e->exposables);
     free(e);
-    free(exposable);
+    exposable_default_destroy(exposable);
 }
 
 static int
@@ -120,8 +120,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     assert(idx == epriv->count);
 
-    struct exposable *exposable = malloc(sizeof(*exposable));
-    exposable->particle = particle;
+    struct exposable *exposable = exposable_common_new(particle, NULL);
     exposable->private = epriv;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;

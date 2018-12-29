@@ -35,3 +35,10 @@ struct exposable {
 
 struct particle *particle_common_new(int left_margin, int right_margin);
 void particle_default_destroy(struct particle *particle);
+
+struct exposable *exposable_common_new(
+    const struct particle *particle, const char *on_click);
+void exposable_default_destroy(struct exposable *exposable);
+void exposable_default_on_mouse(
+    struct exposable *exposable, struct bar *bar,
+    enum mouse_event event, int x, int y);

@@ -2,12 +2,6 @@
 
 #include <stdlib.h>
 
-static void
-exposable_destroy(struct exposable *exposable)
-{
-    free(exposable);
-}
-
 static int
 begin_expose(struct exposable *exposable, cairo_t *cr)
 {
@@ -27,9 +21,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 static struct exposable *
 instantiate(const struct particle *particle, const struct tag_set *tags)
 {
-    struct exposable *exposable = malloc(sizeof(*exposable));
-    exposable->particle = particle;
-    exposable->destroy = &exposable_destroy;
+    struct exposable *exposable = exposable_common_new(particle, NULL);
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
     return exposable;
