@@ -12,6 +12,45 @@ struct private {
     size_t count;
 };
 
+struct eprivate {
+    struct exposable *exposable;
+};
+
+static void
+exposable_destroy(struct exposable *exposable)
+{
+    struct eprivate *e = exposable->private;
+    e->exposable->destroy(e->exposable);
+
+    free(e);
+    exposable_default_destroy(exposable);
+}
+
+static int
+begin_expose(struct exposable *exposable, cairo_t *cr)
+{
+    struct eprivate *e = exposable->private;
+
+    exposable->width = (
+        exposable->particle->left_margin +
+        e->exposable->begin_expose(e->exposable, cr) +
+        exposable->particle->right_margin);
+
+    return exposable->width;
+}
+
+static void
+expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
+{
+    const struct deco *deco = exposable->particle->deco;
+    if (deco != NULL)
+        deco->expose(deco, cr, x, y, exposable->width, height);
+
+    struct eprivate *e = exposable->private;
+    e->exposable->expose(
+        e->exposable, cr, x + exposable->particle->left_margin, y, height);
+}
+
 static void
 particle_destroy(struct particle *particle)
 {
@@ -55,16 +94,25 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     assert(idx >= 0 && idx < p->count);
 
     struct particle *pp = p->particles[idx];
-    return pp->instantiate(pp, tags);
+
+    struct eprivate *e = malloc(sizeof(*e));
+    e->exposable = pp->instantiate(pp, tags);
+
+    char *on_click = tags_expand_template(particle->on_click_template, tags);
+    struct exposable *exposable = exposable_common_new(particle, on_click);
+    exposable->private = e;
+    exposable->destroy = &exposable_destroy;
+    exposable->begin_expose = &begin_expose;
+    exposable->expose = &expose;
+
+    free(on_click);
+    return exposable;
 }
 
 struct particle *
 particle_ramp_new(const char *tag, struct particle *particles[], size_t count,
                   int left_margin, int right_margin)
 {
-    assert(left_margin == 0 && right_margin == 0
-           && "ramp: margins not implemented");
-
     struct particle *particle = particle_common_new(
         left_margin, right_margin, NULL);
     particle->destroy = &particle_destroy;
