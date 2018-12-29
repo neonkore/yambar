@@ -1,6 +1,10 @@
 #include "list.h"
 #include <stdlib.h>
 
+#define LOG_MODULE "list"
+#define LOG_ENABLE_DBG 1
+#include "../log.h"
+
 struct particle_private {
     struct particle **particles;
     size_t count;
@@ -69,8 +73,32 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 }
 
 static void
+on_mouse(struct exposable *exposable, struct bar *bar,
+         enum mouse_event event, int x, int y)
 {
+    const struct particle *p = exposable->particle;
+    const struct exposable_private *e = exposable->private;
 
+    if (exposable->on_click != NULL) {
+        exposable_default_on_mouse(exposable, bar, event, x, y);
+        return;
+    }
+
+    int px = p->left_margin;
+    for (size_t i = 0; i < e->count; i++) {
+        if (x >= px && x < px + e->exposables[i]->width) {
+            if (e->exposables[i]->on_mouse != NULL) {
+                e->exposables[i]->on_mouse(
+                    e->exposables[i], bar, event, x - px, y);
+            }
+            return;
+        }
+
+        px += e->left_spacing + e->exposables[i]->width + e->right_spacing;
+    }
+
+    LOG_DBG("on_mouse missed all sub-particles");
+    exposable_default_on_mouse(exposable, bar, event, x, y);
 }
 
 static struct exposable *
@@ -95,6 +123,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
+    exposable->on_mouse = &on_mouse;
     return exposable;
 }
 
