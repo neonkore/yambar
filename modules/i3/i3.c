@@ -21,7 +21,7 @@
 #include "../../log.h"
 #include "../../bar.h"
 
-#include "dynlist-exposable.h"
+#include "../../particles/dynlist.h"
 
 struct ws_content {
     char *name;

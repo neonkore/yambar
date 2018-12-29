@@ -40,6 +40,7 @@ add_executable(f00bar
   decorations/stack.c decorations/stack.h
   decorations/underline.c decorations/underline.h
 
+  particles/dynlist.c particles/dynlist.h
   particles/empty.c particles/empty.h
   particles/list.c particles/list.h
   particles/map.c particles/map.h
@@ -50,7 +51,6 @@ add_executable(f00bar
   modules/backlight/backlight.c modules/backlight/backlight.h
   modules/battery/battery.c modules/battery/battery.h
   modules/clock/clock.c modules/clock/clock.h
-  modules/i3/dynlist-exposable.c modules/i3/dynlist-exposable.h
   modules/i3/i3.c modules/i3/i3.h
   modules/label/label.c modules/label/label.h
   modules/mpd/mpd.c modules/mpd/mpd.h

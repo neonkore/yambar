@@ -1,9 +1,9 @@
-#include "dynlist-exposable.h"
+#include "dynlist.h"
 
 #include <stdlib.h>
 
 #define LOG_MODULE "dynlist"
-#include "../../log.h"
+#include "../log.h"
 
 struct private {
     int left_spacing;
