@@ -41,11 +41,9 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 static void
 expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 {
-    const struct deco *deco = exposable->particle->deco;
-    if (deco != NULL)
-        deco->expose(deco, cr, x, y, exposable->width, height);
-
     struct eprivate *e = exposable->private;
+
+    exposable_render_deco(exposable, cr, x, y, height);
     e->exposable->expose(
         e->exposable, cr, x + exposable->particle->left_margin, y, height);
 }

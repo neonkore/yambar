@@ -56,9 +56,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 {
     const struct eprivate *e = exposable->private;
 
-    const struct deco *deco = exposable->particle->deco;
-    if (deco != NULL)
-        deco->expose(deco, cr, x, y, exposable->width, height);
+    exposable_render_deco(exposable, cr, x, y, height);
 
     int left_margin = exposable->particle->left_margin;
     int left_spacing = e->left_spacing;

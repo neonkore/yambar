@@ -41,6 +41,16 @@ exposable_default_destroy(struct exposable *exposable)
 }
 
 void
+exposable_render_deco(const struct exposable *exposable,
+                      cairo_t *cr, int x, int y, int height)
+{
+    const struct deco *deco = exposable->particle->deco;
+    if (deco != NULL)
+        deco->expose(deco, cr, x, y, exposable->width, height);
+
+}
+
+void
 exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
                            enum mouse_event event, int x, int y)
 {

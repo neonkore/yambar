@@ -57,9 +57,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
         e->text, strlen(e->text), &glyphs, &num_glyphs,
         &clusters, &num_clusters, &cluster_flags);
 
-    const struct deco *deco = exposable->particle->deco;
-    if (deco != NULL)
-        deco->expose(deco, cr, x, y, exposable->width, height);
+    exposable_render_deco(exposable, cr, x, y, height);
 
     cairo_set_source_rgba(cr,
                           e->foreground.red,
