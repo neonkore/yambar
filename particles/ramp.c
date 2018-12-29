@@ -59,9 +59,14 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 }
 
 struct particle *
-particle_ramp_new(const char *tag, struct particle *particles[], size_t count)
+particle_ramp_new(const char *tag, struct particle *particles[], size_t count,
+                  int left_margin, int right_margin)
 {
-    struct particle *particle = particle_common_new(0, 0, NULL);
+    assert(left_margin == 0 && right_margin == 0
+           && "ramp: margins not implemented");
+
+    struct particle *particle = particle_common_new(
+        left_margin, right_margin, NULL);
     particle->destroy = &particle_destroy;
     particle->instantiate = &instantiate;
 

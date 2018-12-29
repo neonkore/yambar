@@ -58,9 +58,14 @@ particle_destroy(struct particle *particle)
 
 struct particle *
 particle_map_new(const char *tag, const struct particle_map *particle_map,
-                 size_t count, struct particle *default_particle)
+                 size_t count, struct particle *default_particle,
+                 int left_margin, int right_margin)
 {
-    struct particle *particle = particle_common_new(0, 0, NULL);
+    assert(left_margin == 0 && right_margin == 0
+        && "map: margins not implemented");
+
+    struct particle *particle = particle_common_new(
+        left_margin, right_margin, NULL);
     particle->destroy = &particle_destroy;
     particle->instantiate = &instantiate;
 
