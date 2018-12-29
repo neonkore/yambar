@@ -169,22 +169,23 @@ deco_from_config(const struct yml_node *node)
 static struct particle *
 particle_empty_from_config(const struct yml_node *node,
                            const struct font *parent_font,
-                           int left_margin, int right_margin)
+                           int left_margin, int right_margin,
+                           const char *on_click_template)
 {
-    return particle_empty_new(left_margin, right_margin);
+    return particle_empty_new(left_margin, right_margin, on_click_template);
 }
 
 static struct particle *
 particle_string_from_config(const struct yml_node *node,
                             const struct font *parent_font,
-                            int left_margin, int right_margin)
+                            int left_margin, int right_margin,
+                            const char *on_click_template)
 {
     assert(yml_is_dict(node));
 
     const struct yml_node *text = yml_get_value(node, "text");
     const struct yml_node *font = yml_get_value(node, "font");
     const struct yml_node *foreground = yml_get_value(node, "foreground");
-    const struct yml_node *on_click = yml_get_value(node, "on_click");
 
     assert(text != NULL && yml_is_scalar(text));
 
@@ -195,8 +196,7 @@ particle_string_from_config(const struct yml_node *node,
     return particle_string_new(
         yml_value_as_string(text),
         font != NULL ? font_from_config(font) : font_clone(parent_font),
-        fg_color, left_margin, right_margin,
-        on_click != NULL ? yml_value_as_string(on_click) : NULL);
+        fg_color, left_margin, right_margin, on_click_template);
 }
 
 static struct particle * particle_from_config(
@@ -205,15 +205,14 @@ static struct particle * particle_from_config(
 static struct particle *
 particle_list_from_config(const struct yml_node *node,
                           const struct font *parent_font,
-                          int left_margin, int right_margin)
+                          int left_margin, int right_margin,
+                          const char *on_click_template)
 {
     const struct yml_node *items = yml_get_value(node, "items");
 
     const struct yml_node *spacing = yml_get_value(node, "spacing");
     const struct yml_node *_left_spacing = yml_get_value(node, "left_spacing");
     const struct yml_node *_right_spacing = yml_get_value(node, "right_spacing");
-
-    const struct yml_node *on_click = yml_get_value(node, "on_click");
 
     int left_spacing = spacing != NULL ? yml_value_as_int(spacing) :
         _left_spacing != NULL ? yml_value_as_int(_left_spacing) : 0;
@@ -233,13 +232,14 @@ particle_list_from_config(const struct yml_node *node,
 
     return particle_list_new(
         parts, count, left_spacing, right_spacing, left_margin, right_margin,
-        on_click != NULL ? yml_value_as_string(on_click) : NULL);
+        on_click_template);
 }
 
 static struct particle *
 particle_map_from_config(const struct yml_node *node,
                          const struct font *parent_font,
-                         int left_margin, int right_margin)
+                         int left_margin, int right_margin,
+                         const char *on_click_template)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *values = yml_get_value(node, "values");
@@ -266,13 +266,14 @@ particle_map_from_config(const struct yml_node *node,
 
     return particle_map_new(
         yml_value_as_string(tag), particle_map, yml_dict_length(values),
-        default_particle, left_margin, right_margin);
+        default_particle, left_margin, right_margin, on_click_template);
 }
 
 static struct particle *
 particle_ramp_from_config(const struct yml_node *node,
                           const struct font *parent_font,
-                          int left_margin, int right_margin)
+                          int left_margin, int right_margin,
+                          const char *on_click_template)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *items = yml_get_value(node, "items");
@@ -292,13 +293,15 @@ particle_ramp_from_config(const struct yml_node *node,
     }
 
     return particle_ramp_new(
-        yml_value_as_string(tag), parts, count, left_margin, right_margin);
+        yml_value_as_string(tag), parts, count, left_margin, right_margin,
+        on_click_template);
 }
 
 static struct particle *
 particle_progress_bar_from_config(const struct yml_node *node,
                                   const struct font *parent_font,
-                                  int left_margin, int right_margin)
+                                  int left_margin, int right_margin,
+                                  const char *on_click_template)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *length = yml_get_value(node, "length");
@@ -307,7 +310,6 @@ particle_progress_bar_from_config(const struct yml_node *node,
     const struct yml_node *fill = yml_get_value(node, "fill");
     const struct yml_node *empty = yml_get_value(node, "empty");
     const struct yml_node *indicator = yml_get_value(node, "indicator");
-    const struct yml_node *on_click = yml_get_value(node, "on_click");
 
     assert(tag != NULL && yml_is_scalar(tag));
     assert(length != NULL && yml_is_scalar(length));
@@ -316,7 +318,6 @@ particle_progress_bar_from_config(const struct yml_node *node,
     assert(fill != NULL);
     assert(empty != NULL);
     assert(indicator != NULL);
-    assert(on_click == NULL || yml_is_scalar(on_click));
 
     return particle_progress_bar_new(
         yml_value_as_string(tag),
@@ -326,8 +327,7 @@ particle_progress_bar_from_config(const struct yml_node *node,
         particle_from_config(fill, parent_font),
         particle_from_config(empty, parent_font),
         particle_from_config(indicator, parent_font),
-        left_margin, right_margin,
-        on_click != NULL ? yml_value_as_string(on_click) : NULL);
+        left_margin, right_margin, on_click_template);
 }
 
 static struct particle *
@@ -342,29 +342,40 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
     const struct yml_node *margin = yml_get_value(pair.value, "margin");
     const struct yml_node *left_margin = yml_get_value(pair.value, "left_margin");
     const struct yml_node *right_margin = yml_get_value(pair.value, "right_margin");
+    const struct yml_node *on_click = yml_get_value(pair.value, "on_click");
 
     assert(margin == NULL || yml_is_scalar(margin));
     assert(left_margin == NULL || yml_is_scalar(left_margin));
     assert(right_margin == NULL || yml_is_scalar(right_margin));
+    assert(on_click == NULL || yml_is_scalar(on_click));
 
     int left = margin != NULL ? yml_value_as_int(margin) :
         left_margin != NULL ? yml_value_as_int(left_margin) : 0;
     int right = margin != NULL ? yml_value_as_int(margin) :
         right_margin != NULL ? yml_value_as_int(right_margin) : 0;
 
+    const char *on_click_template
+        = on_click != NULL ? yml_value_as_string(on_click) : NULL;
+
     struct particle *ret = NULL;
     if (strcmp(type, "empty") == 0)
-        ret = particle_empty_from_config(pair.value, parent_font, left, right);
+        ret = particle_empty_from_config(
+            pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "string") == 0)
-        ret = particle_string_from_config(pair.value, parent_font, left, right);
+        ret = particle_string_from_config(
+            pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "list") == 0)
-        ret = particle_list_from_config(pair.value, parent_font, left, right);
+        ret = particle_list_from_config(
+            pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "map") == 0)
-        ret = particle_map_from_config(pair.value, parent_font, left, right);
+        ret = particle_map_from_config(
+            pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "ramp") == 0)
-        ret = particle_ramp_from_config(pair.value, parent_font, left, right);
+        ret = particle_ramp_from_config(
+            pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "progress_bar") == 0)
-        ret = particle_progress_bar_from_config(pair.value, parent_font, left, right);
+        ret = particle_progress_bar_from_config(
+            pair.value, parent_font, left, right, on_click_template);
     else
         assert(false);
 

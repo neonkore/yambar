@@ -139,10 +139,11 @@ particle_destroy(struct particle *particle)
 struct particle *
 particle_map_new(const char *tag, const struct particle_map *particle_map,
                  size_t count, struct particle *default_particle,
-                 int left_margin, int right_margin)
+                 int left_margin, int right_margin,
+                 const char *on_click_template)
 {
     struct particle *particle = particle_common_new(
-        left_margin, right_margin, NULL);
+        left_margin, right_margin, on_click_template);
     particle->destroy = &particle_destroy;
     particle->instantiate = &instantiate;
 
