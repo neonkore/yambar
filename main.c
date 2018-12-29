@@ -65,13 +65,19 @@ main(int argc, const char *const *argv)
     struct yml_node *conf = yml_load(conf_file);
     fclose(conf_file);
 
+    if (conf == NULL)
+        return 1;
+
     xcb_init();
 
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
 
     int abort_fd = eventfd(0, EFD_CLOEXEC);
-    assert(abort_fd >= 0);
+    if (abort_fd == -1) {
+        LOG_ERRNO("failed to create eventfd (for abort signalling)");
+        return 1;
+    }
 
     struct bar *bar = conf_to_bar(yml_get_value(conf, "bar"));
 
