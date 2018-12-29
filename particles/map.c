@@ -48,6 +48,30 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
         e->exposable, cr, x + exposable->particle->left_margin, y, height);
 }
 
+static void
+on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
+         int x, int y)
+{
+    const struct particle *p = exposable->particle;
+    const struct eprivate *e = exposable->private;
+
+    if (exposable->on_click != NULL) {
+        /* We have our own handler */
+        exposable_default_on_mouse(exposable, bar, event, x, y);
+        return;
+    }
+
+    int px = p->left_margin;
+    if (x >= px && x < px + e->exposable->width) {
+        if (e->exposable->on_mouse != NULL)
+            e->exposable->on_mouse(e->exposable, bar, event, x - px, y);
+        return;
+    }
+
+    /* In the left- or right margin */
+    exposable_default_on_mouse(exposable, bar, event, x, y);
+}
+
 static struct exposable *
 instantiate(const struct particle *particle, const struct tag_set *tags)
 {
@@ -86,6 +110,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
+    exposable->on_mouse = &on_mouse;
 
     free(on_click);
     return exposable;
