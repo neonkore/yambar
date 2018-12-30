@@ -283,7 +283,7 @@ run(struct module_run_context *ctx)
                 break;
 
             struct pollfd fds[] = {{.fd = ctx->abort_fd, .events = POLLIN}};
-            int res = poll(fds, 1, 1 * 1000);
+            int res = poll(fds, 1, 10 * 1000);
 
             if (res == 1) {
                 assert(fds[0].revents & POLLIN);
