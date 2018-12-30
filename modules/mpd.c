@@ -181,6 +181,7 @@ connect_to_mpd(const struct module *mod)
     if (merr != MPD_ERROR_SUCCESS) {
         LOG_WARN("failed to connect to MPD: %s",
                  mpd_connection_get_error_message(conn));
+        mpd_connection_free(conn);
         return NULL;
     }
 
