@@ -63,3 +63,13 @@ void log_errno(enum log_class log_class, const char *module,
     _log(log_class, module, file, lineno, fmt, errno, ap);
     va_end(ap);
 }
+
+void log_errno_provided(enum log_class log_class, const char *module,
+                        const char *file, int lineno, int _errno,
+                        const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    _log(log_class, module, file, lineno, fmt, _errno, ap);
+    va_end(ap);
+}
