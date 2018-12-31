@@ -22,7 +22,6 @@ pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)                         # Module/xkb
 pkg_check_modules(JSON REQUIRED json-c)                             # Module/i3
 pkg_check_modules(UDEV REQUIRED libudev)                            # Module/battery
 pkg_check_modules(MPD REQUIRED libmpdclient)                        # Module/mpd
-pkg_check_modules(NL REQUIRED libnl-3.0 libnl-route-3.0)            # Module/network
 
 add_executable(f00bar
   bar.c bar.h
@@ -70,7 +69,6 @@ target_compile_options(f00bar PRIVATE
   ${JSON_CFLAGS_OTHER}
   ${UDEV_CFLAGS_OTHER}
   ${MPD_CFLAGS_OTHER}
-  ${NL_CFLAGS_OTHER}
   )
 
 target_include_directories(f00bar PRIVATE
@@ -81,7 +79,6 @@ target_include_directories(f00bar PRIVATE
   ${JSON_INCLUDE_DIRS}
   ${UDEV_INCLUDE_DIRS}
   ${MPD_INCLUDE_DIRS}
-  ${NL_INCLUDE_DIRS}
   )
 
 target_link_libraries(f00bar
@@ -93,5 +90,4 @@ target_link_libraries(f00bar
   ${JSON_LIBRARIES}
   ${UDEV_LIBRARIES}
   ${MPD_LIBRARIES}
-  ${NL_LIBRARIES}
   )

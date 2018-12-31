@@ -1,17 +1,18 @@
 #include "network.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 
+#include <threads.h>
 #include <poll.h>
 
 #include <arpa/inet.h>
 #include <linux/if.h>
-
-#include <netlink/netlink.h>
-#include <netlink/route/addr.h>
-#include <netlink/route/link.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
 
 #define LOG_MODULE "network"
 #define LOG_ENABLE_DBG 1
@@ -25,7 +26,7 @@ struct af_addr {
     union {
         struct in_addr ipv4;
         struct in6_addr ipv6;
-    } u;
+    } addr;
 };
 
 struct private {
@@ -34,6 +35,7 @@ struct private {
 
     int ifindex;
     uint8_t mac[6];
+    bool carrier;
     uint8_t state;  /* IFLA_OPERSTATE */
 
     /* IPv4 and IPv6 addresses */
@@ -85,21 +87,22 @@ content(struct module *mod)
      * we expose all in some way? */
     tll_foreach(m->addrs, it) {
         if (it->item.family == AF_INET)
-            inet_ntop(AF_INET, &it->item.u.ipv4, ipv4_str, sizeof(ipv4_str));
+            inet_ntop(AF_INET, &it->item.addr.ipv4, ipv4_str, sizeof(ipv4_str));
         else if (it->item.family == AF_INET6)
-            inet_ntop(AF_INET6, &it->item.u.ipv6, ipv6_str, sizeof(ipv6_str));
+            inet_ntop(AF_INET6, &it->item.addr.ipv6, ipv6_str, sizeof(ipv6_str));
     }
 
     struct tag_set tags = {
         .tags = (struct tag *[]){
             tag_new_string(mod, "name", m->iface),
             tag_new_int(mod, "index", m->ifindex),
+            tag_new_bool(mod, "carrier", m->carrier),
             tag_new_string(mod, "state", state),
             tag_new_string(mod, "mac", mac_str),
             tag_new_string(mod, "ipv4", ipv4_str),
             tag_new_string(mod, "ipv6", ipv6_str),
         },
-        .count = 6,
+        .count = 7,
     };
 
     mtx_unlock(&mod->lock);
@@ -109,118 +112,233 @@ content(struct module *mod)
     return exposable;
 }
 
-static int
-nl_event(struct nl_msg *msg, void *arg)
+/* Returns a value suitable for nl_pid/nlmsg_pid */
+static uint32_t
+nl_pid_value(void)
 {
-    struct module *mod = arg;
+    return thrd_current() << 16 | getpid();
+}
+
+/* Connect and bind to netlink socket. Returns socket fd, or -1 on error */
+static int
+netlink_connect(void)
+{
+    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    if (sock == -1) {
+        LOG_ERRNO("failed to create netlink socket");
+        return -1;
+    }
+
+    const struct sockaddr_nl addr = {
+        .nl_family = AF_NETLINK,
+        .nl_pid = nl_pid_value(),
+        .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
+    };
+
+    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        LOG_ERRNO("failed to bind netlink socket");
+        close(sock);
+        return -1;
+    }
+
+    return sock;
+}
+
+static bool
+send_rt_request(int nl_sock, int request)
+{
+    struct {
+        struct nlmsghdr hdr;
+        struct rtgenmsg rt;
+    } req = {
+        .hdr = {
+            .nlmsg_len = NLMSG_LENGTH(sizeof(req.rt)),
+            .nlmsg_type = request,
+            .nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP,
+            .nlmsg_seq = 1,
+            .nlmsg_pid = nl_pid_value(),
+        },
+
+        .rt = {
+            .rtgen_family = AF_UNSPEC,
+        },
+    };
+
+    int r = sendto(
+        nl_sock, &req, req.hdr.nlmsg_len, 0,
+        (struct sockaddr *)&(struct sockaddr_nl){.nl_family = AF_NETLINK},
+        sizeof(struct sockaddr_nl));
+
+    if (r == -1) {
+        LOG_ERRNO("failed to send netlink request");
+        return false;
+    }
+
+    return true;
+}
+static bool
+find_my_ifindex(struct module *mod, const struct ifinfomsg *msg, size_t len)
+{
     struct private *m = mod->private;
 
-    struct nlmsghdr *hdr = nlmsg_hdr(msg);
+    for (const struct rtattr *attr = IFLA_RTA(msg);
+         RTA_OK(attr, len);
+         attr = RTA_NEXT(attr, len))
+    {
+        switch (attr->rta_type) {
+        case IFLA_IFNAME:
+            if (strcmp((const char *)RTA_DATA(attr), m->iface) == 0) {
+                LOG_INFO("%s: ifindex=%d", m->iface, msg->ifi_index);
 
-    switch (hdr->nlmsg_type) {
-    case RTM_NEWLINK:
-    case RTM_DELLINK: {
-        /* First, ignore if this isn't for us */
-        const struct ifinfomsg *info = nlmsg_data(hdr);
-        if (info->ifi_index != m->ifindex)
-            break;
-
-        /* Parse attributes */
-        struct nlattr *attrs[IFLA_MAX + 1];
-        int r = nlmsg_parse(hdr, sizeof(*info), attrs, IFLA_MAX, NULL);
-        if (r < 0) {
-            LOG_ERR("failed to parse attributes");
-            break;
-        }
-
-        assert(strcmp(nla_get_string(attrs[IFLA_IFNAME]), m->iface) == 0);
-
-        mtx_lock(&mod->lock);
-
-        uint8_t old_state = m->state;
-        uint8_t new_state = attrs[IFLA_OPERSTATE] != NULL
-            ? nla_get_u8(attrs[IFLA_OPERSTATE])
-            : IF_OPER_DOWN;
-
-        if (old_state != new_state) {
-            LOG_DBG(
-                "%s: %s: state: %hhu -> %hhu",
-                hdr->nlmsg_type == RTM_NEWLINK ? "RTM_NEWLINK" : "RTM_DELLINK",
-                m->iface, old_state, new_state);
-
-            m->state = new_state;
-            mod->bar->refresh(mod->bar);
-        }
-
-        mtx_unlock(&mod->lock);
-        break;
-    }
-
-    case RTM_NEWADDR:
-    case RTM_DELADDR: {
-        /* Ignore if not for us */
-        const struct ifaddrmsg *addr = nlmsg_data(hdr);
-        if (addr->ifa_index != m->ifindex)
-            break;
-
-        /* We only support IPv4 and IPv6 */
-        if (addr->ifa_family != AF_INET && addr->ifa_family != AF_INET6)
-            break;
-
-        /* Parse attributes */
-        struct nlattr *attrs[IFA_MAX + 1];
-        int r = nlmsg_parse(hdr, sizeof(*addr), attrs, IFA_MAX, NULL);
-        if (r < 0) {
-            LOG_ERR("failed to parse attributes");
-            break;
-        }
-
-        /* raw_addr is now a "struct in_addr" or a "struct in6_addr" */
-        const void *raw_addr = nla_data(attrs[IFA_ADDRESS]);
-        size_t addr_len = nla_len(attrs[IFA_ADDRESS]);
-
-#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
-        char s[INET6_ADDRSTRLEN];
-        inet_ntop(addr->ifa_family, raw_addr, s, sizeof(s));
-#endif
-
-        LOG_DBG(
-            "%s: %s: family=%d, %s",
-            hdr->nlmsg_type == RTM_NEWADDR ? "RTM_NEWADDR" : "RTM_DELADDR",
-            m->iface, addr->ifa_family, s);
-
-        mtx_lock(&mod->lock);
-
-        if (hdr->nlmsg_type == RTM_DELADDR) {
-            /* Find address in our list and remove it */
-            tll_foreach(m->addrs, it) {
-                if (it->item.family != addr->ifa_family)
-                    continue;
-
-                if (memcmp(&it->item.u, raw_addr, addr_len) != 0)
-                    continue;
-
-                tll_remove(m->addrs, it);
-                break;
+                mtx_lock(&mod->lock);
+                m->ifindex = msg->ifi_index;
+                mtx_unlock(&mod->lock);
+                return true;
             }
-        } else {
-            /* Append address to our list */
-            struct af_addr a = {.family = addr->ifa_family};
-            memcpy(&a.u, raw_addr, addr_len);
-            tll_push_back(m->addrs, a);
+
+            return false;
+        }
+    }
+
+    return false;
+}
+
+static void
+handle_link(struct module *mod, uint16_t type,
+            const struct ifinfomsg *msg, size_t len)
+{
+    assert(type == RTM_NEWLINK || type == RTM_DELLINK);
+
+    struct private *m = mod->private;
+
+    if (m->ifindex == -1) {
+        /* We don't know our own ifindex yet. Let's see if we can find
+         * it in the message */
+        if (!find_my_ifindex(mod, msg, len)) {
+            /* Nope, message wasn't for us (IFLA_IFNAME mismatch) */
+            return;
+        }
+    }
+
+    assert(m->ifindex >= 0);
+
+    if (msg->ifi_index != m->ifindex) {
+        /* Not for us */
+        return;
+    }
+
+    bool update_bar = false;
+
+    for (const struct rtattr *attr = IFLA_RTA(msg);
+         RTA_OK(attr, len);
+         attr = RTA_NEXT(attr, len))
+    {
+        switch (attr->rta_type) {
+        case IFLA_OPERSTATE: {
+            uint8_t operstate = *(const uint8_t *)RTA_DATA(attr);
+            LOG_DBG("%s: IFLA_OPERSTATE: %hhu", m->iface, operstate);
+
+            mtx_lock(&mod->lock);
+            m->state = operstate;
+            mtx_unlock(&mod->lock);
+            update_bar = true;
+            break;
         }
 
-        mtx_unlock(&mod->lock);
+        case IFLA_CARRIER: {
+            uint8_t carrier = *(const uint8_t *)RTA_DATA(attr);
+            LOG_DBG("%s: IFLA_CARRIER: %hhu", m->iface, carrier);
+
+            mtx_lock(&mod->lock);
+            m->carrier = carrier;
+            mtx_unlock(&mod->lock);
+            update_bar = true;
+            break;
+        }
+
+        case IFLA_ADDRESS: {
+            if (RTA_PAYLOAD(attr) != 6)
+                break;
+
+            const uint8_t *mac = RTA_DATA(attr);
+            LOG_DBG("%s: IFLA_ADDRESS: %02x:%02x:%02x:%02x:%02x:%02x",
+                    m->iface,
+                    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+            mtx_lock(&mod->lock);
+            memcpy(m->mac, mac, sizeof(m->mac));
+            mtx_unlock(&mod->lock);
+            update_bar = true;
+            break;
+        }
+        }
+    }
+
+    if (update_bar)
         mod->bar->refresh(mod->bar);
-        break;
+}
+
+static void
+handle_address(struct module *mod, uint16_t type,
+               const struct ifaddrmsg *msg, size_t len)
+{
+    assert(type == RTM_NEWADDR || type == RTM_DELADDR);
+
+    struct private *m = mod->private;
+
+    assert(m->ifindex >= 0);
+
+    if (msg->ifa_index != m->ifindex) {
+        /* Not for us */
+        return;
     }
 
-    default:
-        LOG_WARN("unknown message type: 0x%x", hdr->nlmsg_type);
-        break;
+    bool update_bar = false;
+
+    for (const struct rtattr *attr = IFA_RTA(msg);
+         RTA_OK(attr, len);
+         attr = RTA_NEXT(attr, len))
+    {
+        switch (attr->rta_type) {
+        case IFA_ADDRESS: {
+            const void *raw_addr = RTA_DATA(attr);
+            size_t addr_len = RTA_PAYLOAD(attr);
+
+            char s[INET6_ADDRSTRLEN];
+            inet_ntop(msg->ifa_family, raw_addr, s, sizeof(s));
+            LOG_DBG("%s: IFA_ADDRESS: %s", m->iface, s);
+
+            mtx_lock(&mod->lock);
+
+            if (type == RTM_DELADDR) {
+                /* Find address in our list and remove it */
+                tll_foreach(m->addrs, it) {
+                    if (it->item.family != msg->ifa_family)
+                        continue;
+
+                    if (memcmp(&it->item.addr, raw_addr, addr_len) != 0)
+                        continue;
+
+                    tll_remove(m->addrs, it);
+                    update_bar = true;
+                    break;
+                }
+            } else {
+                /* Append address to our list */
+                struct af_addr a = {.family = msg->ifa_family};
+                memcpy(&a.addr, raw_addr, addr_len);
+                tll_push_back(m->addrs, a);
+                update_bar = true;
+            }
+
+            mtx_unlock(&mod->lock);
+            break;
+        }
+        }
     }
 
-    return NL_OK;
+    if (update_bar)
+        mod->bar->refresh(mod->bar);
 }
 
 static int
@@ -231,138 +349,107 @@ run(struct module_run_context *ctx)
 
     module_signal_ready(ctx);
 
-    struct nl_sock *conn = nl_socket_alloc();
-    if (conn == NULL) {
-        LOG_ERR("failed to allocate netlink socket");
+    int nl_sock = netlink_connect();
+    if (nl_sock == -1)
+        return 1;
+
+    if (!send_rt_request(nl_sock, RTM_GETLINK)) {
+        close(nl_sock);
         return 1;
     }
 
-    int r = nl_connect(conn, NETLINK_ROUTE);
-    if (r < 0) {
-        LOG_ERR("failed to connect to netlink socket");
-        nl_socket_free(conn);
-        return 1;
-    }
+    bool get_addresses = true;
 
-    /* TODO: get just our link */
-    struct nl_cache *links = NULL;
-    r = rtnl_link_alloc_cache(conn, AF_UNSPEC, &links);
-    if (r < 0) {
-        LOG_ERR("failed to fill link cache: %s", nl_geterror(r));
-        nl_socket_free(conn);
-        return 1;
-    }
-
-    struct rtnl_link *link = rtnl_link_get_by_name(links, m->iface);
-    if (link == 0) {
-        LOG_ERR("%s: no such link", m->iface);
-        nl_cache_free(links);
-        nl_socket_free(conn);
-        return 1;
-    }
-
-    m->ifindex = rtnl_link_get_ifindex(link);
-    LOG_DBG("%s: ifindex: %d", m->iface, m->ifindex);
-
-    /* TODO: expose this in a tag. Need to figure out which event is
-     * triggered by this */
-    uint8_t carrier = rtnl_link_get_carrier(link);
-    LOG_DBG("%s: carrier: %hhu", m->iface, carrier);
-
-    /* down/up etc */
-    m->state = rtnl_link_get_operstate(link);
-    LOG_DBG("%s: operstate = %hhu", m->iface, m->state);
-
-    struct nl_addr *mac = rtnl_link_get_addr(link);
-    assert(nl_addr_get_len(mac) == 6);
-    memcpy(m->mac, nl_addr_get_binary_addr(mac), sizeof(m->mac));
-
-    char mac_str[2 * 6 + 5 + 1];
-    nl_addr2str(mac, mac_str, sizeof(mac_str));
-    LOG_DBG("%s: MAC: %s", m->iface, mac_str);
-
-    struct nl_cache *addrs;
-    r = rtnl_addr_alloc_cache(conn, &addrs);
-    if (r < 0) {
-        LOG_ERR("failed to address cache: %s", nl_geterror(r));
-        assert(false);
-    }
-
-    /* Add all IPv4 and IPv6 addresses (that belongs to us) to our list */
-    for (struct rtnl_addr *addr = (struct rtnl_addr *)nl_cache_get_first(addrs);
-         addr != NULL;
-         addr = (struct rtnl_addr *)nl_cache_get_next((struct nl_object *)addr))
-    {
-        if (rtnl_addr_get_ifindex(addr) != m->ifindex)
-            continue;
-
-        int family = rtnl_addr_get_family(addr);
-        if (family != AF_INET && family != AF_INET6)
-            continue;
-
-        struct nl_addr *local = rtnl_addr_get_local(addr);
-        struct af_addr a = {.family = family};
-        memcpy(&a.u, nl_addr_get_binary_addr(local), nl_addr_get_len(local));
-        tll_push_back(m->addrs, a);
-
-        char s[INET6_ADDRSTRLEN];
-        inet_ntop(family, &a.u, s, sizeof(s));
-        LOG_DBG("%s: address: %s", m->iface, s);
-
-    }
-
-    rtnl_link_put(link);
-    nl_cache_free(addrs);
-    nl_cache_free(links);
-
-    /* Configure a callback to handle netlink events */
-    r = nl_socket_modify_cb(conn, NL_CB_VALID, NL_CB_CUSTOM, &nl_event, mod);
-    if (r < 0)
-        LOG_ERR("falied to set netlink callback: %s", nl_geterror(r));
-
-    /* Register for link and IPv4/IPv6 address changes */
-    r = nl_socket_add_memberships(
-        conn,
-        RTNLGRP_LINK,
-        RTNLGRP_IPV4_IFADDR,
-        RTNLGRP_IPV6_IFADDR,
-        RTNLGRP_NONE);
-    if (r < 0)
-        LOG_ERR("failed to register for notifications: %s", nl_geterror(r));
-
-    /* Events have no sequence numbers, thus disable checks */
-    nl_socket_disable_seq_check(conn);
-
-    const int nl_fd = nl_socket_get_fd(conn);
+    /* Main loop */
     while (true) {
         struct pollfd fds[] = {
             {.fd = ctx->abort_fd, .events = POLLIN},
-            {.fd = nl_fd, .events = POLLIN}
+            {.fd = nl_sock, .events = POLLIN}
         };
 
-        r = poll(fds, 2, -1);
-        if (r == -1) {
-            LOG_ERRNO("poll() failed");
-            break;
-        }
+        poll(fds, 2, -1);
 
-        if (fds[0].revents && POLLIN)
+        if (fds[0].revents & POLLIN)
             break;
 
         if (fds[1].revents & POLLHUP) {
-            LOG_ERR("disconnected from netlink");
+            LOG_ERR("disconnected from netlink socket");
             break;
         }
 
         assert(fds[1].revents & POLLIN);
 
-        r = nl_recvmsgs_default(conn);
-        if (r < 0)
-            LOG_ERR("failed to receive: %s", nl_geterror(r));
+        /* Use MSG_PEEK to find out how large buffer we need */
+        const size_t chunk_sz = 64;
+        size_t sz = chunk_sz;
+        void *reply = malloc(sz);
+
+        while (true) {
+            ssize_t bytes = recvfrom(nl_sock, reply, sz, MSG_PEEK, NULL, NULL);
+            if (bytes == -1) {
+                LOG_ERRNO("failed to receive from netlink socket");
+                free(reply);
+                assert(false);
+                break;
+            }
+
+            if (bytes < sz)
+                break;
+
+            sz += chunk_sz;
+            reply = realloc(reply, sz);
+        }
+
+        ssize_t len = recvfrom(nl_sock, reply, sz, 0, NULL, NULL);
+        assert(len < sz);
+
+        for (const struct nlmsghdr *hdr = (const struct nlmsghdr *)reply;
+             NLMSG_OK(hdr, len);
+             hdr = NLMSG_NEXT(hdr, len))
+        {
+            switch (hdr->nlmsg_type) {
+            case NLMSG_ERROR:{
+                const struct nlmsgerr *err = NLMSG_DATA(hdr);
+                LOG_ERRNO_P("netlink", err->error);
+                break;
+            }
+
+            case NLMSG_DONE:
+                if (get_addresses && m->ifindex != -1) {
+                    get_addresses = false;
+                    send_rt_request(nl_sock, RTM_GETADDR);
+                }
+                break;
+
+            case RTM_NEWLINK:
+            case RTM_DELLINK: {
+                const struct ifinfomsg *msg = NLMSG_DATA(hdr);
+                size_t msg_len = IFLA_PAYLOAD(hdr);
+
+                handle_link(mod, hdr->nlmsg_type, msg, msg_len);
+                break;
+            }
+
+            case RTM_NEWADDR:
+            case RTM_DELADDR: {
+                const struct ifaddrmsg *msg = NLMSG_DATA(hdr);
+                size_t msg_len = IFA_PAYLOAD(hdr);
+
+                handle_address(mod, hdr->nlmsg_type, msg, msg_len);
+                break;
+            }
+
+            default:
+                LOG_WARN(
+                    "unrecognized netlink message type: 0x%x", hdr->nlmsg_type);
+                break;
+            }
+        }
+
+        free(reply);
     }
 
-    nl_close(conn);
-    nl_socket_free(conn);
+    close(nl_sock);
     return 0;
 }
 
@@ -373,7 +460,8 @@ module_network(const char *iface, struct particle *label)
     priv->iface = strdup(iface);
     priv->label = label;
 
-    priv->ifindex = 0;
+    priv->ifindex = -1;
+    priv->carrier = false;
     priv->state = IF_OPER_DOWN;
     memset(&priv->addrs, 0, sizeof(priv->addrs));
 
