@@ -33,6 +33,10 @@ struct private {
     char *iface;
     struct particle *label;
 
+    int nl_sock;
+
+    bool get_addresses;
+
     int ifindex;
     uint8_t mac[6];
     bool carrier;
@@ -46,6 +50,8 @@ static void
 destroy(struct module *mod)
 {
     struct private *m = mod->private;
+
+    assert(m->nl_sock == -1);
 
     m->label->destroy(m->label);
 
@@ -304,8 +310,10 @@ handle_address(struct module *mod, uint16_t type,
             const void *raw_addr = RTA_DATA(attr);
             size_t addr_len = RTA_PAYLOAD(attr);
 
+#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
             char s[INET6_ADDRSTRLEN];
             inet_ntop(msg->ifa_family, raw_addr, s, sizeof(s));
+#endif
             LOG_DBG("%s: IFA_ADDRESS: %s", m->iface, s);
 
             mtx_lock(&mod->lock);
@@ -379,6 +387,61 @@ netlink_receive_messages(int sock, void **reply, size_t *len)
     return true;
 }
 
+static bool
+process_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
+{
+    struct private *m = mod->private;
+
+    /* Process response */
+    for (; NLMSG_OK(hdr, len); hdr = NLMSG_NEXT(hdr, len)) {
+        switch (hdr->nlmsg_type) {
+        case NLMSG_DONE:
+            if (m->ifindex == -1) {
+                LOG_ERR("%s: failed to find interface", m->iface);
+                return false;
+            }
+
+            /* Request initial list of IPv4/6 addresses */
+            if (m->get_addresses && m->ifindex != -1) {
+                m->get_addresses = false;
+                send_rt_request(m->nl_sock, RTM_GETADDR);
+            }
+            break;
+
+        case RTM_NEWLINK:
+        case RTM_DELLINK: {
+            const struct ifinfomsg *msg = NLMSG_DATA(hdr);
+            size_t msg_len = IFLA_PAYLOAD(hdr);
+
+            handle_link(mod, hdr->nlmsg_type, msg, msg_len);
+            break;
+        }
+
+        case RTM_NEWADDR:
+        case RTM_DELADDR: {
+            const struct ifaddrmsg *msg = NLMSG_DATA(hdr);
+            size_t msg_len = IFA_PAYLOAD(hdr);
+
+            handle_address(mod, hdr->nlmsg_type, msg, msg_len);
+            break;
+        }
+
+        case NLMSG_ERROR:{
+            const struct nlmsgerr *err = NLMSG_DATA(hdr);
+            LOG_ERRNO_P("netlink", err->error);
+            return false;
+        }
+
+        default:
+            LOG_WARN(
+                "unrecognized netlink message type: 0x%x", hdr->nlmsg_type);
+            break;
+        }
+    }
+
+    return true;
+}
+
 static int
 run(struct module_run_context *ctx)
 {
@@ -387,24 +450,21 @@ run(struct module_run_context *ctx)
 
     module_signal_ready(ctx);
 
-    int nl_sock = netlink_connect();
-    if (nl_sock == -1)
+    m->nl_sock = netlink_connect();
+    if (m->nl_sock == -1)
         return 1;
 
-    if (!send_rt_request(nl_sock, RTM_GETLINK)) {
-        close(nl_sock);
+    if (!send_rt_request(m->nl_sock, RTM_GETLINK)) {
+        close(m->nl_sock);
+        m->nl_sock = -1;
         return 1;
     }
-
-    /* We must wait for NLMSG_DONE from the first request, before
-     * sending another one... */
-    bool get_addresses = true;
 
     /* Main loop */
     while (true) {
         struct pollfd fds[] = {
             {.fd = ctx->abort_fd, .events = POLLIN},
-            {.fd = nl_sock, .events = POLLIN}
+            {.fd = m->nl_sock, .events = POLLIN}
         };
 
         poll(fds, 2, -1);
@@ -422,58 +482,19 @@ run(struct module_run_context *ctx)
         /* Read one (or more) messages */
         void *reply;
         size_t len;
-        if (!netlink_receive_messages(nl_sock, &reply, &len))
+        if (!netlink_receive_messages(m->nl_sock, &reply, &len))
             break;
 
-        /* Process response */
-        for (const struct nlmsghdr *hdr = (const struct nlmsghdr *)reply;
-             NLMSG_OK(hdr, len);
-             hdr = NLMSG_NEXT(hdr, len))
-        {
-            switch (hdr->nlmsg_type) {
-            case NLMSG_DONE:
-                /* Request initial list of IPv4/6 addresses */
-                if (get_addresses && m->ifindex != -1) {
-                    get_addresses = false;
-                    send_rt_request(nl_sock, RTM_GETADDR);
-                }
-                break;
-
-            case RTM_NEWLINK:
-            case RTM_DELLINK: {
-                const struct ifinfomsg *msg = NLMSG_DATA(hdr);
-                size_t msg_len = IFLA_PAYLOAD(hdr);
-
-                handle_link(mod, hdr->nlmsg_type, msg, msg_len);
-                break;
-            }
-
-            case RTM_NEWADDR:
-            case RTM_DELADDR: {
-                const struct ifaddrmsg *msg = NLMSG_DATA(hdr);
-                size_t msg_len = IFA_PAYLOAD(hdr);
-
-                handle_address(mod, hdr->nlmsg_type, msg, msg_len);
-                break;
-            }
-
-            case NLMSG_ERROR:{
-                const struct nlmsgerr *err = NLMSG_DATA(hdr);
-                LOG_ERRNO_P("netlink", err->error);
-                break;
-            }
-
-            default:
-                LOG_WARN(
-                    "unrecognized netlink message type: 0x%x", hdr->nlmsg_type);
-                break;
-            }
+        if (!process_reply(mod, (const struct nlmsghdr *)reply, len)) {
+            free(reply);
+            break;
         }
 
         free(reply);
     }
 
-    close(nl_sock);
+    close(m->nl_sock);
+    m->nl_sock = -1;
     return 0;
 }
 
@@ -484,6 +505,8 @@ module_network(const char *iface, struct particle *label)
     priv->iface = strdup(iface);
     priv->label = label;
 
+    priv->nl_sock = -1;
+    priv->get_addresses = true;
     priv->ifindex = -1;
     priv->carrier = false;
     priv->state = IF_OPER_DOWN;
