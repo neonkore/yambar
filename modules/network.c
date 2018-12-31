@@ -398,7 +398,7 @@ netlink_receive_messages(int sock, void **reply, size_t *len)
 }
 
 static bool
-process_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
+parse_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 {
     struct private *m = mod->private;
 
@@ -495,7 +495,8 @@ run(struct module_run_context *ctx)
         if (!netlink_receive_messages(m->nl_sock, &reply, &len))
             break;
 
-        if (!process_reply(mod, (const struct nlmsghdr *)reply, len)) {
+        /* Parse (and act upon) the received message(s) */
+        if (!parse_reply(mod, (const struct nlmsghdr *)reply, len)) {
             free(reply);
             break;
         }
