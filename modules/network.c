@@ -341,6 +341,44 @@ handle_address(struct module *mod, uint16_t type,
         mod->bar->refresh(mod->bar);
 }
 
+/*
+ * Reads at least one (possibly more) message.
+ *
+ * On success, 'reply' will point to a malloc:ed buffer, to be freed
+ * by the caller. 'len' is set to the size of the message (note that
+ * the allocated size may actually be larger).
+ *
+ * Returns true on success, otherwise false
+ */
+static bool
+netlink_receive_messages(int sock, void **reply, size_t *len)
+{
+    /* Use MSG_PEEK to find out how large buffer we need */
+    const size_t chunk_sz = 1024;
+    size_t sz = chunk_sz;
+    *reply = malloc(sz);
+
+    while (true) {
+        ssize_t bytes = recvfrom(sock, *reply, sz, MSG_PEEK, NULL, NULL);
+        if (bytes == -1) {
+            LOG_ERRNO("failed to receive from netlink socket");
+            free(*reply);
+            return false;
+        }
+
+        if (bytes < sz)
+            break;
+
+        sz += chunk_sz;
+        *reply = realloc(*reply, sz);
+    }
+
+    *len = recvfrom(sock, *reply, sz, 0, NULL, NULL);
+    assert(*len >= 0);
+    assert(*len < sz);
+    return true;
+}
+
 static int
 run(struct module_run_context *ctx)
 {
@@ -358,6 +396,8 @@ run(struct module_run_context *ctx)
         return 1;
     }
 
+    /* We must wait for NLMSG_DONE from the first request, before
+     * sending another one... */
     bool get_addresses = true;
 
     /* Main loop */
@@ -379,42 +419,20 @@ run(struct module_run_context *ctx)
 
         assert(fds[1].revents & POLLIN);
 
-        /* Use MSG_PEEK to find out how large buffer we need */
-        const size_t chunk_sz = 64;
-        size_t sz = chunk_sz;
-        void *reply = malloc(sz);
+        /* Read one (or more) messages */
+        void *reply;
+        size_t len;
+        if (!netlink_receive_messages(nl_sock, &reply, &len))
+            break;
 
-        while (true) {
-            ssize_t bytes = recvfrom(nl_sock, reply, sz, MSG_PEEK, NULL, NULL);
-            if (bytes == -1) {
-                LOG_ERRNO("failed to receive from netlink socket");
-                free(reply);
-                assert(false);
-                break;
-            }
-
-            if (bytes < sz)
-                break;
-
-            sz += chunk_sz;
-            reply = realloc(reply, sz);
-        }
-
-        ssize_t len = recvfrom(nl_sock, reply, sz, 0, NULL, NULL);
-        assert(len < sz);
-
+        /* Process response */
         for (const struct nlmsghdr *hdr = (const struct nlmsghdr *)reply;
              NLMSG_OK(hdr, len);
              hdr = NLMSG_NEXT(hdr, len))
         {
             switch (hdr->nlmsg_type) {
-            case NLMSG_ERROR:{
-                const struct nlmsgerr *err = NLMSG_DATA(hdr);
-                LOG_ERRNO_P("netlink", err->error);
-                break;
-            }
-
             case NLMSG_DONE:
+                /* Request initial list of IPv4/6 addresses */
                 if (get_addresses && m->ifindex != -1) {
                     get_addresses = false;
                     send_rt_request(nl_sock, RTM_GETADDR);
@@ -436,6 +454,12 @@ run(struct module_run_context *ctx)
                 size_t msg_len = IFA_PAYLOAD(hdr);
 
                 handle_address(mod, hdr->nlmsg_type, msg, msg_len);
+                break;
+            }
+
+            case NLMSG_ERROR:{
+                const struct nlmsgerr *err = NLMSG_DATA(hdr);
+                LOG_ERRNO_P("netlink", err->error);
                 break;
             }
 
