@@ -323,7 +323,8 @@ handle_address(struct module *mod, uint16_t type,
             char s[INET6_ADDRSTRLEN];
             inet_ntop(msg->ifa_family, raw_addr, s, sizeof(s));
 #endif
-            LOG_DBG("%s: IFA_ADDRESS: %s", m->iface, s);
+            LOG_DBG("%s: IFA_ADDRESS (%s): %s", m->iface,
+                    type == RTM_NEWADDR ? "add" : "del", s);
 
             mtx_lock(&mod->lock);
 
