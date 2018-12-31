@@ -242,7 +242,10 @@ handle_link(struct module *mod, uint16_t type,
         switch (attr->rta_type) {
         case IFLA_OPERSTATE: {
             uint8_t operstate = *(const uint8_t *)RTA_DATA(attr);
-            LOG_DBG("%s: IFLA_OPERSTATE: %hhu", m->iface, operstate);
+            if (m->state == operstate)
+                break;
+
+            LOG_DBG("%s: IFLA_OPERSTATE: %hhu -> %hhu", m->iface, m->state, operstate);
 
             mtx_lock(&mod->lock);
             m->state = operstate;
@@ -253,7 +256,10 @@ handle_link(struct module *mod, uint16_t type,
 
         case IFLA_CARRIER: {
             uint8_t carrier = *(const uint8_t *)RTA_DATA(attr);
-            LOG_DBG("%s: IFLA_CARRIER: %hhu", m->iface, carrier);
+            if (m->carrier == carrier)
+                break;
+
+            LOG_DBG("%s: IFLA_CARRIER: %hhu -> %hhu", m->iface, m->carrier, carrier);
 
             mtx_lock(&mod->lock);
             m->carrier = carrier;
@@ -267,6 +273,9 @@ handle_link(struct module *mod, uint16_t type,
                 break;
 
             const uint8_t *mac = RTA_DATA(attr);
+            if (memcmp(m->mac, mac, sizeof(m->mac)) == 0)
+                break;
+
             LOG_DBG("%s: IFLA_ADDRESS: %02x:%02x:%02x:%02x:%02x:%02x",
                     m->iface,
                     mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
