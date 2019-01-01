@@ -628,6 +628,7 @@ run(struct bar_run_context *run_ctx)
             case XCB_REPARENT_NOTIFY:
             case XCB_CONFIGURE_NOTIFY:
             case XCB_MAP_NOTIFY:
+            case XCB_MAPPING_NOTIFY:
                 /* Just ignore */
                 break;
 
