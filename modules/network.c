@@ -15,7 +15,7 @@
 #include <linux/rtnetlink.h>
 
 #define LOG_MODULE "network"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../module.h"
 #include "../bar.h"
