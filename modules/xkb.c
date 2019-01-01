@@ -143,6 +143,8 @@ get_layouts(xcb_connection_t *conn)
     for (ssize_t i = 0; i < ret.count; i++)
         group_name_cookies[i] = xcb_get_atom_name(conn, vlist.groups[i]);
 
+    char *symbols = NULL;
+
     /* Get layout short names (e.g. "us") */
     xcb_get_atom_name_reply_t *atom_name = xcb_get_atom_name_reply(
         conn, symbols_name_cookie, &err);
@@ -152,8 +154,8 @@ get_layouts(xcb_connection_t *conn)
         goto err;
     }
 
-    char *symbols = strndup(xcb_get_atom_name_name(atom_name),
-                            xcb_get_atom_name_name_length(atom_name));
+    symbols = strndup(xcb_get_atom_name_name(atom_name),
+                      xcb_get_atom_name_name_length(atom_name));
     free(atom_name);
 
     /* Get layout long names (e.g. "English (US)") */
