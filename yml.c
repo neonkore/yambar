@@ -215,7 +215,7 @@ post_process(struct yml_node *node)
 }
 
 struct yml_node *
-yml_load(FILE *yml)
+yml_load(FILE *yml, char **error)
 {
     yaml_parser_t yaml;
     yaml_parser_initialize(&yaml);
@@ -238,11 +238,26 @@ yml_load(FILE *yml)
     while (!done) {
         yaml_event_t event;
         if (!yaml_parser_parse(&yaml, &event)) {
-            //printf("yaml parser error\n");
-            /* TODO: free node tree */
-            root = NULL;
-            assert(false);
-            break;
+            if (error != NULL) {
+                int cnt = snprintf(
+                    NULL, 0, "%zu:%zu: %s %s",
+                    yaml.problem_mark.line,
+                    yaml.problem_mark.column,
+                    yaml.problem,
+                    yaml.context != NULL ? yaml.context : "");
+
+                *error = malloc(cnt + 1);
+                snprintf(*error, cnt + 1, "%zu:%zu: %s %s",
+                    yaml.problem_mark.line,
+                    yaml.problem_mark.column,
+                    yaml.problem,
+                    yaml.context != NULL ? yaml.context : "");
+                (*error)[cnt] = '\0';
+            }
+
+            yml_destroy(root);
+            yaml_parser_delete(&yaml);
+            return NULL;
         }
 
         switch (event.type) {

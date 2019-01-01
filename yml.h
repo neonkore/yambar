@@ -4,7 +4,7 @@
 
 struct yml_node;
 
-struct yml_node *yml_load(FILE *yml);
+struct yml_node *yml_load(FILE *yml, char **error);
 void yml_destroy(struct yml_node *root);
 
 bool yml_is_scalar(const struct yml_node *node);

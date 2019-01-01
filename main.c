@@ -62,7 +62,8 @@ main(int argc, const char *const *argv)
     if (conf_file == NULL)
         return 1;
 
-    struct yml_node *conf = yml_load(conf_file);
+    char *yml_error;
+    struct yml_node *conf = yml_load(conf_file, &yml_error);
     fclose(conf_file);
 
     if (conf == NULL)
