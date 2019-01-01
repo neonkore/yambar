@@ -119,6 +119,9 @@ content(struct module *mod)
             label = dummy_label;
         }
 
+        bool is_mounted = tll_length(p->mount_points) > 0;
+        const char *mount_point = is_mounted ? tll_front(p->mount_points) : "";
+
         struct tag_set tags = {
             .tags = (struct tag *[]){
                 tag_new_string(mod, "vendor", p->block->vendor),
@@ -126,10 +129,8 @@ content(struct module *mod)
                 tag_new_string(mod, "device", p->dev_path),
                 tag_new_int_range(mod, "size", p->size, 0, p->block->size),
                 tag_new_string(mod, "label", label),
-                tag_new_bool(mod, "mounted", tll_length(p->mount_points) > 0),
-                tag_new_string(
-                    mod, "mount_point",
-                    tll_length(p->mount_points) > 0 ? tll_front(p->mount_points) : ""),
+                tag_new_bool(mod, "mounted", is_mounted),
+                tag_new_string(mod, "mount_point", mount_point),
             },
             .count = 7,
         };
@@ -139,7 +140,8 @@ content(struct module *mod)
     }
 
     tll_free(partitions);
-    return dynlist_exposable_new(exposables, idx, m->left_spacing, m->right_spacing);
+    return dynlist_exposable_new(
+        exposables, idx, m->left_spacing, m->right_spacing);
 }
 
 static void
