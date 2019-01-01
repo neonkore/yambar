@@ -592,8 +592,7 @@ run(struct bar_run_context *run_ctx)
             {.fd = fd, .events = POLLIN}
         };
 
-        int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
-        assert(ret == 1);
+        poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
 
         if (fds[0].revents && POLLIN)
             break;
