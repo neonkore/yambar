@@ -365,6 +365,9 @@ yml_load(FILE *yml)
 void
 yml_destroy(struct yml_node *node)
 {
+    if (node == NULL)
+        return;
+
     switch (node->type) {
     case ROOT:
         yml_destroy(node->root.root);
