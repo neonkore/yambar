@@ -335,8 +335,31 @@ particle_progress_bar_from_config(const struct yml_node *node,
 }
 
 static struct particle *
+particle_simple_list_from_config(const struct yml_node *node,
+                                 const struct font *parent_font)
+{
+    assert(yml_is_list(node));
+
+    size_t count = yml_list_length(node);
+    struct particle *parts[count];
+
+    size_t idx = 0;
+    for (struct yml_list_iter it = yml_list_iter(node);
+         it.node != NULL;
+         yml_list_next(&it), idx++)
+    {
+        parts[idx] = particle_from_config(it.node, parent_font);
+    }
+
+    return particle_list_new(parts, count, 0, 0, 0, 0, NULL);
+}
+
+static struct particle *
 particle_from_config(const struct yml_node *node, const struct font *parent_font)
 {
+    if (yml_is_list(node))
+        return particle_simple_list_from_config(node, parent_font);
+
     assert(yml_is_dict(node));
     assert(yml_dict_length(node) == 1);
 
