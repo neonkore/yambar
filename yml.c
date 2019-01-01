@@ -241,14 +241,14 @@ yml_load(FILE *yml, char **error)
             if (error != NULL) {
                 int cnt = snprintf(
                     NULL, 0, "%zu:%zu: %s %s",
-                    yaml.problem_mark.line,
+                    yaml.problem_mark.line + 1,
                     yaml.problem_mark.column,
                     yaml.problem,
                     yaml.context != NULL ? yaml.context : "");
 
                 *error = malloc(cnt + 1);
                 snprintf(*error, cnt + 1, "%zu:%zu: %s %s",
-                    yaml.problem_mark.line,
+                    yaml.problem_mark.line + 1,
                     yaml.problem_mark.column,
                     yaml.problem,
                     yaml.context != NULL ? yaml.context : "");
