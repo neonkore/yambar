@@ -30,7 +30,10 @@ bool
 xcb_init(void)
 {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
-    assert(conn != NULL);
+    if (conn == NULL) {
+        LOG_ERR("failed to connect to X");
+        return false;
+    }
 
     const xcb_setup_t *setup = xcb_get_setup(conn);
 
@@ -48,11 +51,21 @@ xcb_init(void)
 
     const xcb_query_extension_reply_t *randr =
         xcb_get_extension_data(conn, &xcb_randr_id);
-    assert(randr->present);
+
+    if (randr == NULL || !randr->present) {
+        LOG_ERR("RANDR extension not present");
+        xcb_disconnect(conn);
+        return false;
+    }
 
     const xcb_query_extension_reply_t *render =
         xcb_get_extension_data(conn, &xcb_render_id);
-    assert(render->present);
+
+    if (render == NULL || !render->present) {
+        LOG_ERR("RENDER extension not present");
+        xcb_disconnect(conn);
+        return false;
+    }
 
     xcb_randr_query_version_cookie_t randr_cookie =
         xcb_randr_query_version(conn, XCB_RANDR_MAJOR_VERSION,
@@ -61,16 +74,26 @@ xcb_init(void)
         xcb_render_query_version(conn, XCB_RENDER_MAJOR_VERSION,
                                  XCB_RENDER_MINOR_VERSION);
 
+    xcb_flush(conn);
+
     xcb_generic_error_t *e;
     xcb_randr_query_version_reply_t *randr_version =
         xcb_randr_query_version_reply(conn, randr_cookie, &e);
-    assert(e == NULL);
+    if (e != NULL) {
+        LOG_ERR("failed to query RANDR version: %d", e->error_code);
+        free(e);
+        xcb_disconnect(conn);
+        return false;
+    }
 
     xcb_render_query_version_reply_t *render_version =
         xcb_render_query_version_reply(conn, render_cookie, &e);
-    assert(e == NULL);
-
-    xcb_flush(conn);
+    if (e != NULL) {
+        LOG_ERR("failed to query RENDER version: %d", e->error_code);
+        free(e);
+        xcb_disconnect(conn);
+        return false;
+    }
 
     LOG_INFO("RANDR: %u.%u",
              randr_version->major_version, randr_version->minor_version);
@@ -98,7 +121,6 @@ xcb_init(void)
     _NET_WM_PID = get_atom(conn, "_NET_WM_PID");
 
     xcb_disconnect(conn);
-
     return true;
 }
 
