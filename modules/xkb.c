@@ -292,7 +292,7 @@ event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
         };
 
         /* Use poll() since xcb_wait_for_events() doesn't return on signals */
-        int pret = poll(pfds, sizeof(pfds) / sizeof(pfds[0]), -1);
+        poll(pfds, sizeof(pfds) / sizeof(pfds[0]), -1);
         if (pfds[0].revents & POLLIN) {
             ret = true;
             break;
