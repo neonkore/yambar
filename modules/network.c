@@ -519,6 +519,7 @@ module_network(const char *iface, struct particle *label)
     priv->nl_sock = -1;
     priv->get_addresses = true;
     priv->ifindex = -1;
+    memset(priv->mac, 0, sizeof(priv->mac));
     priv->carrier = false;
     priv->state = IF_OPER_DOWN;
     memset(&priv->addrs, 0, sizeof(priv->addrs));
