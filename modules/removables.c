@@ -350,7 +350,10 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
     bool add = strcmp(action, "add") == 0;
     bool del = strcmp(action, "remove") == 0;
 
-    assert(add || del);
+    if (!add && !del) {
+        LOG_WARN("unhandled action: %s", action);
+        return false;
+    }
 
     const char *devtype = udev_device_get_property_value(dev, "DEVTYPE");
 
