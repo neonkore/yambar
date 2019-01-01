@@ -15,7 +15,7 @@
 #include <libudev.h>
 
 #define LOG_MODULE "removables"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
 #include "../tllist.h"
