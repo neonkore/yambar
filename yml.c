@@ -564,6 +564,8 @@ yml_value_as_bool(const struct yml_node *value)
         return false;
     } else
         assert(false);
+
+    return false;
 }
 
 static void
