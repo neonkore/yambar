@@ -298,8 +298,6 @@ event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
             break;
         }
 
-        assert(pret == 1 && "unexpected poll(3) return value");
-
         if (pfds[1].revents & POLLHUP) {
             LOG_WARN("I/O error, server disconnect?");
             break;
