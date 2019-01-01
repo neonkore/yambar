@@ -29,8 +29,8 @@ signal_handler(int signo)
     aborted = 1;
 }
 
-static FILE *
-open_config(void)
+static char *
+get_config_path(void)
 {
     struct passwd *passwd = getpwuid(getuid());
     if (passwd == NULL) {
@@ -45,9 +45,14 @@ open_config(void)
     if (path_max == -1)
         path_max = 1024;
 
-    char path[path_max];
-    snprintf(path, path_max, "%s/.config/f00bar/config.yml", home_dir);
+    char *path = malloc(path_max + 1);
+    snprintf(path, path_max + 1, "%s/.config/f00bar/config.yml", home_dir);
+    return path;
+}
 
+static FILE *
+open_config(const char *path)
+{
     FILE *ret = fopen(path, "r");
     if (ret == NULL)
         LOG_ERRNO("%s: failed to open", path);
@@ -58,16 +63,26 @@ open_config(void)
 int
 main(int argc, const char *const *argv)
 {
-    FILE *conf_file = open_config();
-    if (conf_file == NULL)
+    char *config_path = get_config_path();
+    FILE *conf_file = open_config(config_path);
+
+    if (conf_file == NULL) {
+        free(config_path);
         return 1;
+    }
 
     char *yml_error;
     struct yml_node *conf = yml_load(conf_file, &yml_error);
     fclose(conf_file);
 
-    if (conf == NULL)
+    if (conf == NULL) {
+        LOG_ERR("%s:%s", config_path, yml_error);
+        free(yml_error);
+        free(config_path);
         return 1;
+    }
+
+    free(config_path);
 
     xcb_init();
 
