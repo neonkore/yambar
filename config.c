@@ -166,6 +166,8 @@ deco_from_config(const struct yml_node *node)
         return deco_stack_from_config(deco_data);
     else
         assert(false);
+
+    return NULL;
 }
 
 static struct particle *
