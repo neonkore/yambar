@@ -28,6 +28,7 @@
 #include "modules/label.h"
 #include "modules/mpd.h"
 #include "modules/network.h"
+#include "modules/removables.h"
 #include "modules/xkb.h"
 #include "modules/xwindow.h"
 
@@ -519,6 +520,29 @@ module_network_from_config(const struct yml_node *node,
         yml_value_as_string(name), particle_from_config(content, parent_font));
 }
 
+static struct module *
+module_removables_from_config(const struct yml_node *node,
+                              const struct font *parent_font)
+{
+    const struct yml_node *content = yml_get_value(node, "content");
+    const struct yml_node *spacing = yml_get_value(node, "spacing");
+    const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
+    const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
+
+    assert(yml_is_dict(content));
+    assert(spacing == NULL || yml_is_scalar(spacing));
+    assert(left_spacing == NULL || yml_is_scalar(left_spacing));
+    assert(right_spacing == NULL || yml_is_scalar(right_spacing));
+
+    int left = spacing != NULL ? yml_value_as_int(spacing) :
+        left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
+    int right = spacing != NULL ? yml_value_as_int(spacing) :
+        right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
+
+    return module_removables(
+        particle_from_config(content, parent_font), left, right);
+}
+
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -631,6 +655,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_mpd_from_config(it.node, font);
                 else if (strcmp(mod_name, "network") == 0)
                     mods[idx] = module_network_from_config(it.node, font);
+                else if (strcmp(mod_name, "removables") == 0)
+                    mods[idx] = module_removables_from_config(it.node, font);
                 else
                     assert(false);
             }

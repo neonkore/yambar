@@ -55,6 +55,7 @@ add_executable(f00bar
   modules/label.c modules/label.h
   modules/mpd.c modules/mpd.h
   modules/network.c modules/network.h
+  modules/removables.c modules/removables.h
   modules/xkb.c modules/xkb.h
   modules/xwindow.c modules/xwindow.h
   )
