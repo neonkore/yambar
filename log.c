@@ -12,8 +12,8 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
 {
     bool colorize = true;
 
-    const char *class;
-    int class_clr;
+    const char *class = "abcd";
+    int class_clr = 0;
     switch (log_class) {
     case LOG_CLASS_ERROR:    class = " err"; class_clr = 31; break;
     case LOG_CLASS_WARNING:  class = "warn"; class_clr = 33; break;
