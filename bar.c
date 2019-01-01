@@ -622,10 +622,13 @@ run(struct bar_run_context *run_ctx)
             }
 
             case XCB_DESTROY_NOTIFY:
+                LOG_WARN("unimplemented event: XCB_DESTROY_NOTIFY");
+                break;
+
             case XCB_REPARENT_NOTIFY:
             case XCB_CONFIGURE_NOTIFY:
             case XCB_MAP_NOTIFY:
-                LOG_WARN("unimplemented event: %d", XCB_EVENT_RESPONSE_TYPE(e));
+                /* Just ignore */
                 break;
 
             default:
