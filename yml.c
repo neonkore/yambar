@@ -320,9 +320,6 @@ yml_load(FILE *yml, char **error)
     yaml_parser_t yaml;
     yaml_parser_initialize(&yaml);
 
-    //FILE *yml = fopen("yml.yml", "r");
-    //assert(yml != NULL);
-
     yaml_parser_set_input_file(&yaml, yml);
 
     bool done = false;
