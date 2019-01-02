@@ -198,7 +198,7 @@ handle_get_version_reply(struct private *m, const struct json_object *json)
         return false;
     }
 
-    LOG_INFO("connected to i3: %s", json_object_get_string(version));
+    LOG_INFO("i3: %s", json_object_get_string(version));
     return true;
 }
 

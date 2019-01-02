@@ -186,7 +186,7 @@ connect_to_mpd(const struct module *mod)
     }
 
     const unsigned *version = mpd_connection_get_server_version(conn);
-    LOG_INFO("connected to MPD %u.%u.%u", version[0], version[1], version[2]);
+    LOG_INFO("MPD %u.%u.%u", version[0], version[1], version[2]);
 
     return conn;
 }
