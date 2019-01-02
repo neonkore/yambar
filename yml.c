@@ -351,33 +351,26 @@ yml_load(FILE *yml, char **error)
 
         switch (event.type) {
         case YAML_NO_EVENT:
-            //printf("%*sNO EVENT\n", indent, "");
             break;
 
         case YAML_STREAM_START_EVENT:
-            //printf("%*sSTREAM START\n", indent, "");
             indent += 2;
             break;
 
         case YAML_STREAM_END_EVENT:
             indent -= 2;
-            //printf("%*sSTREAM END\n", indent, "");
             done = true;
             break;
 
         case YAML_DOCUMENT_START_EVENT:
-            //printf("%*sDOC START\n", indent, "");
             indent += 2;
             break;
 
         case YAML_DOCUMENT_END_EVENT:
             indent -= 2;
-            //printf("%*sDOC END\n", indent, "");
             break;
 
         case YAML_ALIAS_EVENT:
-            //printf("%*sALIAS %s\n", indent, "", event.data.alias.anchor);
-
             for (size_t i = 0; i < root->root.anchor_count; i++) {
                 const struct anchor_map *map = &root->root.anchors[i];
 
@@ -399,8 +392,6 @@ yml_load(FILE *yml, char **error)
             break;
 
         case YAML_SCALAR_EVENT: {
-            //printf("%*sSCALAR: %.*s\n", indent, "",
-            //(int)event.data.scalar.length, event.data.scalar.value);
             struct yml_node *new_scalar = calloc(1, sizeof(*new_scalar));
             new_scalar->type = SCALAR;
             new_scalar->scalar.value = strndup(
@@ -422,7 +413,6 @@ yml_load(FILE *yml, char **error)
         }
 
         case YAML_SEQUENCE_START_EVENT: {
-            //printf("%*sSEQ START\n", indent, "");
             indent += 2;
             struct yml_node *new_list = calloc(1, sizeof(*new_list));
             new_list->type = LIST;
@@ -445,14 +435,11 @@ yml_load(FILE *yml, char **error)
 
         case YAML_SEQUENCE_END_EVENT:
             indent -= 2;
-            //printf("%*sSEQ END\n", indent, "");
-
             assert(n->parent != NULL);
             n = n->parent;
             break;
 
         case YAML_MAPPING_START_EVENT: {
-            //printf("%*sMAP START\n", indent, "");
             indent += 2;
 
             struct yml_node *new_dict = calloc(1, sizeof(*new_dict));
@@ -476,7 +463,6 @@ yml_load(FILE *yml, char **error)
 
         case YAML_MAPPING_END_EVENT:
             indent -= 2;
-            //printf("%*sMAP END\n", indent, "");
             assert(n->parent != NULL);
             n = n->parent;
             break;
@@ -487,9 +473,7 @@ yml_load(FILE *yml, char **error)
 
     yaml_parser_delete(&yaml);
 
-    //print_node(root);
     post_process(root);
-    //print_node(root);
     return root;
 
 err:
