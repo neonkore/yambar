@@ -97,10 +97,12 @@ run(struct module_run_context *ctx)
     snd_mixer_selem_id_set_name(sid, m->mixer);
     snd_mixer_elem_t* elem = snd_mixer_find_selem(handle, sid);
 
-    LOG_INFO("connected to card=%s, mixer=%s", m->card, m->mixer);
-
     /* Initial state */
     update_state(mod, elem);
+
+    LOG_INFO("%s,%s: volume min=%ld, max=%ld, current=%ld%s",
+             m->card, m->mixer, m->vol_min, m->vol_max, m->vol_cur,
+             m->muted ? ", muted" : "");
 
     while (true) {
         int fd_count = snd_mixer_poll_descriptors_count(handle);
