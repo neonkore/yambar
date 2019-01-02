@@ -10,6 +10,12 @@
 
 #include "tllist.h"
 
+enum yml_error {
+    YML_ERR_NONE,
+    YML_ERR_DUPLICATE_KEY,
+    YML_ERR_UNKNOWN,
+};
+
 enum node_type {
     ROOT,
     SCALAR,
@@ -87,7 +93,34 @@ clone_node(struct yml_node *parent, const struct yml_node *node)
     return clone;
 }
 
-static void
+static bool
+node_equal(const struct yml_node *a, const struct yml_node *b)
+{
+    if (a->type != b->type)
+        return false;
+
+    if (a->type != SCALAR) {
+        /* TODO... */
+        return false;
+    }
+
+    return strcmp(a->scalar.value, b->scalar.value) == 0;
+}
+
+static bool
+dict_has_key(const struct yml_node *node, const struct yml_node *key)
+{
+    assert(node->type == DICT);
+
+    tll_foreach(node->dict.pairs, pair) {
+        if (node_equal(pair->item.key, key))
+            return true;
+    }
+
+    return false;
+}
+
+static enum yml_error
 add_node(struct yml_node *parent, struct yml_node *new_node)
 {
     switch (parent->type) {
@@ -99,6 +132,9 @@ add_node(struct yml_node *parent, struct yml_node *new_node)
 
     case DICT:
         if (!parent->dict.next_is_value) {
+            if (dict_has_key(parent, new_node))
+                return YML_ERR_DUPLICATE_KEY;
+
             tll_push_back(parent->dict.pairs, (struct dict_pair){.key = new_node});
             parent->dict.next_is_value = true;
         } else {
@@ -115,8 +151,10 @@ add_node(struct yml_node *parent, struct yml_node *new_node)
 
     case SCALAR:
         assert(false);
-        break;
+        return YML_ERR_UNKNOWN;
     }
+
+    return YML_ERR_NONE;
 }
 
 static void
@@ -214,6 +252,58 @@ post_process(struct yml_node *node)
     }
 }
 
+static const char *
+format_error(enum yml_error err,
+             const struct yml_node *parent,
+             const struct yml_node *node)
+{
+    static char err_str[512];
+
+    switch (err) {
+    case YML_ERR_NONE:
+        assert(false);
+        break;
+
+    case YML_ERR_DUPLICATE_KEY: {
+        /* Find parent's key (i.e its name) */
+        if (parent->parent != NULL &&
+            parent->parent->type == DICT &&
+            node->type == SCALAR)
+        {
+            tll_foreach(parent->parent->dict.pairs, pair) {
+                if (pair->item.value != parent)
+                    continue;
+
+                if (pair->item.key->type != SCALAR)
+                    break;
+
+                assert(pair->item.key->type == SCALAR);
+                assert(node->type == SCALAR);
+
+                snprintf(err_str, sizeof(err_str),
+                         "%s: duplicate key: '%s'",
+                         pair->item.key->scalar.value,
+                         node->scalar.value);
+                return err_str;
+            }
+        }
+
+        if (node->type == SCALAR) {
+            snprintf(err_str, sizeof(err_str),
+                     "duplicate key: %s", node->scalar.value);
+        } else
+            snprintf(err_str, sizeof(err_str), "duplicate key");
+        break;
+    }
+
+    case YML_ERR_UNKNOWN:
+        snprintf(err_str, sizeof(err_str), "unknown error");
+        break;
+    }
+
+    return err_str;
+}
+
 struct yml_node *
 yml_load(FILE *yml, char **error)
 {
@@ -235,6 +325,8 @@ yml_load(FILE *yml, char **error)
 
     struct yml_node *n = root;
 
+    const char *error_str = NULL;
+
     while (!done) {
         yaml_event_t event;
         if (!yaml_parser_parse(&yaml, &event)) {
@@ -252,12 +344,9 @@ yml_load(FILE *yml, char **error)
                     yaml.problem_mark.column,
                     yaml.problem,
                     yaml.context != NULL ? yaml.context : "");
-                (*error)[cnt] = '\0';
             }
 
-            yml_destroy(root);
-            yaml_parser_delete(&yaml);
-            return NULL;
+            goto err;
         }
 
         switch (event.type) {
@@ -297,7 +386,14 @@ yml_load(FILE *yml, char **error)
 
                 struct yml_node *clone = clone_node(NULL, map->node);
                 assert(clone != NULL);
-                add_node(n, clone);
+
+                enum yml_error err = add_node(n, clone);
+                if (err != YML_ERR_NONE) {
+                    error_str = format_error(err, n, clone);
+                    yml_destroy(clone);
+                    goto err;
+                }
+
                 break;
             }
             break;
@@ -309,7 +405,13 @@ yml_load(FILE *yml, char **error)
             new_scalar->type = SCALAR;
             new_scalar->scalar.value = strndup(
                 (const char*)event.data.scalar.value, event.data.scalar.length);
-            add_node(n, new_scalar);
+
+            enum yml_error err = add_node(n, new_scalar);
+            if (err != YML_ERR_NONE) {
+                error_str = format_error(err, n, new_scalar);
+                yml_destroy(new_scalar);
+                goto err;
+            }
 
             if (event.data.scalar.anchor != NULL) {
                 const char *anchor = (const char *)event.data.scalar.anchor;
@@ -324,7 +426,14 @@ yml_load(FILE *yml, char **error)
             indent += 2;
             struct yml_node *new_list = calloc(1, sizeof(*new_list));
             new_list->type = LIST;
-            add_node(n, new_list);
+
+            enum yml_error err = add_node(n, new_list);
+            if (err != YML_ERR_NONE) {
+                error_str = format_error(err, n, new_list);
+                yml_destroy(new_list);
+                goto err;
+            }
+
             n = new_list;
 
             if (event.data.sequence_start.anchor != NULL) {
@@ -348,7 +457,14 @@ yml_load(FILE *yml, char **error)
 
             struct yml_node *new_dict = calloc(1, sizeof(*new_dict));
             new_dict->type = DICT;
-            add_node(n, new_dict);
+
+            enum yml_error err = add_node(n, new_dict);
+            if (err != YML_ERR_NONE) {
+                error_str = format_error(err, n, new_dict);
+                yml_destroy(new_dict);
+                goto err;
+            }
+
             n = new_dict;
 
             if (event.data.mapping_start.anchor != NULL) {
@@ -375,6 +491,31 @@ yml_load(FILE *yml, char **error)
     post_process(root);
     //print_node(root);
     return root;
+
+err:
+    if (error_str != NULL) {
+        int cnt = snprintf(
+            NULL, 0, "%zu:%zu: %s",
+            yaml.mark.line + 1,
+            yaml.mark.column,
+            error_str);
+        *error = malloc(cnt + 1);
+        snprintf(
+            *error, cnt + 1, "%zu:%zu: %s",
+            yaml.mark.line + 1,
+            yaml.mark.column,
+            error_str);
+    } else {
+        int cnt = snprintf(NULL, 0, "%zu:%zu: unknown error",
+                           yaml.mark.line + 1, yaml.mark.column);
+        *error = malloc(cnt + 1);
+        snprintf(*error, cnt + 1, "%zu:%zu: unknown error",
+                 yaml.mark.line + 1, yaml.mark.column);
+    }
+
+    yml_destroy(root);
+    yaml_parser_delete(&yaml);
+    return NULL;
 }
 
 void
