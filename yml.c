@@ -211,6 +211,11 @@ post_process(struct yml_node *node)
                             .key = vv_it->item.key,
                             .value = vv_it->item.value,
                         };
+                        /* TODO: handle this. Is it an error? Or
+                         * should we replace the existing key/value
+                         * pair */
+                        assert(!dict_has_key(node, vv_it->item.key));
+
                         tll_push_back(node->dict.pairs, p);
                     }
 
@@ -232,6 +237,11 @@ post_process(struct yml_node *node)
                         .key = v_it->item.key,
                         .value = v_it->item.value,
                     };
+
+                    /* TODO: handle this. Is it an error? Or should we
+                     * replace the existing key/value pair */
+                    assert(!dict_has_key(node, v_it->item.key));
+
                     tll_push_back(node->dict.pairs, p);
                 }
 
