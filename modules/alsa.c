@@ -6,7 +6,7 @@
 #include <alsa/asoundlib.h>
 
 #define LOG_MODULE "alsa"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
 
