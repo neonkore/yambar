@@ -21,6 +21,7 @@
 #include "particles/string.h"
 
 #include "module.h"
+#include "modules/alsa.h"
 #include "modules/backlight.h"
 #include "modules/battery.h"
 #include "modules/clock.h"
@@ -568,6 +569,24 @@ module_removables_from_config(const struct yml_node *node,
         particle_from_config(content, parent_font), left, right);
 }
 
+static struct module *
+module_alsa_from_config(const struct yml_node *node,
+                        const struct font *parent_font)
+{
+    const struct yml_node *card = yml_get_value(node, "card");
+    const struct yml_node *mixer = yml_get_value(node, "mixer");
+    const struct yml_node *content = yml_get_value(node, "content");
+
+    assert(yml_is_scalar(card));
+    assert(yml_is_scalar(mixer));
+    assert(content != NULL);
+
+    return module_alsa(
+        yml_value_as_string(card),
+        yml_value_as_string(mixer),
+        particle_from_config(content, parent_font));
+}
+
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -682,6 +701,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_network_from_config(it.node, font);
                 else if (strcmp(mod_name, "removables") == 0)
                     mods[idx] = module_removables_from_config(it.node, font);
+                else if (strcmp(mod_name, "alsa") == 0)
+                    mods[idx] = module_alsa_from_config(it.node, font);
                 else
                     assert(false);
             }

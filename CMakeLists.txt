@@ -22,6 +22,7 @@ pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)                         # Module/xkb
 pkg_check_modules(JSON REQUIRED json-c)                             # Module/i3
 pkg_check_modules(UDEV REQUIRED libudev)                            # Module/battery
 pkg_check_modules(MPD REQUIRED libmpdclient)                        # Module/mpd
+pkg_check_modules(ALSA REQUIRED alsa)                               # Module/alsa
 
 add_executable(f00bar
   bar.c bar.h
@@ -48,6 +49,7 @@ add_executable(f00bar
   particles/ramp.c particles/ramp.h
   particles/string.c particles/string.h
 
+  modules/alsa.c modules/alsa.h
   modules/backlight.c modules/backlight.h
   modules/battery.c modules/battery.h
   modules/clock.c modules/clock.h
@@ -70,6 +72,7 @@ target_compile_options(f00bar PRIVATE
   ${JSON_CFLAGS_OTHER}
   ${UDEV_CFLAGS_OTHER}
   ${MPD_CFLAGS_OTHER}
+  ${ALSA_CFLAGS_OTHER}
   )
 
 target_include_directories(f00bar PRIVATE
@@ -80,6 +83,7 @@ target_include_directories(f00bar PRIVATE
   ${JSON_INCLUDE_DIRS}
   ${UDEV_INCLUDE_DIRS}
   ${MPD_INCLUDE_DIRS}
+  ${ALSA_INCLUDE_DIRS}
   )
 
 target_link_libraries(f00bar
@@ -91,4 +95,5 @@ target_link_libraries(f00bar
   ${JSON_LIBRARIES}
   ${UDEV_LIBRARIES}
   ${MPD_LIBRARIES}
+  ${ALSA_LIBRARIES}
   )
