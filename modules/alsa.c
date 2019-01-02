@@ -97,6 +97,8 @@ run(struct module_run_context *ctx)
     snd_mixer_selem_id_set_name(sid, m->mixer);
     snd_mixer_elem_t* elem = snd_mixer_find_selem(handle, sid);
 
+    LOG_INFO("connected to card=%s, mixer=%s", m->card, m->mixer);
+
     /* Initial state */
     update_state(mod, elem);
 
