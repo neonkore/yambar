@@ -122,7 +122,7 @@ content(struct module *mod)
 static uint32_t
 nl_pid_value(void)
 {
-    return thrd_current() << 16 | getpid();
+    return thrd_current() ^ getpid();
 }
 
 /* Connect and bind to netlink socket. Returns socket fd, or -1 on error */
