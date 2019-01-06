@@ -33,6 +33,8 @@
 #include "modules/xkb.h"
 #include "modules/xwindow.h"
 
+#include "config-verify.h"
+
 static uint8_t
 hex_nibble(char hex)
 {
@@ -590,6 +592,9 @@ module_alsa_from_config(const struct yml_node *node,
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
+    if (!config_verify_bar(bar))
+        return NULL;
+
     struct bar_config conf = {0};
 
     /* Create a default font */
@@ -676,33 +681,36 @@ conf_to_bar(const struct yml_node *bar)
                  it.node != NULL;
                  yml_list_next(&it), idx++)
             {
-                const struct yml_node *n = yml_get_value(it.node, "module");
+                assert(yml_is_dict(it.node));
+                assert(yml_dict_length(it.node) == 1);
 
-                assert(n != NULL);
-                const char *mod_name = yml_value_as_string(n);
+                struct yml_dict_iter m = yml_dict_iter(it.node);
+
+                const char *mod_name = yml_value_as_string(m.key);
+                assert(mod_name != NULL);
 
                 if (strcmp(mod_name, "label") == 0)
-                    mods[idx] = module_label_from_config(it.node, font);
+                    mods[idx] = module_label_from_config(m.value, font);
                 else if (strcmp(mod_name, "clock") == 0)
-                    mods[idx] = module_clock_from_config(it.node, font);
+                    mods[idx] = module_clock_from_config(m.value, font);
                 else if (strcmp(mod_name, "xwindow") == 0)
-                    mods[idx] = module_xwindow_from_config(it.node, font);
+                    mods[idx] = module_xwindow_from_config(m.value, font);
                 else if (strcmp(mod_name, "i3") == 0)
-                    mods[idx] = module_i3_from_config(it.node, font);
+                    mods[idx] = module_i3_from_config(m.value, font);
                 else if (strcmp(mod_name, "battery") == 0)
-                    mods[idx] = module_battery_from_config(it.node, font);
+                    mods[idx] = module_battery_from_config(m.value, font);
                 else if (strcmp(mod_name, "xkb") == 0)
-                    mods[idx] = module_xkb_from_config(it.node, font);
+                    mods[idx] = module_xkb_from_config(m.value, font);
                 else if (strcmp(mod_name, "backlight") == 0)
-                    mods[idx] = module_backlight_from_config(it.node, font);
+                    mods[idx] = module_backlight_from_config(m.value, font);
                 else if (strcmp(mod_name, "mpd") == 0)
-                    mods[idx] = module_mpd_from_config(it.node, font);
+                    mods[idx] = module_mpd_from_config(m.value, font);
                 else if (strcmp(mod_name, "network") == 0)
-                    mods[idx] = module_network_from_config(it.node, font);
+                    mods[idx] = module_network_from_config(m.value, font);
                 else if (strcmp(mod_name, "removables") == 0)
-                    mods[idx] = module_removables_from_config(it.node, font);
+                    mods[idx] = module_removables_from_config(m.value, font);
                 else if (strcmp(mod_name, "alsa") == 0)
-                    mods[idx] = module_alsa_from_config(it.node, font);
+                    mods[idx] = module_alsa_from_config(m.value, font);
                 else
                     assert(false);
             }

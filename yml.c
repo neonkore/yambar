@@ -682,40 +682,77 @@ yml_dict_length(const struct yml_node *dict)
 const char *
 yml_value_as_string(const struct yml_node *value)
 {
-    assert(yml_is_scalar(value));
+    if (!yml_is_scalar(value))
+        return NULL;
     return value->scalar.value;
+}
+
+static bool
+_as_int(const struct yml_node *value, long *ret)
+{
+    const char *s = yml_value_as_string(value);
+    if (s == NULL)
+        return false;
+
+    int cnt;
+    int res = sscanf(s, "%ld%n", ret, &cnt);
+    return res == 1 && strlen(s) == (size_t)cnt;
+}
+
+bool
+yml_value_is_int(const struct yml_node *value)
+{
+    long dummy;
+    return _as_int(value, &dummy);
 }
 
 long
 yml_value_as_int(const struct yml_node *value)
 {
-    assert(yml_is_scalar(value));
-
-    long ival;
-    int res = sscanf(yml_value_as_string(value), "%ld", &ival);
-    return res != 1 ? -1 : ival;
+    long ret = -1;
+    _as_int(value, &ret);
+    return ret;
 }
 
-bool
-yml_value_as_bool(const struct yml_node *value)
+static bool
+_as_bool(const struct yml_node *value, bool *ret)
 {
+    if (!yml_is_scalar(value))
+        return false;
+
     const char *v = yml_value_as_string(value);
     if (strcasecmp(v, "y") == 0 ||
         strcasecmp(v, "yes") == 0 ||
         strcasecmp(v, "true") == 0 ||
         strcasecmp(v, "on") == 0)
     {
+        *ret = true;
         return true;
     } else if (strcasecmp(v, "n") == 0 ||
                strcasecmp(v, "no") == 0 ||
                strcasecmp(v, "false") == 0 ||
                strcasecmp(v, "off") == 0)
     {
-        return false;
-    } else
-        assert(false);
+        *ret = false;
+        return true;
+    }
 
     return false;
+}
+
+bool
+yml_value_is_bool(const struct yml_node *value)
+{
+    bool dummy;
+    return _as_bool(value, &dummy);
+}
+
+bool
+yml_value_as_bool(const struct yml_node *value)
+{
+    bool ret;
+    _as_bool(value, &ret);
+    return ret;
 }
 
 static void

@@ -27,6 +27,7 @@ pkg_check_modules(ALSA REQUIRED alsa)                               # Module/als
 add_executable(f00bar
   bar.c bar.h
   config.c config.h
+  config-verify.c config-verify.h
   decoration.h
   font.c font.h
   log.c log.h

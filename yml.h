@@ -32,6 +32,9 @@ struct yml_dict_iter yml_dict_iter(const struct yml_node *dict);
 void yml_dict_next(struct yml_dict_iter *iter);
 size_t yml_dict_length(const struct yml_node *dict);
 
+bool yml_value_is_int(const struct yml_node *value);
+bool yml_value_is_bool(const struct yml_node *value);
+
 const char *yml_value_as_string(const struct yml_node *value);
 long yml_value_as_int(const struct yml_node *value);
 bool yml_value_as_bool(const struct yml_node *value);

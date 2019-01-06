@@ -82,7 +82,12 @@ main(int argc, const char *const *argv)
         return 1;
     }
 
-    free(config_path);
+    const struct yml_node *bar_conf = yml_get_value(conf, "bar");
+    if (bar_conf == NULL) {
+        LOG_ERR("%s: missing required top level key 'bar'", config_path);
+        free(config_path);
+        return 1;
+    }
 
     xcb_init();
 
@@ -92,10 +97,18 @@ main(int argc, const char *const *argv)
     int abort_fd = eventfd(0, EFD_CLOEXEC);
     if (abort_fd == -1) {
         LOG_ERRNO("failed to create eventfd (for abort signalling)");
+        free(config_path);
         return 1;
     }
 
-    struct bar *bar = conf_to_bar(yml_get_value(conf, "bar"));
+    struct bar *bar = conf_to_bar(bar_conf);
+    if (bar == NULL) {
+        LOG_ERR("%s: failed to load configuration", config_path);
+        free(config_path);
+        return 1;
+    }
+
+    free(config_path);
 
     struct bar_run_context bar_ctx = {
         .bar = bar,
