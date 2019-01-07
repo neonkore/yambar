@@ -58,12 +58,21 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
 {
     struct private *m = mod->private;
 
-    long cur, min, max;
-    snd_mixer_selem_get_playback_volume(elem, SND_MIXER_SCHN_MONO, &cur);
-    snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
+    long cur = 0;
+    int r = snd_mixer_selem_get_playback_volume(elem, SND_MIXER_SCHN_MONO, &cur);
+    if (r < 0)
+        LOG_WARN("%s,%s: failed to get current volume", m->card, m->mixer);
 
-    int unmuted;
-    snd_mixer_selem_get_playback_switch(elem, SND_MIXER_SCHN_MONO, &unmuted);
+    long min = 0, max = 0;
+    r = snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
+    if (r < 0)
+        LOG_WARN("%s,%s: failed to get volume min/max", m->card, m->mixer);
+
+
+    int unmuted = false;
+    r = snd_mixer_selem_get_playback_switch(elem, SND_MIXER_SCHN_MONO, &unmuted);
+    if (r < 0)
+        LOG_WARN("%s,%s: failed to get muted state", m->card, m->mixer);
 
     LOG_DBG("muted=%d, cur=%ld, min=%ld, max=%ld", !unmuted, cur, min, max);
 
