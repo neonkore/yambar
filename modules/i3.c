@@ -353,7 +353,7 @@ run(struct module_run_context *ctx)
 {
     struct private *m = ctx->module->private;
 
-    char sock_path[1024];
+    struct sockaddr_un addr = {.sun_family = AF_UNIX};
     {
         FILE *out = popen("i3 --get-socketpath", "r");
         if (out == NULL) {
@@ -362,13 +362,13 @@ run(struct module_run_context *ctx)
             return 1;
         }
 
-        fgets(sock_path, sizeof(sock_path), out);
+        fgets(addr.sun_path, sizeof(addr.sun_path), out);
         pclose(out);
 
         /* Strip newline */
-        ssize_t len = strlen(sock_path);
-        if (sock_path[len - 1] == '\n')
-            sock_path[len - 1] = '\0';
+        ssize_t len = strlen(addr.sun_path);
+        if (addr.sun_path[len - 1] == '\n')
+            addr.sun_path[len - 1] = '\0';
     }
 
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -377,9 +377,6 @@ run(struct module_run_context *ctx)
         module_signal_ready(ctx);
         return 1;
     }
-
-    struct sockaddr_un addr = {.sun_family = AF_UNIX};
-    strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
 
     int r = connect(sock, (const struct sockaddr *)&addr, sizeof(addr));
     if (r == -1) {
