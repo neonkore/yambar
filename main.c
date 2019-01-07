@@ -8,6 +8,7 @@
 #include <signal.h>
 
 #include <threads.h>
+#include <poll.h>
 
 #include <sys/types.h>
 #include <sys/eventfd.h>
@@ -115,18 +116,55 @@ main(int argc, const char *const *argv)
         .abort_fd = abort_fd,
     };
 
+    /* Block SIGINT (this is under the assumption that threads inherit
+     * the signal mask */
+    sigset_t signal_mask;
+    sigemptyset(&signal_mask);
+    sigaddset(&signal_mask, SIGINT);
+    pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+
     thrd_t bar_thread;
     thrd_create(&bar_thread, (int (*)(void *))bar->run, &bar_ctx);
 
+    /* Now unblock. We should be only thread receiving SIGINT */
+    pthread_sigmask(SIG_UNBLOCK, &signal_mask, NULL);
+
+    /* Connect to XCB, to be able to detect a disconnect (allowing us
+     * to exit) */
+    xcb_connection_t *xcb = xcb_connect(NULL, NULL);
+    assert(xcb != NULL);
+
+    /* Wait for SIGINT, or XCB disconnect */
     while (!aborted) {
-        sleep(999999999);
+        struct pollfd fds[] = {
+            {.fd = xcb_get_file_descriptor(xcb), .events = POLLPRI}
+        };
+
+        poll(fds, 1, -1);
+
+        if (aborted)
+            break;
+
+        LOG_INFO("XCB poll data");
+
+        if (fds[0].revents & POLLHUP) {
+            LOG_INFO("disconnected from XCB, exiting");
+            break;
+        }
     }
 
-    /* Signal abort to all workers */
+    xcb_disconnect(xcb);
+
+    if (aborted)
+        LOG_INFO("aborted");
+
+    /* Signal abort to other threads */
     write(abort_fd, &(uint64_t){1}, sizeof(uint64_t));
 
     int res;
-    thrd_join(bar_thread, &res);
+    int r = thrd_join(bar_thread, &res);
+    if (r != 0)
+        LOG_ERRNO_P("failed to join bar thread", r);
 
     bar->destroy(bar);
     yml_destroy(conf);
