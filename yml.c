@@ -750,7 +750,7 @@ yml_value_is_bool(const struct yml_node *value)
 bool
 yml_value_as_bool(const struct yml_node *value)
 {
-    bool ret;
+    bool ret = false;
     _as_bool(value, &ret);
     return ret;
 }
