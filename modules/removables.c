@@ -43,6 +43,8 @@ struct block_device {
     uint64_t size;
     char *vendor;
     char *model;
+    bool optical;
+    bool media;
 
     tll(struct partition) partitions;
 };
@@ -126,13 +128,14 @@ content(struct module *mod)
             .tags = (struct tag *[]){
                 tag_new_string(mod, "vendor", p->block->vendor),
                 tag_new_string(mod, "model", p->block->model),
+                tag_new_bool(mod, "optical", p->block->optical),
                 tag_new_string(mod, "device", p->dev_path),
                 tag_new_int_range(mod, "size", p->size, 0, p->block->size),
                 tag_new_string(mod, "label", label),
                 tag_new_bool(mod, "mounted", is_mounted),
                 tag_new_string(mod, "mount_point", mount_point),
             },
-            .count = 7,
+            .count = 8,
         };
 
         exposables[idx++] = m->label->instantiate(m->label, &tags);
@@ -218,67 +221,6 @@ update_mount_points(struct partition *partition)
     return updated;
 }
 
-static struct block_device *
-add_device(struct module *mod, struct udev_device *dev)
-{
-    struct private *m = mod->private;
-
-    const char *_size = udev_device_get_sysattr_value(dev, "size");
-    uint64_t size = 0;
-    if (_size != NULL)
-        sscanf(_size, "%"SCNu64, &size);
-
-#if 0
-    struct udev_list_entry *e = NULL;
-    udev_list_entry_foreach(e, udev_device_get_properties_list_entry(dev)) {
-        LOG_DBG("%s -> %s", udev_list_entry_get_name(e), udev_list_entry_get_value(e));
-    }
-#endif
-
-    const char *vendor = udev_device_get_property_value(dev, "ID_VENDOR");
-    const char *model = udev_device_get_property_value(dev, "ID_MODEL");
-
-    LOG_DBG("device: add: %s: vendor=%s, model=%s, size=%"PRIu64,
-            udev_device_get_devnode(dev), vendor, model, size);
-
-    mtx_lock(&mod->lock);
-
-    tll_push_back(
-        m->devices,
-        ((struct block_device){
-            .sys_path = strdup(udev_device_get_devpath(dev)),
-            .dev_path = strdup(udev_device_get_devnode(dev)),
-            .size = size,
-            .vendor = vendor != NULL ? strdup(vendor) : NULL,
-            .model = model != NULL ? strdup(model) : NULL,
-            .partitions = tll_init()}));
-
-    mtx_unlock(&mod->lock);
-    return &tll_back(m->devices);
-}
-
-static bool
-del_device(struct module *mod, struct udev_device *dev)
-{
-    struct private *m = mod->private;
-    const char *sys_path = udev_device_get_devpath(dev);
-    mtx_lock(&mod->lock);
-
-    tll_foreach(m->devices, it) {
-        if (strcmp(it->item.sys_path, sys_path) == 0) {
-            LOG_DBG("device: del: %s", it->item.dev_path);
-
-            free_device(&it->item);
-            tll_remove(m->devices, it);
-            mtx_unlock(&mod->lock);
-            return true;
-        }
-    }
-
-    mtx_unlock(&mod->lock);
-    return false;
-}
-
 static struct partition *
 add_partition(struct module *mod, struct block_device *block,
               struct udev_device *dev)
@@ -295,10 +237,12 @@ add_partition(struct module *mod, struct block_device *block,
     }
 #endif
 
-    const char *label = udev_device_get_property_value(dev, "ID_LABEL");
+    const char *label = udev_device_get_property_value(dev, "ID_FS_LABEL");
+    if (label == NULL)
+        label = udev_device_get_property_value(dev, "ID_LABEL");
 
-    LOG_DBG("partition: add: %s: label=%s, size=%"PRIu64,
-            udev_device_get_devnode(dev), label, size);
+    LOG_INFO("partition: add: %s: label=%s, size=%"PRIu64,
+             udev_device_get_devnode(dev), label, size);
 
     mtx_lock(&mod->lock);
 
@@ -328,12 +272,122 @@ del_partition(struct module *mod, struct block_device *block,
 
     tll_foreach(block->partitions, it) {
         if (strcmp(it->item.sys_path, sys_path) == 0) {
-            LOG_DBG("partition: del: %s", it->item.dev_path);
+            LOG_INFO("partition: del: %s", it->item.dev_path);
 
             free_partition(&it->item);
             tll_remove(block->partitions, it);
             mtx_unlock(&mod->lock);
             return true;
+        }
+    }
+
+    mtx_unlock(&mod->lock);
+    return false;
+}
+
+static struct block_device *
+add_device(struct module *mod, struct udev_device *dev)
+{
+    struct private *m = mod->private;
+
+    const char *_size = udev_device_get_sysattr_value(dev, "size");
+    uint64_t size = 0;
+    if (_size != NULL)
+        sscanf(_size, "%"SCNu64, &size);
+
+#if 1
+    struct udev_list_entry *e = NULL;
+    udev_list_entry_foreach(e, udev_device_get_properties_list_entry(dev)) {
+        LOG_DBG("%s -> %s", udev_list_entry_get_name(e), udev_list_entry_get_value(e));
+    }
+#endif
+
+    const char *vendor = udev_device_get_property_value(dev, "ID_VENDOR");
+    const char *model = udev_device_get_property_value(dev, "ID_MODEL");
+
+    const char *_optical = udev_device_get_property_value(dev, "ID_CDROM");
+    bool optical = _optical != NULL && strcmp(_optical, "1") == 0;
+
+    const char *_media = udev_device_get_property_value(dev, "ID_FS_USAGE");
+    bool media = _media != NULL && strcmp(_media, "filesystem") == 0;
+
+    LOG_DBG("device: add: %s: vendor=%s, model=%s, optical=%d, size=%"PRIu64,
+            udev_device_get_devnode(dev), vendor, model, optical, size);
+
+    mtx_lock(&mod->lock);
+
+    tll_push_back(
+        m->devices,
+        ((struct block_device){
+            .sys_path = strdup(udev_device_get_devpath(dev)),
+            .dev_path = strdup(udev_device_get_devnode(dev)),
+            .size = size,
+            .vendor = vendor != NULL ? strdup(vendor) : NULL,
+            .model = model != NULL ? strdup(model) : NULL,
+            .optical = optical,
+            .media = media,
+            .partitions = tll_init()}));
+
+    mtx_unlock(&mod->lock);
+
+    struct block_device *block = &tll_back(m->devices);
+    if (optical && media)
+        add_partition(mod, block, dev);
+
+    return &tll_back(m->devices);
+}
+
+static bool
+del_device(struct module *mod, struct udev_device *dev)
+{
+    struct private *m = mod->private;
+    const char *sys_path = udev_device_get_devpath(dev);
+    mtx_lock(&mod->lock);
+
+    tll_foreach(m->devices, it) {
+        if (strcmp(it->item.sys_path, sys_path) == 0) {
+            LOG_DBG("device: del: %s", it->item.dev_path);
+
+            free_device(&it->item);
+            tll_remove(m->devices, it);
+            mtx_unlock(&mod->lock);
+            return true;
+        }
+    }
+
+    mtx_unlock(&mod->lock);
+    return false;
+}
+
+static bool
+change_device(struct module *mod, struct udev_device *dev)
+{
+    struct private *m = mod->private;
+    const char *sys_path = udev_device_get_devpath(dev);
+    mtx_lock(&mod->lock);
+
+    tll_foreach(m->devices, it) {
+        if (strcmp(it->item.sys_path, sys_path) == 0) {
+            LOG_DBG("device: change: %s", it->item.dev_path);
+
+            if (it->item.optical) {
+                const char *_media = udev_device_get_property_value(dev, "ID_FS_USAGE");
+                bool media = _media != NULL && strcmp(_media, "filesystem") == 0;
+                bool media_change = media != it->item.media;
+
+                it->item.media = media;
+                mtx_unlock(&mod->lock);
+
+                if (media_change) {
+                    LOG_INFO("device: change: %s: media %s",
+                             it->item.dev_path, media ? "inserted" : "removed");
+
+                    if (media)
+                        return add_partition(mod, &it->item, dev);
+                    else
+                        return del_partition(mod, &it->item, dev);
+                }
+            }
         }
     }
 
@@ -349,9 +403,10 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
     const char *action = udev_device_get_action(dev);
     bool add = strcmp(action, "add") == 0;
     bool del = strcmp(action, "remove") == 0;
+    bool change = strcmp(action, "change") == 0;
 
-    if (!add && !del) {
-        LOG_WARN("unhandled action: %s", action);
+    if (!add && !del && !change) {
+        LOG_WARN("%s: unhandled action: %s", udev_device_get_devpath(dev), action);
         return false;
     }
 
@@ -360,8 +415,10 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
     if (strcmp(devtype, "disk") == 0) {
         if (add)
             return add_device(mod, dev);
-        else
+        else if (del)
             return del_device(mod, dev);
+        else
+            return change_device(mod, dev);
     }
 
     if (strcmp(devtype, "partition") == 0) {
@@ -374,8 +431,13 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
 
             if (add)
                 return add_partition(mod, &it->item, dev);
-            else
+            else if (del)
                 return del_partition(mod, &it->item, dev);
+            else {
+                LOG_ERR("unimplemented: 'change' event on partition: %s",
+                        udev_device_get_devpath(dev));
+                return false;
+            }
             break;
         }
     }
