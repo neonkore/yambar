@@ -597,6 +597,12 @@ run(struct bar_run_context *run_ctx)
         if (fds[0].revents && POLLIN)
             break;
 
+        if (fds[1].revents & POLLHUP) {
+            LOG_WARN("disconnected from XCB");
+            write(run_ctx->abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+            break;
+        }
+
         for (xcb_generic_event_t *e = xcb_wait_for_event(bar->conn);
              e != NULL;
              e = xcb_poll_for_event(bar->conn))
