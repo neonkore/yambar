@@ -557,7 +557,6 @@ module_removables_from_config(const struct yml_node *node,
     const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
     const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
 
-    assert(yml_is_dict(content));
     assert(spacing == NULL || yml_is_scalar(spacing));
     assert(left_spacing == NULL || yml_is_scalar(left_spacing));
     assert(right_spacing == NULL || yml_is_scalar(right_spacing));
