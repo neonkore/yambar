@@ -476,6 +476,7 @@ run(struct module_run_context *ctx)
 
             case I3_IPC_EVENT_WORKSPACE:
                 handle_workspace_event(m, json);
+                ctx->module->bar->refresh(ctx->module->bar);
                 break;
 
             case I3_IPC_EVENT_OUTPUT:
