@@ -18,6 +18,7 @@
 #include <json-c/linkhash.h>
 
 #define LOG_MODULE "i3"
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
 
@@ -313,6 +314,7 @@ handle_workspace_event(struct private *m, const struct json_object *json)
 
         struct workspace *w = workspace_lookup(
             m, json_object_get_string(current_name));
+        LOG_DBG("w: %s", w->name);
         assert(w != NULL);
 
         /* Mark all workspaces on current's output invisible */
@@ -436,14 +438,17 @@ run(struct module_run_context *ctx)
 
             size_t total_size = sizeof(i3_ipc_header_t) + hdr->size;
 
-            if (total_size > buf_idx)
+            if (total_size > buf_idx) {
+                LOG_DBG("got %zd bytes, need %zu", bytes, total_size);
                 break;
+            }
 
             /* Json-c expects a NULL-terminated string */
             char json_str[hdr->size + 1];
             memcpy(json_str, &buf[sizeof(*hdr)], hdr->size);
             json_str[hdr->size] = '\0';
             //printf("raw: %s\n", json_str);
+            LOG_DBG("raw: %s\n", json_str);
 
             json_tokener *tokener = json_tokener_new();
             struct json_object *json = json_tokener_parse(json_str);
