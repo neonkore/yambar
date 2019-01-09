@@ -35,6 +35,7 @@ xcb_init(void)
         return false;
     }
 
+#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
     const xcb_setup_t *setup = xcb_get_setup(conn);
 
     /* Vendor release number */
@@ -42,12 +43,13 @@ xcb_init(void)
     unsigned major = release / 10000000; release %= 10000000;
     unsigned minor = release / 100000; release %= 100000;
     unsigned patch = release / 1000;
+#endif
 
-    LOG_INFO("%.*s %u.%u.%u (protocol: %u.%u)",
-             xcb_setup_vendor_length(setup), xcb_setup_vendor(setup),
-             major, minor, patch,
-             setup->protocol_major_version,
-             setup->protocol_minor_version);
+    LOG_DBG("%.*s %u.%u.%u (protocol: %u.%u)",
+            xcb_setup_vendor_length(setup), xcb_setup_vendor(setup),
+            major, minor, patch,
+            setup->protocol_major_version,
+            setup->protocol_minor_version);
 
     const xcb_query_extension_reply_t *randr =
         xcb_get_extension_data(conn, &xcb_randr_id);
@@ -95,10 +97,10 @@ xcb_init(void)
         return false;
     }
 
-    LOG_INFO("RANDR: %u.%u",
-             randr_version->major_version, randr_version->minor_version);
-    LOG_INFO("RENDER: %u.%u",
-             render_version->major_version, render_version->minor_version);
+    LOG_DBG("RANDR: %u.%u",
+            randr_version->major_version, randr_version->minor_version);
+    LOG_DBG("RENDER: %u.%u",
+            render_version->major_version, render_version->minor_version);
 
     free(randr_version);
     free(render_version);
