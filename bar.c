@@ -702,6 +702,8 @@ run(struct bar_run_context *run_ctx)
     }
 
     cairo_destroy(bar->cairo);
+    cairo_device_finish(cairo_surface_get_device(bar->cairo_surface));
+    cairo_surface_finish(bar->cairo_surface);
     cairo_surface_destroy(bar->cairo_surface);
     cairo_debug_reset_static_data();
 
