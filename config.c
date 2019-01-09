@@ -513,7 +513,6 @@ module_backlight_from_config(const struct yml_node *node,
     const struct yml_node *c = yml_get_value(node, "content");
 
     assert(yml_is_scalar(name));
-    assert(yml_is_dict(c));
 
     return module_backlight(
         yml_value_as_string(name), particle_from_config(c, parent_font));
