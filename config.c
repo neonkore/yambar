@@ -217,7 +217,7 @@ particle_list_from_config(const struct yml_node *node,
     int left_spacing = spacing != NULL ? yml_value_as_int(spacing) :
         _left_spacing != NULL ? yml_value_as_int(_left_spacing) : 0;
     int right_spacing = spacing != NULL ? yml_value_as_int(spacing) :
-        _right_spacing != NULL ? yml_value_as_int(_right_spacing) : 2;;
+        _right_spacing != NULL ? yml_value_as_int(_right_spacing) : 2;
 
     size_t count = yml_list_length(items);
     struct particle *parts[count];
