@@ -86,17 +86,7 @@ static struct font *
 font_from_config(const struct yml_node *node)
 {
     const struct yml_node *family = yml_get_value(node, "family");
-    const struct yml_node *size = yml_get_value(node, "size");
-    const struct yml_node *italic = yml_get_value(node, "italic");
-    const struct yml_node *bold = yml_get_value(node, "bold");
-    const struct yml_node *y_offset = yml_get_value(node, "y_offset");
-
-    return font_new(
-        family != NULL ? yml_value_as_string(family) : "monospace",
-        size != NULL ? yml_value_as_int(size) : 12,
-        italic != NULL ? yml_value_as_bool(italic) : false,
-        bold != NULL ? yml_value_as_bool(bold) : false,
-        y_offset != NULL ? yml_value_as_int(y_offset) : 0);
+    return font_new(family != NULL ? yml_value_as_string(family) : "monospace");
 }
 
 static struct deco *
@@ -191,10 +181,12 @@ particle_string_from_config(const struct yml_node *node,
     assert(yml_is_dict(node));
 
     const struct yml_node *text = yml_get_value(node, "text");
+    const struct yml_node *max = yml_get_value(node, "max");
     const struct yml_node *font = yml_get_value(node, "font");
     const struct yml_node *foreground = yml_get_value(node, "foreground");
 
     assert(text != NULL && yml_is_scalar(text));
+    assert(max == NULL || yml_value_is_int(max));
 
     struct rgba fg_color = foreground != NULL
         ? color_from_hexstr(yml_value_as_string(foreground)) :
@@ -202,6 +194,7 @@ particle_string_from_config(const struct yml_node *node,
 
     return particle_string_new(
         yml_value_as_string(text),
+        max != NULL ? yml_value_as_int(max) : 0,
         font != NULL ? font_from_config(font) : font_clone(parent_font),
         fg_color, left_margin, right_margin, on_click_template);
 }
@@ -597,7 +590,7 @@ conf_to_bar(const struct yml_node *bar)
     struct bar_config conf = {0};
 
     /* Create a default font */
-    struct font *font = font_new("sans", 12, false, false, 0);
+    struct font *font = font_new("sans");
 
     const struct yml_node *height = yml_get_value(bar, "height");
     const struct yml_node *location = yml_get_value(bar, "location");

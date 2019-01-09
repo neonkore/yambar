@@ -121,12 +121,7 @@ verify_font(keychain_t *chain, const struct yml_node *node)
             return false;
         }
 
-        if (strcmp(sub_key, "size") == 0 ||
-            strcmp(sub_key, "y_offset") == 0)
-        {
-            if (!verify_int(chain_push(chain, sub_key), it.value))
-                return false;
-        } else if (strcmp(sub_key, "family") == 0) {
+        if (strcmp(sub_key, "family") == 0) {
             if (!verify_string(chain_push(chain, sub_key), it.value))
                 return false;
         } else {

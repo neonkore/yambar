@@ -15,7 +15,8 @@ find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render xcb-cursor) # Core
-pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb)                   # Core
+pkg_check_modules(FONTCONFIG REQUIRED fontconfig)                   # Core
+pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)          # Core
 pkg_check_modules(YAML REQUIRED yaml-0.1)                           # Core (configuration)
 
 pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)                         # Module/xkb
@@ -67,6 +68,7 @@ target_compile_definitions(f00bar PRIVATE _GNU_SOURCE)
 
 target_compile_options(f00bar PRIVATE
   ${XCB_CFLAGS_OTHER}
+  ${FONTCONFIG_CFLAGS_OTHER}
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
   ${XCB_XKB_CFLAGS_OTHER}
@@ -78,6 +80,7 @@ target_compile_options(f00bar PRIVATE
 
 target_include_directories(f00bar PRIVATE
   ${XCB_INCLUDE_DIRS}
+  ${FONTCONFIG_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
   ${XCB_XKB_INCLUDE_DIRS}
@@ -90,6 +93,7 @@ target_include_directories(f00bar PRIVATE
 target_link_libraries(f00bar
   ${CMAKE_THREAD_LIBS_INIT}
   ${XCB_LIBRARIES}
+  ${FONTCONFIG_LIBRARIES}
   ${CAIRO_LIBRARIES}
   ${YAML_LIBRARIES}
   ${XCB_XKB_LIBRARIES}
