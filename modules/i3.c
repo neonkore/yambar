@@ -527,6 +527,18 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static struct ws_content *
+ws_content_for_name(struct private *m, const char *name)
+{
+    for (size_t i = 0; i < m->ws_content.count; i++) {
+        struct ws_content *content = &m->ws_content.v[i];
+        if (strcmp(content->name, name) == 0)
+            return content;
+    }
+
+    return NULL;
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -541,17 +553,17 @@ content(struct module *mod)
         const struct workspace *ws = &m->workspaces.v[i];
         const struct ws_content *template = NULL;
 
-        /* Lookup workspace in user supplied workspace particle templates */
-        for (size_t j = 0; j < m->ws_content.count; j++) {
-            const struct ws_content *c = &m->ws_content.v[j];
-            if (strcmp(c->name, ws->name) == 0) {
-                template = c;
-                break;
-            }
+        /* Lookup content template for workspace. Fall back to default
+         * template if this workspace doesn't have a specific
+         * template */
+        template = ws_content_for_name(m, ws->name);
+        if (template == NULL) {
+            LOG_DBG("no ws template for %s, using default template", ws->name);
+            template = ws_content_for_name(m, "");
         }
 
         if (template == NULL) {
-            LOG_WARN("no ws template for %s", ws->name);
+            LOG_WARN("no ws template for %s, and no default template available", ws->name);
             continue;
         }
 
