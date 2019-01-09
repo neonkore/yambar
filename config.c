@@ -347,7 +347,7 @@ particle_simple_list_from_config(const struct yml_node *node,
         parts[idx] = particle_from_config(it.node, parent_font);
     }
 
-    return particle_list_new(parts, count, 0, 0, 0, 0, NULL);
+    return particle_list_new(parts, count, 0, 2, 0, 0, NULL);
 }
 
 static struct particle *
