@@ -313,7 +313,14 @@ verify_module_clock(keychain_t *chain, const struct yml_node *node)
             return false;
         }
 
-        if (strcmp(key, "content") == 0) {
+        if (strcmp(key, "date-format") == 0 ||
+            strcmp(key, "time-format") == 0)
+        {
+            if (!verify_string(chain_push(chain, key), it.value))
+                return false;
+        }
+
+        else if (strcmp(key, "content") == 0) {
             if (!verify_particle(chain_push(chain, key), it.value))
                 return false;
         }

@@ -1,5 +1,6 @@
 #include "clock.h"
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <assert.h>
 
@@ -9,6 +10,8 @@
 
 struct private {
     struct particle *label;
+    char *date_format;
+    char *time_format;
 };
 
 static void
@@ -16,6 +19,8 @@ destroy(struct module *mod)
 {
     struct private *m = mod->private;
     m->label->destroy(m->label);
+    free(m->time_format);
+    free(m->date_format);
     free(m);
     module_default_destroy(mod);
 }
@@ -27,11 +32,11 @@ content(struct module *mod)
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
 
-    char time_str[1024];
-    strftime(time_str, sizeof(time_str), "%H:%M", tm);
-
     char date_str[1024];
-    strftime(date_str, sizeof(date_str), "%e %b", tm);
+    strftime(date_str, sizeof(date_str), m->date_format, tm);
+
+    char time_str[1024];
+    strftime(time_str, sizeof(time_str), m->time_format, tm);
 
     struct tag_set tags = {
         .tags = (struct tag *[]){tag_new_string(mod, "time", time_str),
@@ -74,10 +79,13 @@ run(struct module_run_context *ctx)
 }
 
 struct module *
-module_clock(struct particle *label)
+module_clock(struct particle *label,
+             const char *date_format, const char *time_format)
 {
     struct private *m = malloc(sizeof(*m));
     m->label = label;
+    m->date_format = strdup(date_format);
+    m->time_format = strdup(time_format);
 
     struct module *mod = module_common_new();
     mod->private = m;

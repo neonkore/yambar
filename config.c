@@ -423,8 +423,17 @@ static struct module *
 module_clock_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
+    const struct yml_node *date_format = yml_get_value(node, "date-format");
+    const struct yml_node *time_format = yml_get_value(node, "time-format");
+
     assert(c != NULL);
-    return module_clock(particle_from_config(c, parent_font));
+    assert(date_format == NULL || yml_is_scalar(date_format));
+    assert(time_format == NULL || yml_is_scalar(time_format));
+
+    return module_clock(
+        particle_from_config(c, parent_font),
+        date_format != NULL ? yml_value_as_string(date_format) : "%x",
+        time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
 }
 
 static struct module *
