@@ -74,6 +74,7 @@ struct private {
     char *cursor_name;
 
     cairo_t *cairo;
+    cairo_surface_t *cairo_surface;
 };
 
 /*
@@ -203,8 +204,10 @@ expose(const struct bar *_bar)
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
+    cairo_surface_flush(bar->cairo_surface);
     xcb_copy_area(bar->conn, bar->pixmap, bar->win, bar->gc,
                   0, 0, 0, 0, bar->width, bar->height_with_border);
+    xcb_flush(bar->conn);
 }
 
 
@@ -517,9 +520,10 @@ run(struct bar_run_context *run_ctx)
                   XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES,
                   (const uint32_t []){screen->white_pixel, 0});
 
-    cairo_surface_t *surface = cairo_xcb_surface_create(
+    LOG_DBG("cairo: %s", cairo_version_string());
+    bar->cairo_surface = cairo_xcb_surface_create(
         bar->conn, bar->pixmap, vis, bar->width, bar->height_with_border);
-    bar->cairo = cairo_create(surface);
+    bar->cairo = cairo_create(bar->cairo_surface);
 
     xcb_map_window(bar->conn, bar->win);
 
@@ -673,7 +677,7 @@ run(struct bar_run_context *run_ctx)
     LOG_DBG("modules joined");
 
     cairo_destroy(bar->cairo);
-    cairo_surface_destroy(surface);
+    cairo_surface_destroy(bar->cairo_surface);
     cairo_debug_reset_static_data();
 
     if (bar->cursor_ctx != NULL) {
