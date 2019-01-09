@@ -93,6 +93,11 @@ update_application(struct module *mod)
         return;
     }
 
+    if (xcb_get_property_value_length(r) == 0) {
+        free(r);
+        return;
+    }
+
     uint32_t pid;
     assert(xcb_get_property_value_length(r) == sizeof(pid));
 
