@@ -38,12 +38,12 @@ module_signal_ready(struct module_run_context *ctx)
 }
 
 struct module_expose_context
-module_default_begin_expose(struct module *mod, cairo_t *cr)
+module_default_begin_expose(struct module *mod)
 {
     struct exposable *e = mod->content(mod);
     return (struct module_expose_context){
         .exposable = e,
-        .width = e->begin_expose(e, cr),
+        .width = e->begin_expose(e),
         .private = NULL,
     };
 }

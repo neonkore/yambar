@@ -60,7 +60,7 @@ struct module {
      * (module_default_*) is good enough. In this case, implement
      * 'content()' instead (see above).
      */
-    struct module_expose_context (*begin_expose)(struct module *mod, cairo_t *cr);
+    struct module_expose_context (*begin_expose)(struct module *mod);
     void (*expose)(const struct module *mod,
                    const struct module_expose_context *ctx,
                    cairo_t *cr, int x, int y, int height);
@@ -74,7 +74,7 @@ void module_signal_ready(struct module_run_context *ctx);
 void module_default_destroy(struct module *mod);
 
 struct module_expose_context module_default_begin_expose(
-    struct module *mod, cairo_t *cr);
+    struct module *mod);
 
 void module_default_expose(
     const struct module *mod,
