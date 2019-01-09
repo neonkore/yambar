@@ -27,7 +27,7 @@ static volatile sig_atomic_t aborted = 0;
 static void
 signal_handler(int signo)
 {
-    aborted = 1;
+    aborted = signo;
 }
 
 static char *
@@ -94,6 +94,7 @@ main(int argc, const char *const *argv)
 
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
 
     int abort_fd = eventfd(0, EFD_CLOEXEC);
     if (abort_fd == -1) {
@@ -121,6 +122,7 @@ main(int argc, const char *const *argv)
     sigset_t signal_mask;
     sigemptyset(&signal_mask);
     sigaddset(&signal_mask, SIGINT);
+    sigaddset(&signal_mask, SIGTERM);
     pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
 
     thrd_t bar_thread;
@@ -156,7 +158,7 @@ main(int argc, const char *const *argv)
     xcb_disconnect(xcb);
 
     if (aborted)
-        LOG_INFO("aborted");
+        LOG_INFO("aborted: %s (%d)", strsignal(aborted), aborted);
 
     /* Signal abort to other threads */
     write(abort_fd, &(uint64_t){1}, sizeof(uint64_t));
