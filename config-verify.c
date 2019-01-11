@@ -89,59 +89,6 @@ verify_enum(keychain_t *chain, const struct yml_node *node,
 }
 
 static bool
-verify_color(keychain_t *chain, const struct yml_node *node)
-{
-    const char *s = yml_value_as_string(node);
-    if (s == NULL) {
-        LOG_ERR("%s: value must be a string", err_prefix(chain, node));
-        return false;
-    }
-
-    unsigned int r, g, b, a;
-    int v = sscanf(s, "%02x%02x%02x%02x", &r, &g, &b, &a);
-
-    if (strlen(s) != 8 || v != 4) {
-        LOG_ERR("%s: value must be a color ('rrggbbaa', e.g ff00ffff)",
-                err_prefix(chain, node));
-        return false;
-    }
-
-    return true;
-}
-
-static bool
-verify_font(keychain_t *chain, const struct yml_node *node)
-{
-    if (!yml_is_dict(node)) {
-        LOG_ERR("%s: must be a dictionary", err_prefix(chain, node));
-        return false;
-    }
-
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *sub_key = yml_value_as_string(it.key);
-        if (sub_key == NULL) {
-            LOG_ERR("%s: font: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(sub_key, "family") == 0) {
-            if (!verify_string(chain_push(chain, sub_key), it.value))
-                return false;
-        } else {
-            LOG_ERR("%s: font: invalid key: %s", err_prefix(chain, node), sub_key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
 verify_dict(keychain_t *chain, const struct yml_node *node,
             const struct attr_info info[], size_t count)
 {
@@ -198,38 +145,46 @@ verify_dict(keychain_t *chain, const struct yml_node *node,
 }
 
 static bool
-verify_border(keychain_t *chain, const struct yml_node *node)
+verify_color(keychain_t *chain, const struct yml_node *node)
 {
-    if (!yml_is_dict(node)) {
-        LOG_ERR("bar: border: must be a dictionary");
+    const char *s = yml_value_as_string(node);
+    if (s == NULL) {
+        LOG_ERR("%s: value must be a string", err_prefix(chain, node));
         return false;
     }
 
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
+    unsigned int r, g, b, a;
+    int v = sscanf(s, "%02x%02x%02x%02x", &r, &g, &b, &a);
 
-        if (strcmp(key, "width") == 0) {
-            if (!verify_int(chain_push(chain, key), it.value))
-                return false;
-        } else if (strcmp(key, "color") == 0) {
-            if (!verify_color(chain_push(chain, key), it.value))
-                return false;
-        } else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
+    if (strlen(s) != 8 || v != 4) {
+        LOG_ERR("%s: value must be a color ('rrggbbaa', e.g ff00ffff)",
+                err_prefix(chain, node));
+        return false;
     }
 
     return true;
+}
+
+
+static bool
+verify_font(keychain_t *chain, const struct yml_node *node)
+{
+    static const struct attr_info attrs[] = {
+        {"family", true, &verify_string},
+    };
+
+    return verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
+}
+
+static bool
+verify_bar_border(keychain_t *chain, const struct yml_node *node)
+{
+    static const struct attr_info attrs[] = {
+        {"width", true, &verify_int},
+        {"color", true, &verify_color},
+    };
+
+    return verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
 }
 
 static bool
@@ -383,6 +338,12 @@ verify_module_list(keychain_t *chain, const struct yml_node *node)
     return true;
 }
 
+static bool
+verify_bar_location(keychain_t *chain, const struct yml_node *node)
+{
+    return verify_enum(chain, node, (const char *[]){"top", "bottom"}, 2);
+}
+
 bool
 config_verify_bar(const struct yml_node *bar)
 {
@@ -394,76 +355,24 @@ config_verify_bar(const struct yml_node *bar)
     keychain_t chain = tll_init();
     chain_push(&chain, "bar");
 
-    bool ret = false;
+    static const struct attr_info attrs[] = {
+        {"height", true, &verify_int},
+        {"spacing", false, &verify_int},
+        {"left_spacing", false, &verify_int},
+        {"right_spacing", false, &verify_int},
+        {"margin", false, &verify_int},
+        {"left_margin", false, &verify_int},
+        {"right_margin", false, &verify_int},
+        {"location", true, &verify_bar_location},
+        {"background", true, &verify_color},
+        {"border", false, &verify_bar_border},
+        {"font", false, &verify_font},
+        {"left", false, &verify_module_list},
+        {"center", false, &verify_module_list},
+        {"right", false, &verify_module_list},
+    };
 
-    for (struct yml_dict_iter it = yml_dict_iter(bar);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        if (!yml_is_scalar(it.key)) {
-            LOG_ERR("bar: key is not a scalar");
-            goto err;
-        }
-
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("bar: key must be a string");
-            goto err;
-        }
-
-        if (strcmp(key, "height") == 0 ||
-            strcmp(key, "spacing") == 0 ||
-            strcmp(key, "left_spacing") == 0 ||
-            strcmp(key, "right_spacing") == 0 ||
-            strcmp(key, "margin") == 0 ||
-            strcmp(key, "left_margin") == 0 ||
-            strcmp(key, "right_margin") == 0)
-        {
-            if (!verify_int(chain_push(&chain, key), it.value))
-                goto err;
-        }
-
-        else if (strcmp(key, "location") == 0) {
-            if (!verify_enum(chain_push(&chain, key), it.value,
-                             (const char *[]){"top", "bottom"}, 2))
-                goto err;
-        }
-
-        else if (strcmp(key, "background") == 0) {
-            if (!verify_color(chain_push(&chain, key), it.value))
-                goto err;
-        }
-
-        else if (strcmp(key, "border") == 0) {
-            if (!verify_border(chain_push(&chain, key), it.value))
-                goto err;
-        }
-
-        else if (strcmp(key, "font") == 0) {
-            if (!verify_font(chain_push(&chain, key), it.value))
-                goto err;
-        }
-
-        else if (strcmp(key, "left") == 0 ||
-                 strcmp(key, "center") == 0 ||
-                 strcmp(key, "right") == 0)
-        {
-            if (!verify_module_list(chain_push(&chain, key), it.value))
-                goto err;
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(&chain, bar), key);
-            goto err;
-        }
-
-        LOG_DBG("%s: verified", key);
-        chain_pop(&chain);
-    }
-
-    ret = true;
-
-err:
+    bool ret = verify_dict(&chain, bar, attrs, sizeof(attrs) / sizeof(attrs[0]));
     tll_free(chain);
     return ret;
 }
