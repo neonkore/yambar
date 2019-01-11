@@ -632,16 +632,20 @@ config_verify_bar(const struct yml_node *bar)
 
     static const struct attr_info attrs[] = {
         {"height", true, &verify_int},
+        {"location", true, &verify_bar_location},
+        {"background", true, &verify_color},
+
         {"spacing", false, &verify_int},
         {"left_spacing", false, &verify_int},
         {"right_spacing", false, &verify_int},
+
         {"margin", false, &verify_int},
         {"left_margin", false, &verify_int},
         {"right_margin", false, &verify_int},
-        {"location", true, &verify_bar_location},
-        {"background", true, &verify_color},
+
         {"border", false, &verify_bar_border},
         {"font", false, &verify_font},
+
         {"left", false, &verify_module_list},
         {"center", false, &verify_module_list},
         {"right", false, &verify_module_list},

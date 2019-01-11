@@ -597,60 +597,49 @@ conf_to_bar(const struct yml_node *bar)
 
     struct bar_config conf = {0};
 
-    /* Create a default font */
-    struct font *font = font_new("sans");
+    /*
+     * Required attributes
+     */
 
     const struct yml_node *height = yml_get_value(bar, "height");
+    conf.height = yml_value_as_int(height);
+
     const struct yml_node *location = yml_get_value(bar, "location");
+    conf.location = strcmp(yml_value_as_string(location), "top") == 0
+        ? BAR_TOP : BAR_BOTTOM;
+
     const struct yml_node *background = yml_get_value(bar, "background");
+    conf.background = color_from_hexstr(yml_value_as_string(background));
+
+    /*
+     * Optional attributes
+     */
+
     const struct yml_node *spacing = yml_get_value(bar, "spacing");
-    const struct yml_node *left_spacing = yml_get_value(bar, "left_spacing");
-    const struct yml_node *right_spacing = yml_get_value(bar, "right_spacing");
-    const struct yml_node *margin = yml_get_value(bar, "margin");
-    const struct yml_node *left_margin = yml_get_value(bar, "left_margin");
-    const struct yml_node *right_margin = yml_get_value(bar, "right_margin");
-    const struct yml_node *border = yml_get_value(bar, "border");
-    const struct yml_node *font_node = yml_get_value(bar, "font");
-    const struct yml_node *left = yml_get_value(bar, "left");
-    const struct yml_node *center = yml_get_value(bar, "center");
-    const struct yml_node *right = yml_get_value(bar, "right");
-
-    if (height != NULL)
-        conf.height = yml_value_as_int(height);
-
-    if (location != NULL) {
-        const char *loc = yml_value_as_string(location);
-        assert(strcasecmp(loc, "top") == 0 || strcasecmp(loc, "bottom") == 0);
-
-        if (strcasecmp(loc, "top") == 0)
-            conf.location = BAR_TOP;
-        else if (strcasecmp(loc, "bottom") == 0)
-            conf.location = BAR_BOTTOM;
-        else
-            assert(false);
-    }
-
-    if (background != NULL)
-        conf.background = color_from_hexstr(yml_value_as_string(background));
-
     if (spacing != NULL)
         conf.left_spacing = conf.right_spacing = yml_value_as_int(spacing);
 
+    const struct yml_node *left_spacing = yml_get_value(bar, "left_spacing");
     if (left_spacing != NULL)
         conf.left_spacing = yml_value_as_int(left_spacing);
 
+    const struct yml_node *right_spacing = yml_get_value(bar, "right_spacing");
     if (right_spacing != NULL)
         conf.right_spacing = yml_value_as_int(right_spacing);
 
+    const struct yml_node *margin = yml_get_value(bar, "margin");
     if (margin != NULL)
         conf.left_margin = conf.right_margin = yml_value_as_int(margin);
 
+    const struct yml_node *left_margin = yml_get_value(bar, "left_margin");
     if (left_margin != NULL)
         conf.left_margin = yml_value_as_int(left_margin);
 
+    const struct yml_node *right_margin = yml_get_value(bar, "right_margin");
     if (right_margin != NULL)
         conf.right_margin = yml_value_as_int(right_margin);
 
+    const struct yml_node *border = yml_get_value(bar, "border");
     if (border != NULL) {
         assert(yml_is_dict(border));
 
@@ -664,10 +653,18 @@ conf_to_bar(const struct yml_node *bar)
             conf.border.color = color_from_hexstr(yml_value_as_string(color));
     }
 
+    /* Create a default font */
+    struct font *font = font_new("sans");
+
+    const struct yml_node *font_node = yml_get_value(bar, "font");
     if (font_node != NULL) {
         font_destroy(font);
         font = font_from_config(font_node);
     }
+
+    const struct yml_node *left = yml_get_value(bar, "left");
+    const struct yml_node *center = yml_get_value(bar, "center");
+    const struct yml_node *right = yml_get_value(bar, "right");
 
     for (size_t i = 0; i < 3; i++) {
         const struct yml_node *node = i == 0 ? left : i == 1 ? center : right;
