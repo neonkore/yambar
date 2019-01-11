@@ -10,6 +10,12 @@
 
 typedef tll(const char *) keychain_t;
 
+struct attr_info {
+    const char *name;
+    bool required;
+    bool (*verify)(keychain_t *chain, const struct yml_node *node);
+};
+
 static keychain_t *
 chain_push(keychain_t *chain, const char *key)
 {
@@ -136,6 +142,62 @@ verify_font(keychain_t *chain, const struct yml_node *node)
 }
 
 static bool
+verify_dict(keychain_t *chain, const struct yml_node *node,
+            const struct attr_info info[], size_t count)
+{
+    if (!yml_is_dict(node)) {
+        LOG_ERR("%s: must be a dictionary", err_prefix(chain, node));
+        return false;
+    }
+
+    bool exists[count];
+    memset(exists, 0, sizeof(exists));
+
+    for (struct yml_dict_iter it = yml_dict_iter(node);
+         it.key != NULL;
+         yml_dict_next(&it))
+    {
+        const char *key = yml_value_as_string(it.key);
+        if (key == NULL) {
+            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
+            return false;
+        }
+
+        const struct attr_info *attr = NULL;
+        for (size_t i = 0; i < count; i++) {
+            if (strcmp(info[i].name, key) == 0) {
+                attr = &info[i];
+                exists[i] = true;
+                break;
+            }
+        }
+
+        if (attr == NULL) {
+            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
+            return false;
+        }
+
+        if (attr->verify == NULL)
+            continue;
+
+        if (!attr->verify(chain_push(chain, key), it.value))
+            return false;
+        chain_pop(chain);
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        if (!info[i].required || exists[i])
+            continue;
+
+        LOG_ERR("%s: missing required key: %s",
+                err_prefix(chain, node), info[i].name);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 verify_border(keychain_t *chain, const struct yml_node *node)
 {
     if (!yml_is_dict(node)) {
@@ -177,440 +239,6 @@ verify_particle(keychain_t *chain, const struct yml_node *node)
 }
 
 static bool
-verify_module_alsa(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "card") == 0 ||
-            strcmp(key, "mixer") == 0)
-        {
-            if (!verify_string(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_backlight(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "name") == 0) {
-            if (!verify_string(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_battery(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "name") == 0) {
-            if (!verify_string(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "poll_interval") == 0) {
-            if (!verify_int(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_clock(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "date-format") == 0 ||
-            strcmp(key, "time-format") == 0)
-        {
-            if (!verify_string(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_i3(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "spacing") == 0 ||
-            strcmp(key, "left_spacing") == 0 ||
-            strcmp(key, "right_spacing") == 0)
-        {
-            if (!verify_int(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_label(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_mpd(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "host") == 0) {
-            if (!verify_string(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "port") == 0) {
-            if (!verify_int(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_network(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "name") == 0) {
-            if (!verify_string(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_removables(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "spacing") == 0  ||
-            strcmp(key, "left_spacing") == 0 ||
-            strcmp(key, "right_spacing") == 0)
-        {
-            if (!verify_int(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_xkb(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_module_xwindow(keychain_t *chain, const struct yml_node *node)
-{
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
-            return false;
-        }
-
-        if (strcmp(key, "content") == 0) {
-            if (!verify_particle(chain_push(chain, key), it.value))
-                return false;
-        }
-
-        else if (strcmp(key, "anchors") == 0) {
-            /* Skip */
-            chain_push(chain, key);
-        }
-
-        else {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
-            return false;
-        }
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
 verify_module(keychain_t *chain, const struct yml_node *node)
 {
     if (!yml_is_dict(node) || yml_dict_length(node) != 1) {
@@ -629,30 +257,107 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
+    static const struct attr_info alsa[] = {
+        {"card", true, &verify_string},
+        {"mixer", true, &verify_string},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info backlight[] = {
+        {"name", true, &verify_string},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info battery[] = {
+        {"name", true, &verify_string},
+        {"poll_interval", false, &verify_int},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info clock[] = {
+        {"date-format", false, &verify_string},
+        {"time-format", false, &verify_string},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info label[] = {
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info mpd[] = {
+        {"host", true, &verify_string},
+        {"port", false, &verify_int},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info i3[] = {
+        {"spacing", false, &verify_int},
+        {"left_spacing", false, &verify_int},
+        {"right_spacing", false, &verify_int},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info network[] = {
+        {"name", true, &verify_string},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info removables[] = {
+        {"spacing", false, &verify_int},
+        {"left_spacing", false, &verify_int},
+        {"right_spacing", false, &verify_int},
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info xkb[] = {
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
+    static const struct attr_info xwindow[] = {
+        {"content", true, &verify_particle},
+        {"anchors", false, NULL},
+    };
+
     static const struct {
         const char *name;
-        bool (*verify_fun)(keychain_t *chain, const struct yml_node *node);
+        const struct attr_info *attrs;
+        size_t count;
     } modules[] = {
-        {"alsa", &verify_module_alsa},
-        {"backlight", &verify_module_backlight},
-        {"battery", &verify_module_battery},
-        {"clock", &verify_module_clock},
-        {"i3", &verify_module_i3},
-        {"label", &verify_module_label},
-        {"mpd", &verify_module_mpd},
-        {"network", &verify_module_network},
-        {"removables", &verify_module_removables},
-        {"xkb", &verify_module_xkb},
-        {"xwindow", &verify_module_xwindow},
+        {"alsa", alsa, sizeof(alsa) / sizeof(alsa[0])},
+        {"backlight", backlight, sizeof(backlight) / sizeof(backlight[0])},
+        {"battery", battery, sizeof(battery) / sizeof(battery[0])},
+        {"clock", clock, sizeof(clock) / sizeof(clock[0])},
+        {"i3", i3, sizeof(i3) / sizeof(i3[0])},
+        {"label", label, sizeof(label) / sizeof(label[0])},
+        {"mpd", mpd, sizeof(mpd) / sizeof(mpd[0])},
+        {"network", network, sizeof(network) / sizeof(network[0])},
+        {"removables", removables, sizeof(removables) / sizeof(removables[0])},
+        {"xkb", xkb, sizeof(xkb) / sizeof(xkb[0])},
+        {"xwindow", xwindow, sizeof(xwindow) / sizeof(xwindow[0])},
     };
 
     for (size_t i = 0; i < sizeof(modules) / sizeof(modules[0]); i++) {
-        if (strcmp(mod_name, modules[i].name) == 0) {
-            if (!modules[i].verify_fun(chain_push(chain, mod_name), values))
-                return false;
-            chain_pop(chain);
-            return true;
+        if (strcmp(modules[i].name, mod_name) != 0)
+            continue;
+
+        if (!verify_dict(chain_push(chain, mod_name), values,
+                         modules[i].attrs, modules[i].count))
+        {
+            return false;
         }
+
+        chain_pop(chain);
+        return true;
     }
 
     LOG_ERR("%s: invalid module name: %s", err_prefix(chain, node), mod_name);
