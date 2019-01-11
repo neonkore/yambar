@@ -39,5 +39,8 @@ const char *yml_value_as_string(const struct yml_node *value);
 long yml_value_as_int(const struct yml_node *value);
 bool yml_value_as_bool(const struct yml_node *value);
 
+size_t yml_source_line(const struct yml_node *node);
+size_t yml_source_column(const struct yml_node *node);
+
 /* For debugging, prints on stdout */
 void print_node(const struct yml_node *n);

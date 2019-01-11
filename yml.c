@@ -55,6 +55,9 @@ struct yml_node {
         } list;
     };
 
+    size_t line;
+    size_t column;
+
     struct yml_node *parent;
 };
 
@@ -63,6 +66,8 @@ clone_node(struct yml_node *parent, const struct yml_node *node)
 {
     struct yml_node *clone = calloc(1, sizeof(*clone));
     clone->type = node->type;
+    clone->line = node->line;
+    clone->column = node->column;
     clone->parent = parent;
 
     switch (node->type) {
@@ -121,8 +126,11 @@ dict_has_key(const struct yml_node *node, const struct yml_node *key)
 }
 
 static enum yml_error
-add_node(struct yml_node *parent, struct yml_node *new_node)
+add_node(struct yml_node *parent, struct yml_node *new_node, yaml_mark_t loc)
 {
+    new_node->line = loc.line + 1;  /* yaml uses 0-based line numbers */
+    new_node->column = loc.column;
+
     switch (parent->type) {
     case ROOT:
         assert(parent->root.root == NULL);
@@ -387,7 +395,7 @@ yml_load(FILE *yml, char **error)
                 struct yml_node *clone = clone_node(NULL, map->node);
                 assert(clone != NULL);
 
-                enum yml_error err = add_node(n, clone);
+                enum yml_error err = add_node(n, clone, event.start_mark);
                 if (err != YML_ERR_NONE) {
                     error_str = format_error(err, n, clone);
                     yml_destroy(clone);
@@ -404,7 +412,7 @@ yml_load(FILE *yml, char **error)
             new_scalar->scalar.value = strndup(
                 (const char*)event.data.scalar.value, event.data.scalar.length);
 
-            enum yml_error err = add_node(n, new_scalar);
+            enum yml_error err = add_node(n, new_scalar, event.start_mark);
             if (err != YML_ERR_NONE) {
                 error_str = format_error(err, n, new_scalar);
                 yml_destroy(new_scalar);
@@ -424,7 +432,7 @@ yml_load(FILE *yml, char **error)
             struct yml_node *new_list = calloc(1, sizeof(*new_list));
             new_list->type = LIST;
 
-            enum yml_error err = add_node(n, new_list);
+            enum yml_error err = add_node(n, new_list, event.start_mark);
             if (err != YML_ERR_NONE) {
                 error_str = format_error(err, n, new_list);
                 yml_destroy(new_list);
@@ -452,7 +460,7 @@ yml_load(FILE *yml, char **error)
             struct yml_node *new_dict = calloc(1, sizeof(*new_dict));
             new_dict->type = DICT;
 
-            enum yml_error err = add_node(n, new_dict);
+            enum yml_error err = add_node(n, new_dict, event.start_mark);
             if (err != YML_ERR_NONE) {
                 error_str = format_error(err, n, new_dict);
                 yml_destroy(new_dict);
@@ -753,6 +761,18 @@ yml_value_as_bool(const struct yml_node *value)
     bool ret = false;
     _as_bool(value, &ret);
     return ret;
+}
+
+size_t
+yml_source_line(const struct yml_node *node)
+{
+    return node->line;
+}
+
+size_t
+yml_source_column(const struct yml_node *node)
+{
+    return node->column;
 }
 
 static void
