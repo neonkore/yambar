@@ -176,20 +176,284 @@ verify_font(keychain_t *chain, const struct yml_node *node)
     return verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
 }
 
+static bool verify_decoration(keychain_t *chain, const struct yml_node *node);
+
 static bool
-verify_bar_border(keychain_t *chain, const struct yml_node *node)
+verify_decoration_stack(keychain_t *chain, const struct yml_node *node)
 {
-    static const struct attr_info attrs[] = {
-        {"width", true, &verify_int},
+    if (!yml_is_list(node)) {
+        LOG_ERR("%s: must be a list of decorations", err_prefix(chain, node));
+        return false;
+    }
+
+    for (struct yml_list_iter it = yml_list_iter(node);
+         it.node != NULL;
+         yml_list_next(&it))
+    {
+        if (!verify_decoration(chain, it.node))
+            return false;
+    }
+
+    return true;
+}
+
+static bool
+verify_decoration(keychain_t *chain, const struct yml_node *node)
+{
+    assert(yml_is_dict(node));
+
+    if (yml_dict_length(node) != 1) {
+        LOG_ERR("%s: decoration must be a dictionary with a single key; "
+                "the name of the particle", err_prefix(chain, node));
+        return false;
+    }
+
+    struct yml_dict_iter p = yml_dict_iter(node);
+    const struct yml_node *deco = p.key;
+    const struct yml_node *values = p.value;
+
+    const char *deco_name = yml_value_as_string(deco);
+    if (deco_name == NULL) {
+        LOG_ERR("%s: decoration name must be a string", err_prefix(chain, node));
+        return false;
+    }
+
+    if (strcmp(deco_name, "stack") == 0)
+        return verify_decoration_stack(chain_push(chain, deco_name), values);
+
+    static const struct attr_info background[] = {
         {"color", true, &verify_color},
     };
 
-    return verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
+    static const struct attr_info underline[] = {
+        {"size", true, &verify_int},
+        {"color", true, &verify_color},
+    };
+
+    static const struct {
+        const char *name;
+        const struct attr_info *attrs;
+        size_t count;
+    } decos[] = {
+        {"background", background, sizeof(background) / sizeof(background[0])},
+        {"underline", underline, sizeof(underline) / sizeof(underline[0])},
+    };
+
+    for (size_t i = 0; i < sizeof(decos) / sizeof(decos[0]); i++) {
+        if (strcmp(decos[i].name, deco_name) != 0)
+            continue;
+
+        if (!verify_dict(chain_push(chain, deco_name), values,
+                         decos[i].attrs, decos[i].count))
+        {
+            return false;
+        }
+
+        chain_pop(chain);
+        return true;
+    }
+
+    LOG_ERR(
+        "%s: invalid decoration name: %s", err_prefix(chain, node), deco_name);
+    return false;
+}
+
+static bool verify_particle(keychain_t *chain, const struct yml_node *node);
+
+static bool
+verify_list_items(keychain_t *chain, const struct yml_node *node)
+{
+    assert(yml_is_list(node));
+
+    for (struct yml_list_iter it = yml_list_iter(node);
+         it.node != NULL;
+         yml_list_next(&it))
+    {
+        if (!verify_particle(chain, it.node))
+            return false;
+    }
+
+    return true;
+}
+
+static bool
+verify_map_values(keychain_t *chain, const struct yml_node *node)
+{
+    if (!yml_is_dict(node)) {
+        LOG_ERR(
+            "%s: must be a dictionary of workspace-name: particle mappings",
+            err_prefix(chain, node));
+        return false;
+    }
+
+    for (struct yml_dict_iter it = yml_dict_iter(node);
+         it.key != NULL;
+         yml_dict_next(&it))
+    {
+        const char *key = yml_value_as_string(it.key);
+        if (key == NULL) {
+            LOG_ERR("%s: key must be a string (a i3 workspace name)",
+                    err_prefix(chain, node));
+            return false;
+        }
+
+        if (!verify_particle(chain_push(chain, key), it.value))
+            return false;
+
+        chain_pop(chain);
+    }
+
+    return true;
+}
+
+static bool
+verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
+{
+    assert(yml_is_dict(node));
+
+    if (yml_dict_length(node) != 1) {
+        LOG_ERR("%s: particle must be a dictionary with a single key; "
+                "the name of the particle", err_prefix(chain, node));
+        return false;
+    }
+
+    struct yml_dict_iter p = yml_dict_iter(node);
+    const struct yml_node *particle = p.key;
+    const struct yml_node *values = p.value;
+
+    const char *particle_name = yml_value_as_string(particle);
+    if (particle_name == NULL) {
+        LOG_ERR("%s: particle name must be a string", err_prefix(chain, node));
+        return false;
+    }
+
+#define COMMON_ATTRS                          \
+    {"margin", false, &verify_int},           \
+    {"left_margin", false, &verify_int},      \
+    {"right_margin", false, &verify_int},     \
+    {"on_click", false, &verify_string},
+
+    static const struct attr_info empty[] = {
+        COMMON_ATTRS
+    };
+
+    static const struct attr_info list[] = {
+        {"items", true, &verify_list_items},
+        {"spacing", false, &verify_int},
+        {"left_spacing", false, &verify_int},
+        {"right_spacing", false, &verify_int},
+        COMMON_ATTRS
+    };
+
+    static const struct attr_info map[] = {
+        {"tag", true, &verify_string},
+        {"values", true, &verify_map_values},
+        {"default", false, &verify_particle},
+        COMMON_ATTRS
+    };
+
+    static const struct attr_info progress_bar[] = {
+        {"tag", true, &verify_string},
+        {"length", true, &verify_int},
+        /* TODO: make these optional? Default to empty */
+        {"start", true, &verify_particle},
+        {"end", true, &verify_particle},
+        {"fill", true, &verify_particle},
+        {"empty", true, &verify_particle},
+        {"indicator", true, &verify_particle},
+        COMMON_ATTRS
+    };
+
+    static const struct attr_info ramp[] = {
+        {"tag", true, &verify_string},
+        {"items", true, &verify_list_items},
+        COMMON_ATTRS
+    };
+
+    static const struct attr_info string[] = {
+        {"text", true, &verify_string},
+        {"max", false, &verify_int},
+        {"font", false, &verify_font},
+        {"foreground", false, &verify_color},
+        {"deco", false, &verify_decoration},
+        COMMON_ATTRS
+    };
+
+#undef COMMON_ATTRS
+
+    static const struct {
+        const char *name;
+        const struct attr_info *attrs;
+        size_t count;
+    } particles[] = {
+        {"empty", empty, sizeof(empty) / sizeof(empty[0])},
+        {"list", list, sizeof(list) / sizeof(list[0])},
+        {"map", map, sizeof(map) / sizeof(map[0])},
+        {"progress_bar", progress_bar, sizeof(progress_bar) / sizeof(progress_bar[0])},
+        {"ramp", ramp, sizeof(ramp) / sizeof(ramp[0])},
+        {"string", string, sizeof(string) / sizeof(string[0])},
+    };
+
+    for (size_t i = 0; i < sizeof(particles) / sizeof(particles[0]); i++) {
+        if (strcmp(particles[i].name, particle_name) != 0)
+            continue;
+
+        if (!verify_dict(chain_push(chain, particle_name), values,
+                         particles[i].attrs, particles[i].count))
+        {
+            return false;
+        }
+
+        chain_pop(chain);
+        return true;
+    }
+
+    LOG_ERR(
+        "%s: invalid particle name: %s", err_prefix(chain, node), particle_name);
+    return false;
 }
 
 static bool
 verify_particle(keychain_t *chain, const struct yml_node *node)
 {
+    if (yml_is_dict(node))
+        return verify_particle_dictionary(chain, node);
+    else if (yml_is_list(node))
+        return verify_list_items(chain, node);
+    else {
+        LOG_ERR("%s: particle must be either a dictionary or a list",
+                err_prefix(chain, node));
+        return false;
+    }
+}
+
+static bool
+verify_i3_content(keychain_t *chain, const struct yml_node *node)
+{
+    if (!yml_is_dict(node)) {
+        LOG_ERR(
+            "%s: must be a dictionary of workspace-name: particle mappings",
+            err_prefix(chain, node));
+        return false;
+    }
+
+    for (struct yml_dict_iter it = yml_dict_iter(node);
+         it.key != NULL;
+         yml_dict_next(&it))
+    {
+        const char *key = yml_value_as_string(it.key);
+        if (key == NULL) {
+            LOG_ERR("%s: key must be a string (a i3 workspace name)",
+                    err_prefix(chain, node));
+            return false;
+        }
+
+        if (!verify_particle(chain_push(chain, key), it.value))
+            return false;
+
+        chain_pop(chain);
+    }
+
     return true;
 }
 
@@ -255,7 +519,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"spacing", false, &verify_int},
         {"left_spacing", false, &verify_int},
         {"right_spacing", false, &verify_int},
-        {"content", true, &verify_particle},
+        {"content", true, &verify_i3_content},
         {"anchors", false, NULL},
     };
 
@@ -336,6 +600,17 @@ verify_module_list(keychain_t *chain, const struct yml_node *node)
     }
 
     return true;
+}
+
+static bool
+verify_bar_border(keychain_t *chain, const struct yml_node *node)
+{
+    static const struct attr_info attrs[] = {
+        {"width", true, &verify_int},
+        {"color", true, &verify_color},
+    };
+
+    return verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
 }
 
 static bool
