@@ -109,7 +109,7 @@ verify_dict(keychain_t *chain, const struct yml_node *node,
     {
         const char *key = yml_value_as_string(it.key);
         if (key == NULL) {
-            LOG_ERR("%s: key must be a string", err_prefix(chain, node));
+            LOG_ERR("%s: key must be a string", err_prefix(chain, it.key));
             return false;
         }
 
@@ -123,7 +123,7 @@ verify_dict(keychain_t *chain, const struct yml_node *node,
         }
 
         if (attr == NULL) {
-            LOG_ERR("%s: invalid key: %s", err_prefix(chain, node), key);
+            LOG_ERR("%s: invalid key: %s", err_prefix(chain, it.key), key);
             return false;
         }
 
@@ -139,8 +139,7 @@ verify_dict(keychain_t *chain, const struct yml_node *node,
         if (!info[i].required || exists[i])
             continue;
 
-        LOG_ERR("%s: missing required key: %s",
-                err_prefix(chain, node), info[i].name);
+        LOG_ERR("%s: missing required key: %s", err_prefix(chain, node), info[i].name);
         return false;
     }
 
@@ -217,12 +216,15 @@ verify_decoration(keychain_t *chain, const struct yml_node *node)
 
     const char *deco_name = yml_value_as_string(deco);
     if (deco_name == NULL) {
-        LOG_ERR("%s: decoration name must be a string", err_prefix(chain, node));
+        LOG_ERR("%s: decoration name must be a string", err_prefix(chain, deco));
         return false;
     }
 
-    if (strcmp(deco_name, "stack") == 0)
-        return verify_decoration_stack(chain_push(chain, deco_name), values);
+    if (strcmp(deco_name, "stack") == 0) {
+        bool ret = verify_decoration_stack(chain_push(chain, deco_name), values);
+        chain_pop(chain);
+        return ret;
+    }
 
     static const struct attr_info background[] = {
         {"color", true, &verify_color},
@@ -246,8 +248,8 @@ verify_decoration(keychain_t *chain, const struct yml_node *node)
         if (strcmp(decos[i].name, deco_name) != 0)
             continue;
 
-        if (!verify_dict(chain_push(chain, deco_name), values,
-                         decos[i].attrs, decos[i].count))
+        if (!verify_dict(chain_push(chain, deco_name),
+                         values, decos[i].attrs, decos[i].count))
         {
             return false;
         }
@@ -257,7 +259,7 @@ verify_decoration(keychain_t *chain, const struct yml_node *node)
     }
 
     LOG_ERR(
-        "%s: invalid decoration name: %s", err_prefix(chain, node), deco_name);
+        "%s: invalid decoration name: %s", err_prefix(chain, deco), deco_name);
     return false;
 }
 
@@ -296,7 +298,7 @@ verify_map_values(keychain_t *chain, const struct yml_node *node)
         const char *key = yml_value_as_string(it.key);
         if (key == NULL) {
             LOG_ERR("%s: key must be a string (a i3 workspace name)",
-                    err_prefix(chain, node));
+                    err_prefix(chain, it.key));
             return false;
         }
 
@@ -326,7 +328,7 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 
     const char *particle_name = yml_value_as_string(particle);
     if (particle_name == NULL) {
-        LOG_ERR("%s: particle name must be a string", err_prefix(chain, node));
+        LOG_ERR("%s: particle name must be a string", err_prefix(chain, particle));
         return false;
     }
 
@@ -412,7 +414,7 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     }
 
     LOG_ERR(
-        "%s: invalid particle name: %s", err_prefix(chain, node), particle_name);
+        "%s: invalid particle name: %s", err_prefix(chain, particle), particle_name);
     return false;
 }
 
@@ -447,7 +449,7 @@ verify_i3_content(keychain_t *chain, const struct yml_node *node)
         const char *key = yml_value_as_string(it.key);
         if (key == NULL) {
             LOG_ERR("%s: key must be a string (a i3 workspace name)",
-                    err_prefix(chain, node));
+                    err_prefix(chain, it.key));
             return false;
         }
 
@@ -475,7 +477,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
 
     const char *mod_name = yml_value_as_string(module);
     if (mod_name == NULL) {
-        LOG_ERR("%s: module name must be a string", err_prefix(chain, node));
+        LOG_ERR("%s: module name must be a string", err_prefix(chain, module));
         return false;
     }
 
@@ -582,7 +584,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return true;
     }
 
-    LOG_ERR("%s: invalid module name: %s", err_prefix(chain, node), mod_name);
+    LOG_ERR("%s: invalid module name: %s", err_prefix(chain, module), mod_name);
     return false;
 }
 
