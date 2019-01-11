@@ -34,6 +34,9 @@ struct private {
     struct mpd_connection *conn;
 
     enum state state;
+    bool repeat;
+    bool random;
+    bool consume;
     char *album;
     char *artist;
     char *title;
@@ -146,6 +149,9 @@ content(struct module *mod)
     struct tag_set tags = {
         .tags = (struct tag *[]){
             tag_new_string(mod, "state", state_str),
+            tag_new_bool(mod, "repeat", m->repeat),
+            tag_new_bool(mod, "random", m->random),
+            tag_new_bool(mod, "consume", m->consume),
             tag_new_string(mod, "album", m->album),
             tag_new_string(mod, "artist", m->artist),
             tag_new_string(mod, "title", m->title),
@@ -155,7 +161,7 @@ content(struct module *mod)
             tag_new_int_realtime(
                 mod, "elapsed", elapsed, 0, m->duration, realtime),
         },
-        .count = 8,
+        .count = 11,
     };
 
     mtx_unlock(&mod->lock);
@@ -208,6 +214,9 @@ update_status(struct module *mod)
 
     mtx_lock(&mod->lock);
     m->state = mpd_status_get_state(status);
+    m->repeat = mpd_status_get_repeat(status);
+    m->random = mpd_status_get_random(status);
+    m->consume = mpd_status_get_consume(status);
     m->duration = mpd_status_get_total_time(status) * 1000;
     m->elapsed.value = mpd_status_get_elapsed_ms(status);
     m->elapsed.when = now;
@@ -451,6 +460,7 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     priv->label = label;
     priv->conn = NULL;
     priv->state = STATE_OFFLINE;
+    priv->repeat = priv->random = priv->consume = false;
     priv->album = NULL;
     priv->artist = NULL;
     priv->title = NULL;
