@@ -264,25 +264,31 @@ handle_workspace_event(struct private *m, const struct json_object *json)
     struct json_object *change = json_object_object_get(json, "change");
     const struct json_object *current = json_object_object_get(json, "current");
     const struct json_object *old = json_object_object_get(json, "old");
+    struct json_object *current_name = NULL;
 
     if (change == NULL || !json_object_is_type(change, json_type_string)) {
         LOG_ERR("'workspace' event did not contain a 'change' string value");
         return false;
     }
 
-    if (current == NULL || !json_object_is_type(current, json_type_object)) {
-        LOG_ERR("'workspace' event did not contain a 'current' object value");
-        return false;
-    }
-
-    struct json_object *current_name = json_object_object_get(current, "name");
-    if (current_name == NULL || !json_object_is_type(current_name, json_type_string)) {
-        LOG_ERR("'workspace' event's 'current' object did not "
-                "contain a 'name' string value");
-        return false;
-    }
-
     const char *change_str = json_object_get_string(change);
+    bool is_urgent = strcmp(change_str, "reload") == 0;
+
+    if (!is_urgent) {
+        if (current == NULL || !json_object_is_type(current, json_type_object)) {
+            LOG_ERR("'workspace' event did not contain a 'current' object value");
+            return false;
+        }
+
+        current_name = json_object_object_get(current, "name");
+        if (current_name == NULL ||
+            !json_object_is_type(current_name, json_type_string))
+        {
+            LOG_ERR("'workspace' event's 'current' object did not "
+                    "contain a 'name' string value");
+            return false;
+        }
+    }
 
     if (strcmp(change_str, "init") == 0) {
         assert(workspace_lookup(m, json_object_get_string(current_name)) == NULL);
@@ -345,7 +351,7 @@ handle_workspace_event(struct private *m, const struct json_object *json)
     else if (strcmp(change_str, "urgent") == 0)
         ;
     else if (strcmp(change_str, "reload") == 0)
-        ;
+        LOG_WARN("unimplemented: 'reload' event");
 
     return true;
 }
