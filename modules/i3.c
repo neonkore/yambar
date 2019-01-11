@@ -348,8 +348,19 @@ handle_workspace_event(struct private *m, const struct json_object *json)
             old_w->focused = false;
     }
 
-    else if (strcmp(change_str, "urgent") == 0)
-        ;
+    else if (strcmp(change_str, "urgent") == 0){
+        const struct json_object *urgent = json_object_object_get(current, "urgent");
+        if (urgent == NULL || !json_object_is_type(urgent, json_type_boolean)) {
+            LOG_ERR("'workspace' event's 'current' object did not "
+                    "contain a 'urgent' boolean value");
+            return false;
+        }
+
+        struct workspace *w = workspace_lookup(
+            m, json_object_get_string(current_name));
+        w->urgent = json_object_get_boolean(urgent);
+    }
+
     else if (strcmp(change_str, "reload") == 0)
         LOG_WARN("unimplemented: 'reload' event");
 
