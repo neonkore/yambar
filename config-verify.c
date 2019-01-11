@@ -35,6 +35,9 @@ err_prefix(const keychain_t *chain, const struct yml_node *node)
     static char msg[4096];
     int idx = 0;
 
+    idx += snprintf(&msg[idx], sizeof(msg) - idx, "%zu:%zu: ",
+                    yml_source_line(node), yml_source_column(node));
+
     tll_foreach(*chain, key)
         idx += snprintf(&msg[idx], sizeof(msg) - idx, "%s.", key->item);
 
