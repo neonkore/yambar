@@ -10,6 +10,7 @@
 #include "tllist.h"
 
 #include "particles/empty.h"
+#include "particles/list.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -245,8 +246,8 @@ verify_decoration(keychain_t *chain, const struct yml_node *node)
     return false;
 }
 
-static bool
-verify_list_items(keychain_t *chain, const struct yml_node *node)
+bool
+conf_verify_particle_list_items(keychain_t *chain, const struct yml_node *node)
 {
     assert(yml_is_list(node));
 
@@ -317,14 +318,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},
 
-    static const struct attr_info list[] = {
-        {"items", true, &verify_list_items},
-        {"spacing", false, &conf_verify_int},
-        {"left-spacing", false, &conf_verify_int},
-        {"right-spacing", false, &conf_verify_int},
-        COMMON_ATTRS
-    };
-
     static const struct attr_info map[] = {
         {"tag", true, &conf_verify_string},
         {"values", true, &verify_map_values},
@@ -346,7 +339,7 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 
     static const struct attr_info ramp[] = {
         {"tag", true, &conf_verify_string},
-        {"items", true, &verify_list_items},
+        {"items", true, &conf_verify_particle_list_items},
         COMMON_ATTRS
     };
 
@@ -366,6 +359,7 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         const struct particle_info *info;
     } particles_v2[] = {
         {"empty", &particle_empty},
+        {"list", &particle_list},
     };
 
     static const struct {
@@ -373,7 +367,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } particles[] = {
-        {"list", list, sizeof(list) / sizeof(list[0])},
         {"map", map, sizeof(map) / sizeof(map[0])},
         {"progress-bar", progress_bar, sizeof(progress_bar) / sizeof(progress_bar[0])},
         {"ramp", ramp, sizeof(ramp) / sizeof(ramp[0])},
@@ -420,7 +413,7 @@ conf_verify_particle(keychain_t *chain, const struct yml_node *node)
     if (yml_is_dict(node))
         return conf_verify_particle_dictionary(chain, node);
     else if (yml_is_list(node))
-        return verify_list_items(chain, node);
+        return conf_verify_particle_list_items(chain, node);
     else {
         LOG_ERR("%s: particle must be either a dictionary or a list",
                 conf_err_prefix(chain, node));

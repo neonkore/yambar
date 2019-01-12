@@ -160,38 +160,6 @@ particle_string_from_config(const struct yml_node *node,
         fg_color, left_margin, right_margin, on_click_template);
 }
 
-static struct particle *
-particle_list_from_config(const struct yml_node *node,
-                          const struct font *parent_font,
-                          int left_margin, int right_margin,
-                          const char *on_click_template)
-{
-    const struct yml_node *items = yml_get_value(node, "items");
-
-    const struct yml_node *spacing = yml_get_value(node, "spacing");
-    const struct yml_node *_left_spacing = yml_get_value(node, "left-spacing");
-    const struct yml_node *_right_spacing = yml_get_value(node, "right-spacing");
-
-    int left_spacing = spacing != NULL ? yml_value_as_int(spacing) :
-        _left_spacing != NULL ? yml_value_as_int(_left_spacing) : 0;
-    int right_spacing = spacing != NULL ? yml_value_as_int(spacing) :
-        _right_spacing != NULL ? yml_value_as_int(_right_spacing) : 2;
-
-    size_t count = yml_list_length(items);
-    struct particle *parts[count];
-
-    size_t idx = 0;
-    for (struct yml_list_iter it = yml_list_iter(items);
-         it.node != NULL;
-         yml_list_next(&it), idx++)
-    {
-        parts[idx] = conf_to_particle(it.node, parent_font);
-    }
-
-    return particle_list_new(
-        parts, count, left_spacing, right_spacing, left_margin, right_margin,
-        on_click_template);
-}
 
 static struct particle *
 particle_map_from_config(const struct yml_node *node,
@@ -317,12 +285,12 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     if (strcmp(type, "empty") == 0)
         ret = particle_empty.from_conf(
             pair.value, parent_font, left, right, on_click_template);
+    else if (strcmp(type, "list") == 0)
+        ret = particle_list.from_conf(
+            pair.value, parent_font, left, right, on_click_template);
 
     else if (strcmp(type, "string") == 0)
         ret = particle_string_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "list") == 0)
-        ret = particle_list_from_config(
             pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "map") == 0)
         ret = particle_map_from_config(
