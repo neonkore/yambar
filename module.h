@@ -3,11 +3,21 @@
 #include <threads.h>
 #include <cairo.h>
 
+#include "config-verify.h"
 #include "particle.h"
 #include "tag.h"
+#include "yml.h"
 
 struct bar;
 struct module;
+
+struct module_info {
+    struct module *(*from_conf)(const struct yml_node *node,
+                               const struct font *parent_font);
+
+    size_t attr_count; /* TODO: remove, NULL-terminate attr list instead */
+    const struct attr_info attrs[];
+};
 
 struct module_run_context {
     struct module *module;
