@@ -5,6 +5,10 @@
 #include <string.h>
 #include <assert.h>
 
+
+#include <dlfcn.h>
+
+
 #include "color.h"
 
 #include "decoration.h"
@@ -21,18 +25,6 @@
 #include "particles/string.h"
 
 #include "module.h"
-#include "modules/alsa/alsa.h"
-#include "modules/backlight/backlight.h"
-#include "modules/battery/battery.h"
-#include "modules/clock/clock.h"
-#include "modules/i3/i3.h"
-#include "modules/label/label.h"
-#include "modules/mpd/mpd.h"
-#include "modules/network/network.h"
-#include "modules/removables/removables.h"
-#include "modules/xkb/xkb.h"
-#include "modules/xwindow/xwindow.h"
-
 #include "config-verify.h"
 
 static uint8_t
@@ -452,30 +444,19 @@ conf_to_bar(const struct yml_node *bar)
                 struct yml_dict_iter m = yml_dict_iter(it.node);
                 const char *mod_name = yml_value_as_string(m.key);
 
-                if (strcmp(mod_name, "alsa") == 0)
-                    mods[idx] = module_alsa.from_conf(m.value, font);
-                else if (strcmp(mod_name, "backlight") == 0)
-                    mods[idx] = module_backlight.from_conf(m.value, font);
-                else if (strcmp(mod_name, "battery") == 0)
-                    mods[idx] = module_battery.from_conf(m.value, font);
-                else if (strcmp(mod_name, "clock") == 0)
-                    mods[idx] = module_clock.from_conf(m.value, font);
-                else if (strcmp(mod_name, "i3") == 0)
-                    mods[idx] = module_i3.from_conf(m.value, font);
-                else if (strcmp(mod_name, "label") == 0)
-                    mods[idx] = module_label.from_conf(m.value, font);
-                else if (strcmp(mod_name, "mpd") == 0)
-                    mods[idx] = module_mpd.from_conf(m.value, font);
-                else if (strcmp(mod_name, "network") == 0)
-                    mods[idx] = module_network.from_conf(m.value, font);
-                else if (strcmp(mod_name, "removables") == 0)
-                    mods[idx] = module_removables.from_conf(m.value, font);
-                else if (strcmp(mod_name, "xkb") == 0)
-                    mods[idx] = module_xkb.from_conf(m.value, font);
-                else if (strcmp(mod_name, "xwindow") == 0)
-                    mods[idx] = module_xwindow.from_conf(m.value, font);
-                else
-                    assert(false);
+                char path[1024];
+                snprintf(path, sizeof(path), "./modules/lib%s.so", mod_name);
+
+                void *lib = dlopen(path, RTLD_LOCAL | RTLD_NOW | RTLD_NOLOAD);
+                assert(lib != NULL);
+
+                char sym[1024];
+                snprintf(sym, sizeof(sym), "module_%s", mod_name);
+
+                const struct module_info *info = dlsym(lib, sym);
+                assert(info != NULL);
+
+                mods[idx] = info->from_conf(m.value, font);
             }
 
             if (i == 0) {
