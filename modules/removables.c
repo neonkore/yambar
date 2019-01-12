@@ -1,5 +1,3 @@
-#include "removables.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -18,8 +16,9 @@
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
-#include "../tllist.h"
+#include "../config.h"
 #include "../particles/dynlist.h"
+#include "../tllist.h"
 
 typedef tll(char *) mount_point_list_t;
 
@@ -544,8 +543,8 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
-struct module *
-module_removables(struct particle *label, int left_spacing, int right_spacing)
+static struct module *
+removables_new(struct particle *label, int left_spacing, int right_spacing)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->label = label;
@@ -560,3 +559,33 @@ module_removables(struct particle *label, int left_spacing, int right_spacing)
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *content = yml_get_value(node, "content");
+    const struct yml_node *spacing = yml_get_value(node, "spacing");
+    const struct yml_node *left_spacing = yml_get_value(node, "left-spacing");
+    const struct yml_node *right_spacing = yml_get_value(node, "right-spacing");
+
+    int left = spacing != NULL ? yml_value_as_int(spacing) :
+        left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
+    int right = spacing != NULL ? yml_value_as_int(spacing) :
+        right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
+
+    return removables_new(
+        conf_to_particle(content, parent_font), left, right);
+}
+
+const struct module_info module_info = {
+    .from_conf = &from_conf,
+    .attr_count = 5,
+    .attrs = {
+        {"spacing", false, &conf_verify_int},
+        {"left-spacing", false, &conf_verify_int},
+        {"right-spacing", false, &conf_verify_int},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+    },
+};

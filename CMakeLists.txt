@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.13)
 project(f00bar C)
 
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -19,11 +19,6 @@ pkg_check_modules(FONTCONFIG REQUIRED fontconfig)                   # Core
 pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)          # Core
 pkg_check_modules(YAML REQUIRED yaml-0.1)                           # Core (configuration)
 
-pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)                         # Module/xkb
-pkg_check_modules(JSON REQUIRED json-c)                             # Module/i3
-pkg_check_modules(UDEV REQUIRED libudev)                            # Module/battery
-pkg_check_modules(MPD REQUIRED libmpdclient)                        # Module/mpd
-pkg_check_modules(ALSA REQUIRED alsa)                               # Module/alsa
 
 add_executable(f00bar
   bar.c bar.h
@@ -35,6 +30,7 @@ add_executable(f00bar
   main.c
   module.c module.h
   particle.c particle.h
+  plugin.c plugin.h
   tag.c tag.h
   xcb.c xcb.h
   yml.c yml.h
@@ -50,32 +46,19 @@ add_executable(f00bar
   particles/progress-bar.c particles/progress-bar.h
   particles/ramp.c particles/ramp.h
   particles/string.c particles/string.h
-
-  modules/alsa.c modules/alsa.h
-  modules/backlight.c modules/backlight.h
-  modules/battery.c modules/battery.h
-  modules/clock.c modules/clock.h
-  modules/i3.c modules/i3.h
-  modules/label.c modules/label.h
-  modules/mpd.c modules/mpd.h
-  modules/network.c modules/network.h
-  modules/removables.c modules/removables.h
-  modules/xkb.c modules/xkb.h
-  modules/xwindow.c modules/xwindow.h
   )
 
+# TODO: directory global
 target_compile_definitions(f00bar PRIVATE _GNU_SOURCE)
+
+# Make global symbols in f00bar visible to dlopen:ed plugins
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
 target_compile_options(f00bar PRIVATE
   ${XCB_CFLAGS_OTHER}
   ${FONTCONFIG_CFLAGS_OTHER}
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
-  ${XCB_XKB_CFLAGS_OTHER}
-  ${JSON_CFLAGS_OTHER}
-  ${UDEV_CFLAGS_OTHER}
-  ${MPD_CFLAGS_OTHER}
-  ${ALSA_CFLAGS_OTHER}
   )
 
 target_include_directories(f00bar PRIVATE
@@ -83,22 +66,27 @@ target_include_directories(f00bar PRIVATE
   ${FONTCONFIG_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
-  ${XCB_XKB_INCLUDE_DIRS}
-  ${JSON_INCLUDE_DIRS}
-  ${UDEV_INCLUDE_DIRS}
-  ${MPD_INCLUDE_DIRS}
-  ${ALSA_INCLUDE_DIRS}
   )
 
 target_link_libraries(f00bar
   ${CMAKE_THREAD_LIBS_INIT}
+  ${CMAKE_DL_LIBS}
+
   ${XCB_LIBRARIES}
   ${FONTCONFIG_LIBRARIES}
   ${CAIRO_LIBRARIES}
   ${YAML_LIBRARIES}
-  ${XCB_XKB_LIBRARIES}
-  ${JSON_LIBRARIES}
-  ${UDEV_LIBRARIES}
-  ${MPD_LIBRARIES}
-  ${ALSA_LIBRARIES}
   )
+
+add_library(module-sdk INTERFACE)
+target_compile_definitions(module-sdk INTERFACE _GNU_SOURCE)
+target_compile_options(module-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
+target_include_directories(module-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
+target_link_libraries(module-sdk INTERFACE ${CMAKE_THREAD_LIBS_INIT})
+
+set_property(TARGET f00bar PROPERTY INSTALL_RPATH \$ORIGIN/../lib/f00bar)
+set_property(TARGET f00bar PROPERTY BUILD_RPATH \$ORIGIN/modules)
+
+install(TARGETS f00bar DESTINATION bin)
+
+add_subdirectory(modules)

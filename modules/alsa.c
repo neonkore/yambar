@@ -1,5 +1,3 @@
-#include "alsa.h"
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -9,6 +7,7 @@
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
+#include "../config.h"
 #include "../tllist.h"
 
 struct private {
@@ -249,8 +248,8 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
-struct module *
-module_alsa(const char *card, const char *mixer, struct particle *label)
+static struct module *
+alsa_new(const char *card, const char *mixer, struct particle *label)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->label = label;
@@ -267,3 +266,28 @@ module_alsa(const char *card, const char *mixer, struct particle *label)
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *card = yml_get_value(node, "card");
+    const struct yml_node *mixer = yml_get_value(node, "mixer");
+    const struct yml_node *content = yml_get_value(node, "content");
+
+    return alsa_new(
+        yml_value_as_string(card),
+        yml_value_as_string(mixer),
+        conf_to_particle(content, parent_font));
+}
+
+const struct module_info module_info = {
+    .from_conf = &from_conf,
+    .attr_count = 4,
+    .attrs = {
+        {"card", true, &conf_verify_string},
+        {"mixer", true, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL}
+    },
+};

@@ -1,5 +1,3 @@
-#include "mpd.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +16,7 @@
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
+#include "../config.h"
 
 enum state {
     STATE_OFFLINE = 1000,
@@ -451,8 +450,8 @@ refresh_in(struct module *mod, long milli_seconds)
     return r == 0;
 }
 
-struct module *
-module_mpd(const char *host, uint16_t port, struct particle *label)
+static struct module *
+mpd_new(const char *host, uint16_t port, struct particle *label)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->host = strdup(host);
@@ -478,3 +477,28 @@ module_mpd(const char *host, uint16_t port, struct particle *label)
     mod->refresh_in = &refresh_in;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *host = yml_get_value(node, "host");
+    const struct yml_node *port = yml_get_value(node, "port");
+    const struct yml_node *c = yml_get_value(node, "content");
+
+    return mpd_new(
+        yml_value_as_string(host),
+        port != NULL ? yml_value_as_int(port) : 0,
+        conf_to_particle(c, parent_font));
+}
+
+const struct module_info module_info = {
+    .from_conf = &from_conf,
+    .attr_count = 4,
+    .attrs = {
+        {"host", true, &conf_verify_string},
+        {"port", false, &conf_verify_int},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+     },
+};

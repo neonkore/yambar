@@ -1,5 +1,3 @@
-#include "i3.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +19,7 @@
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
+#include "../config.h"
 
 #include "../particles/dynlist.h"
 
@@ -611,9 +610,15 @@ content(struct module *mod)
         particles, particle_count, m->left_spacing, m->right_spacing);
 }
 
-struct module *
-module_i3(struct i3_workspaces workspaces[], size_t workspace_count,
-          int left_spacing, int right_spacing)
+/* Maps workspace name to a content particle. */
+struct i3_workspaces {
+    const char *name;
+    struct particle *content;
+};
+
+static struct module *
+i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
+       int left_spacing, int right_spacing)
 {
     struct private *m = malloc(sizeof(*m));
 
@@ -638,3 +643,73 @@ module_i3(struct i3_workspaces workspaces[], size_t workspace_count,
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    const struct yml_node *spacing = yml_get_value(node, "spacing");
+    const struct yml_node *left_spacing = yml_get_value(node, "left-spacing");
+    const struct yml_node *right_spacing = yml_get_value(node, "right-spacing");
+
+    int left = spacing != NULL ? yml_value_as_int(spacing) :
+        left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
+    int right = spacing != NULL ? yml_value_as_int(spacing) :
+        right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
+
+    struct i3_workspaces workspaces[yml_dict_length(c)];
+
+    size_t idx = 0;
+    for (struct yml_dict_iter it = yml_dict_iter(c);
+         it.key != NULL;
+         yml_dict_next(&it), idx++)
+    {
+        workspaces[idx].name = yml_value_as_string(it.key);
+        workspaces[idx].content = conf_to_particle(it.value, parent_font);
+    }
+
+    return i3_new(workspaces, yml_dict_length(c), left, right);
+}
+
+static bool
+verify_content(keychain_t *chain, const struct yml_node *node)
+{
+    if (!yml_is_dict(node)) {
+        LOG_ERR(
+            "%s: must be a dictionary of workspace-name: particle mappings",
+            conf_err_prefix(chain, node));
+        return false;
+    }
+
+    for (struct yml_dict_iter it = yml_dict_iter(node);
+         it.key != NULL;
+         yml_dict_next(&it))
+    {
+        const char *key = yml_value_as_string(it.key);
+        if (key == NULL) {
+            LOG_ERR("%s: key must be a string (a i3 workspace name)",
+                    conf_err_prefix(chain, it.key));
+            return false;
+        }
+
+        if (!conf_verify_particle(chain_push(chain, key), it.value))
+            return false;
+
+        chain_pop(chain);
+    }
+
+    return true;
+}
+
+const struct module_info module_info = {
+    .from_conf = &from_conf,
+    .attr_count = 5,
+    .attrs = {
+        {"spacing", false, &conf_verify_int},
+        {"left-spacing", false, &conf_verify_int},
+        {"right-spacing", false, &conf_verify_int},
+        {"content", true, &verify_content},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+    },
+};

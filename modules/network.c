@@ -1,5 +1,3 @@
-#include "network.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +15,9 @@
 #define LOG_MODULE "network"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
-#include "../module.h"
 #include "../bar.h"
+#include "../config.h"
+#include "../module.h"
 #include "../tllist.h"
 
 struct af_addr {
@@ -140,6 +139,8 @@ netlink_connect(void)
         .nl_pid = nl_pid_value(),
         .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
     };
+
+    LOG_WARN("nl_pid_value = 0x%08x", addr.nl_pid);
 
     if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
         LOG_ERRNO("failed to bind netlink socket");
@@ -509,8 +510,8 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
-struct module *
-module_network(const char *iface, struct particle *label)
+static struct module *
+network_new(const char *iface, struct particle *label)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->iface = strdup(iface);
@@ -531,3 +532,24 @@ module_network(const char *iface, struct particle *label)
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *name = yml_get_value(node, "name");
+    const struct yml_node *content = yml_get_value(node, "content");
+
+    return network_new(
+        yml_value_as_string(name), conf_to_particle(content, parent_font));
+}
+
+const struct module_info module_info = {
+    .from_conf = &from_conf,
+    .attr_count = 3,
+    .attrs = {
+        {"name", true, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+         {NULL, false, NULL},
+    },
+};

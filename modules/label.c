@@ -1,9 +1,9 @@
-#include "label.h"
-
 #include <stdlib.h>
 #include <assert.h>
 
 #include <poll.h>
+
+#include "../config.h"
 
 struct private {
     struct particle *label;
@@ -32,8 +32,8 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
-struct module *
-module_label(struct particle *label)
+static struct module *
+label_new(struct particle *label)
 {
     struct private *m = malloc(sizeof(*m));
     m->label = label;
@@ -45,3 +45,20 @@ module_label(struct particle *label)
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    return label_new(conf_to_particle(c, parent_font));
+}
+
+const struct module_info module_info = {
+    .from_conf = &from_conf,
+    .attr_count = 2,
+    .attrs = {
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+     },
+};

@@ -1,5 +1,3 @@
-#include "xwindow.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +15,7 @@
 #define LOG_MODULE "xkb"
 #include "../log.h"
 #include "../bar.h"
+#include "../config.h"
 #include "../xcb.h"
 
 struct private {
@@ -301,8 +300,8 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
-struct module *
-module_xwindow(struct particle *label)
+static struct module *
+xwindow_new(struct particle *label)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->label = label;
@@ -314,3 +313,20 @@ module_xwindow(struct particle *label)
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    return xwindow_new(conf_to_particle(c, parent_font));
+}
+
+const struct module_info module_info = {
+    .from_conf = &from_conf,
+    .attr_count = 2,
+    .attrs = {
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+    },
+};
