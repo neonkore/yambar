@@ -14,6 +14,8 @@
 #include "modules/clock/clock.h"
 #include "modules/i3/i3.h"
 #include "modules/label/label.h"
+#include "modules/label/label.h"
+#include "modules/mpd/mpd.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -435,13 +437,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    static const struct attr_info mpd[] = {
-        {"host", true, &conf_verify_string},
-        {"port", false, &conf_verify_int},
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
     static const struct attr_info network[] = {
         {"name", true, &conf_verify_string},
         {"content", true, &conf_verify_particle},
@@ -477,6 +472,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"clock", &module_clock},
         {"i3", &module_i3},
         {"label", &module_label},
+        {"mpd", &module_mpd},
     };
 
     static const struct {
@@ -484,7 +480,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"mpd", mpd, sizeof(mpd) / sizeof(mpd[0])},
         {"network", network, sizeof(network) / sizeof(network[0])},
         {"removables", removables, sizeof(removables) / sizeof(removables[0])},
         {"xkb", xkb, sizeof(xkb) / sizeof(xkb[0])},
