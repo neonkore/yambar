@@ -188,8 +188,8 @@ particle_list_from_config(const struct yml_node *node,
     const struct yml_node *items = yml_get_value(node, "items");
 
     const struct yml_node *spacing = yml_get_value(node, "spacing");
-    const struct yml_node *_left_spacing = yml_get_value(node, "left_spacing");
-    const struct yml_node *_right_spacing = yml_get_value(node, "right_spacing");
+    const struct yml_node *_left_spacing = yml_get_value(node, "left-spacing");
+    const struct yml_node *_right_spacing = yml_get_value(node, "right-spacing");
 
     int left_spacing = spacing != NULL ? yml_value_as_int(spacing) :
         _left_spacing != NULL ? yml_value_as_int(_left_spacing) : 0;
@@ -320,9 +320,9 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     const char *type = yml_value_as_string(pair.key);
 
     const struct yml_node *margin = yml_get_value(pair.value, "margin");
-    const struct yml_node *left_margin = yml_get_value(pair.value, "left_margin");
-    const struct yml_node *right_margin = yml_get_value(pair.value, "right_margin");
-    const struct yml_node *on_click = yml_get_value(pair.value, "on_click");
+    const struct yml_node *left_margin = yml_get_value(pair.value, "left-margin");
+    const struct yml_node *right_margin = yml_get_value(pair.value, "right-margin");
+    const struct yml_node *on_click = yml_get_value(pair.value, "on-click");
 
     int left = margin != NULL ? yml_value_as_int(margin) :
         left_margin != NULL ? yml_value_as_int(left_margin) : 0;
@@ -392,11 +392,11 @@ conf_to_bar(const struct yml_node *bar)
     if (spacing != NULL)
         conf.left_spacing = conf.right_spacing = yml_value_as_int(spacing);
 
-    const struct yml_node *left_spacing = yml_get_value(bar, "left_spacing");
+    const struct yml_node *left_spacing = yml_get_value(bar, "left-spacing");
     if (left_spacing != NULL)
         conf.left_spacing = yml_value_as_int(left_spacing);
 
-    const struct yml_node *right_spacing = yml_get_value(bar, "right_spacing");
+    const struct yml_node *right_spacing = yml_get_value(bar, "right-spacing");
     if (right_spacing != NULL)
         conf.right_spacing = yml_value_as_int(right_spacing);
 
@@ -404,11 +404,11 @@ conf_to_bar(const struct yml_node *bar)
     if (margin != NULL)
         conf.left_margin = conf.right_margin = yml_value_as_int(margin);
 
-    const struct yml_node *left_margin = yml_get_value(bar, "left_margin");
+    const struct yml_node *left_margin = yml_get_value(bar, "left-margin");
     if (left_margin != NULL)
         conf.left_margin = yml_value_as_int(left_margin);
 
-    const struct yml_node *right_margin = yml_get_value(bar, "right_margin");
+    const struct yml_node *right_margin = yml_get_value(bar, "right-margin");
     if (right_margin != NULL)
         conf.right_margin = yml_value_as_int(right_margin);
 

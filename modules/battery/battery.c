@@ -350,7 +350,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *name = yml_get_value(node, "name");
-    const struct yml_node *poll_interval = yml_get_value(node, "poll_interval");
+    const struct yml_node *poll_interval = yml_get_value(node, "poll-interval");
 
     return battery_new(
         yml_value_as_string(name),

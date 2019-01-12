@@ -567,8 +567,8 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *content = yml_get_value(node, "content");
     const struct yml_node *spacing = yml_get_value(node, "spacing");
-    const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
-    const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
+    const struct yml_node *left_spacing = yml_get_value(node, "left-spacing");
+    const struct yml_node *right_spacing = yml_get_value(node, "right-spacing");
 
     int left = spacing != NULL ? yml_value_as_int(spacing) :
         left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
