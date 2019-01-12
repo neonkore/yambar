@@ -84,4 +84,9 @@ target_compile_options(module-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
 target_include_directories(module-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
 target_link_libraries(module-sdk INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 
+set_property(TARGET f00bar PROPERTY INSTALL_RPATH \$ORIGIN/../lib/f00bar)
+set_property(TARGET f00bar PROPERTY BUILD_RPATH \$ORIGIN/modules)
+
+install(TARGETS f00bar DESTINATION bin)
+
 add_subdirectory(modules)

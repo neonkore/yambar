@@ -52,3 +52,19 @@ target_link_libraries(xkb module-sdk ${XCB_XKB_LIBRARIES})
 
 add_library(xwindow MODULE xwindow/xwindow.c xwindow/xwindow.h)
 target_link_libraries(xwindow module-sdk)
+
+install(
+  TARGETS
+  alsa
+  backlight
+  battery
+  clock
+  i3
+  label
+  mpd
+  network
+  removables
+  xkb
+  xwindow
+
+  DESTINATION lib/f00bar)

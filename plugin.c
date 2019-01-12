@@ -38,7 +38,7 @@ const struct module_info *
 plugin_load_module(const char *name)
 {
     char path[128];
-    snprintf(path, sizeof(path), "./modules/lib%s.so", name);
+    snprintf(path, sizeof(path), "lib%s.so", name);
 
     /* Have we already loaded it? */
     tll_foreach(libs, plug) {
