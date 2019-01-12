@@ -495,7 +495,7 @@ module_removables_from_config(const struct yml_node *node,
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
-    if (!config_verify_bar(bar))
+    if (!conf_verify_bar(bar))
         return NULL;
 
     struct bar_config conf = {0};
