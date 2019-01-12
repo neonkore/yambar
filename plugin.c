@@ -17,20 +17,23 @@ struct plugin {
 
 static tll(struct plugin) libs = tll_init();
 
+static void
+free_lib(struct plugin plug)
+{
+    dlerror();
+    dlclose(plug.lib);
+
+    const char *dl_error = dlerror();
+    if (dl_error != NULL)
+        LOG_ERR("%s: dlclose(): %s", plug.name, dl_error);
+
+    free(plug.name);
+}
+
 static void __attribute__((destructor))
 fini(void)
 {
-    tll_foreach(libs, plug) {
-        dlerror();
-        dlclose(plug->item.lib);
-
-        const char *dl_error = dlerror();
-        if (dl_error != NULL)
-            LOG_ERR("%s: dlclose(): %s", plug->item.name, dl_error);
-
-        free(plug->item.name);
-        tll_remove(libs, plug);
-    }
+    tll_free_and_free(libs, free_lib);
 }
 
 const struct module_info *
