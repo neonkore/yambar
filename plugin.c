@@ -15,10 +15,10 @@ struct plugin {
     const void *sym;
 };
 
-static tll(struct plugin) libs = tll_init();
+static tll(struct plugin) plugins = tll_init();
 
 static void
-free_lib(struct plugin plug)
+free_plugin(struct plugin plug)
 {
     dlerror();
     dlclose(plug.lib);
@@ -33,7 +33,7 @@ free_lib(struct plugin plug)
 static void __attribute__((destructor))
 fini(void)
 {
-    tll_free_and_free(libs, free_lib);
+    tll_free_and_free(plugins, free_plugin);
 }
 
 const struct module_info *
@@ -43,7 +43,7 @@ plugin_load_module(const char *name)
     snprintf(path, sizeof(path), "lib%s.so", name);
 
     /* Have we already loaded it? */
-    tll_foreach(libs, plug) {
+    tll_foreach(plugins, plug) {
         if (strcmp(plug->item.name, name) == 0) {
             LOG_DBG("%s already loaded: %p", name, plug->item.lib);
             assert(plug->item.sym != NULL);
@@ -60,8 +60,8 @@ plugin_load_module(const char *name)
         return NULL;
     }
 
-    tll_push_back(libs, ((struct plugin){strdup(name), lib}));
-    struct plugin *plug = &tll_back(libs);
+    tll_push_back(plugins, ((struct plugin){strdup(name), lib}));
+    struct plugin *plug = &tll_back(plugins);
 
     dlerror(); /* Clear previous error */
     plug->sym = dlsym(lib, "module_info");
