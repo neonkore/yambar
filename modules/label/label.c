@@ -1,5 +1,3 @@
-#include "label.h"
-
 #include <stdlib.h>
 #include <assert.h>
 

@@ -1,4 +1,3 @@
-#include "clock.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
