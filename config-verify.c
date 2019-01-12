@@ -9,6 +9,7 @@
 #include "tllist.h"
 
 #include "modules/alsa/alsa.h"
+#include "modules/backlight/backlight.h"
 
 static const char *
 err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -460,12 +461,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    static const struct attr_info backlight[] = {
-        {"name", true, &conf_verify_string},
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
     static const struct attr_info battery[] = {
         {"name", true, &conf_verify_string},
         {"poll-interval", false, &conf_verify_int},
@@ -530,6 +525,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct module_info *info;
     } modules_v2[] = {
         {"alsa", &module_alsa},
+        {"backlight", &module_backlight},
     };
 
     static const struct {
@@ -537,7 +533,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"backlight", backlight, sizeof(backlight) / sizeof(backlight[0])},
         {"battery", battery, sizeof(battery) / sizeof(battery[0])},
         {"clock", clock, sizeof(clock) / sizeof(clock[0])},
         {"i3", i3, sizeof(i3) / sizeof(i3[0])},

@@ -439,17 +439,6 @@ module_xkb_from_config(const struct yml_node *node,
 }
 
 static struct module *
-module_backlight_from_config(const struct yml_node *node,
-                             const struct font *parent_font)
-{
-    const struct yml_node *name = yml_get_value(node, "name");
-    const struct yml_node *c = yml_get_value(node, "content");
-
-    return module_backlight(
-        yml_value_as_string(name), conf_to_particle(c, parent_font));
-}
-
-static struct module *
 module_mpd_from_config(const struct yml_node *node,
                        const struct font *parent_font)
 {
@@ -582,7 +571,12 @@ conf_to_bar(const struct yml_node *bar)
                 struct yml_dict_iter m = yml_dict_iter(it.node);
                 const char *mod_name = yml_value_as_string(m.key);
 
-                if (strcmp(mod_name, "label") == 0)
+                if (strcmp(mod_name, "alsa") == 0)
+                    mods[idx] = module_alsa.from_conf(m.value, font);
+                else if (strcmp(mod_name, "backlight") == 0)
+                    mods[idx] = module_backlight.from_conf(m.value, font);
+
+                else if (strcmp(mod_name, "label") == 0)
                     mods[idx] = module_label_from_config(m.value, font);
                 else if (strcmp(mod_name, "clock") == 0)
                     mods[idx] = module_clock_from_config(m.value, font);
@@ -594,16 +588,12 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_battery_from_config(m.value, font);
                 else if (strcmp(mod_name, "xkb") == 0)
                     mods[idx] = module_xkb_from_config(m.value, font);
-                else if (strcmp(mod_name, "backlight") == 0)
-                    mods[idx] = module_backlight_from_config(m.value, font);
                 else if (strcmp(mod_name, "mpd") == 0)
                     mods[idx] = module_mpd_from_config(m.value, font);
                 else if (strcmp(mod_name, "network") == 0)
                     mods[idx] = module_network_from_config(m.value, font);
                 else if (strcmp(mod_name, "removables") == 0)
                     mods[idx] = module_removables_from_config(m.value, font);
-                else if (strcmp(mod_name, "alsa") == 0)
-                    mods[idx] = module_alsa.from_conf(m.value, font);
                 else
                     assert(false);
             }

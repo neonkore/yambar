@@ -15,6 +15,7 @@
 #define LOG_MODULE "battery"
 #include "../../log.h"
 #include "../../bar.h"
+#include "../../config.h"
 
 struct private {
     struct particle *label;
@@ -198,8 +199,8 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
-struct module *
-module_backlight(const char *device, struct particle *label)
+static struct module *
+backlight_new(const char *device, struct particle *label)
 {
     struct private *m = malloc(sizeof(*m));
     m->label = label;
@@ -214,3 +215,24 @@ module_backlight(const char *device, struct particle *label)
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *name = yml_get_value(node, "name");
+    const struct yml_node *c = yml_get_value(node, "content");
+
+    return backlight_new(
+        yml_value_as_string(name), conf_to_particle(c, parent_font));
+}
+
+const struct module_info module_backlight = {
+    .from_conf = &from_conf,
+    .attr_count = 3,
+    .attrs = {
+        {"name", true, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+    },
+};
