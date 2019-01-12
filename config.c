@@ -362,13 +362,6 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     return ret;
 }
 
-static struct module *
-module_xwindow_from_config(const struct yml_node *node, const struct font *parent_font)
-{
-    const struct yml_node *c = yml_get_value(node, "content");
-    return module_xwindow(conf_to_particle(c, parent_font));
-}
-
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -479,10 +472,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_removables.from_conf(m.value, font);
                 else if (strcmp(mod_name, "xkb") == 0)
                     mods[idx] = module_xkb.from_conf(m.value, font);
-
-
                 else if (strcmp(mod_name, "xwindow") == 0)
-                    mods[idx] = module_xwindow_from_config(m.value, font);
+                    mods[idx] = module_xwindow.from_conf(m.value, font);
                 else
                     assert(false);
             }

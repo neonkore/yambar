@@ -19,6 +19,7 @@
 #include "modules/network/network.h"
 #include "modules/removables/removables.h"
 #include "modules/xkb/xkb.h"
+#include "modules/xwindow/xwindow.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -440,11 +441,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    static const struct attr_info xwindow[] = {
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
     /* TODO: this will dlopened later */
     static const struct {
         const char *name;
@@ -460,6 +456,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"network", &module_network},
         {"removables", &module_removables},
         {"xkb", &module_xkb},
+        {"xwindow", &module_xwindow},
     };
 
     static const struct {
@@ -467,7 +464,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"xwindow", xwindow, sizeof(xwindow) / sizeof(xwindow[0])},
     };
 
     for (size_t i = 0; i < sizeof(modules_v2) / sizeof(modules_v2[0]); i++) {
