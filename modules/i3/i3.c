@@ -19,10 +19,10 @@
 
 #define LOG_MODULE "i3"
 #define LOG_ENABLE_DBG 0
-#include "../log.h"
-#include "../bar.h"
+#include "../../log.h"
+#include "../../bar.h"
 
-#include "../particles/dynlist.h"
+#include "../../particles/dynlist.h"
 
 struct ws_content {
     char *name;

@@ -16,8 +16,8 @@
 
 #define LOG_MODULE "mpd"
 #define LOG_ENABLE_DBG 0
-#include "../log.h"
-#include "../bar.h"
+#include "../../log.h"
+#include "../../bar.h"
 
 enum state {
     STATE_OFFLINE = 1000,

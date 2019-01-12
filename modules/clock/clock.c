@@ -6,7 +6,7 @@
 
 #include <poll.h>
 
-#include "../bar.h"
+#include "../../bar.h"
 
 struct private {
     struct particle *label;

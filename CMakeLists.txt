@@ -51,17 +51,17 @@ add_executable(f00bar
   particles/ramp.c particles/ramp.h
   particles/string.c particles/string.h
 
-  modules/alsa.c modules/alsa.h
-  modules/backlight.c modules/backlight.h
-  modules/battery.c modules/battery.h
-  modules/clock.c modules/clock.h
-  modules/i3.c modules/i3.h
-  modules/label.c modules/label.h
-  modules/mpd.c modules/mpd.h
-  modules/network.c modules/network.h
-  modules/removables.c modules/removables.h
-  modules/xkb.c modules/xkb.h
-  modules/xwindow.c modules/xwindow.h
+  modules/alsa/alsa.c modules/alsa/alsa.h
+  modules/backlight/backlight.c modules/backlight/backlight.h
+  modules/battery/battery.c modules/battery/battery.h
+  modules/clock/clock.c modules/clock/clock.h
+  modules/i3/i3.c modules/i3/i3.h
+  modules/label/label.c modules/label/label.h
+  modules/mpd/mpd.c modules/mpd/mpd.h
+  modules/network/network.c modules/network/network.h
+  modules/removables/removables.c modules/removables/removables.h
+  modules/xkb/xkb.c modules/xkb/xkb.h
+  modules/xwindow/xwindow.c modules/xwindow/xwindow.h
   )
 
 target_compile_definitions(f00bar PRIVATE _GNU_SOURCE)
