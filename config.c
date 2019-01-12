@@ -92,26 +92,19 @@ font_from_config(const struct yml_node *node)
 static struct deco *
 deco_background_from_config(const struct yml_node *node)
 {
-    assert(yml_is_dict(node));
-
     const struct yml_node *color = yml_get_value(node, "color");
-    assert(yml_is_scalar(color));
-
     return deco_background(color_from_hexstr(yml_value_as_string(color)));
 }
 
 static struct deco *
 deco_underline_from_config(const struct yml_node *node)
 {
-    assert(yml_is_dict(node));
-
     const struct yml_node *size = yml_get_value(node, "size");
     const struct yml_node *color = yml_get_value(node, "color");
-    assert(yml_is_scalar(size));
-    assert(yml_is_scalar(color));
 
     return deco_underline(
-        yml_value_as_int(size), color_from_hexstr(yml_value_as_string(color)));
+        yml_value_as_int(size),
+        color_from_hexstr(yml_value_as_string(color)));
 }
 
 static struct deco *deco_from_config(const struct yml_node *node);
@@ -119,10 +112,7 @@ static struct deco *deco_from_config(const struct yml_node *node);
 static struct deco *
 deco_stack_from_config(const struct yml_node *node)
 {
-    assert(yml_is_list(node));
-
     size_t count = yml_list_length(node);
-    assert(count > 0);
 
     struct deco *decos[count];
     size_t idx = 0;
@@ -140,14 +130,9 @@ deco_stack_from_config(const struct yml_node *node)
 static struct deco *
 deco_from_config(const struct yml_node *node)
 {
-    assert(yml_is_dict(node));
-    assert(yml_dict_length(node) == 1);
-
     struct yml_dict_iter it = yml_dict_iter(node);
     const struct yml_node *deco_type = it.key;
     const struct yml_node *deco_data = it.value;
-
-    assert(yml_is_scalar(deco_type));
 
     const char *type = yml_value_as_string(deco_type);
 
@@ -178,15 +163,10 @@ particle_string_from_config(const struct yml_node *node,
                             int left_margin, int right_margin,
                             const char *on_click_template)
 {
-    assert(yml_is_dict(node));
-
     const struct yml_node *text = yml_get_value(node, "text");
     const struct yml_node *max = yml_get_value(node, "max");
     const struct yml_node *font = yml_get_value(node, "font");
     const struct yml_node *foreground = yml_get_value(node, "foreground");
-
-    assert(text != NULL && yml_is_scalar(text));
-    assert(max == NULL || yml_value_is_int(max));
 
     struct rgba fg_color = foreground != NULL
         ? color_from_hexstr(yml_value_as_string(foreground)) :
@@ -245,9 +225,6 @@ particle_map_from_config(const struct yml_node *node,
     const struct yml_node *values = yml_get_value(node, "values");
     const struct yml_node *def = yml_get_value(node, "default");
 
-    assert(yml_is_scalar(tag));
-    assert(yml_is_dict(values));
-
     struct particle_map particle_map[yml_dict_length(values)];
 
     size_t idx = 0;
@@ -257,7 +234,6 @@ particle_map_from_config(const struct yml_node *node,
     {
         particle_map[idx].tag_value = yml_value_as_string(it.key);
         particle_map[idx].particle = particle_from_config(it.value, parent_font);
-        assert(particle_map[idx].particle != NULL);
     }
 
     struct particle *default_particle = def != NULL
@@ -277,9 +253,6 @@ particle_ramp_from_config(const struct yml_node *node,
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *items = yml_get_value(node, "items");
-
-    assert(yml_is_scalar(tag));
-    assert(yml_is_list(items));
 
     size_t count = yml_list_length(items);
     struct particle *parts[count];
@@ -311,14 +284,6 @@ particle_progress_bar_from_config(const struct yml_node *node,
     const struct yml_node *empty = yml_get_value(node, "empty");
     const struct yml_node *indicator = yml_get_value(node, "indicator");
 
-    assert(tag != NULL && yml_is_scalar(tag));
-    assert(length != NULL && yml_is_scalar(length));
-    assert(start != NULL);
-    assert(end != NULL);
-    assert(fill != NULL);
-    assert(empty != NULL);
-    assert(indicator != NULL);
-
     return particle_progress_bar_new(
         yml_value_as_string(tag),
         yml_value_as_int(length),
@@ -334,8 +299,6 @@ static struct particle *
 particle_simple_list_from_config(const struct yml_node *node,
                                  const struct font *parent_font)
 {
-    assert(yml_is_list(node));
-
     size_t count = yml_list_length(node);
     struct particle *parts[count];
 
@@ -356,9 +319,6 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
     if (yml_is_list(node))
         return particle_simple_list_from_config(node, parent_font);
 
-    assert(yml_is_dict(node));
-    assert(yml_dict_length(node) == 1);
-
     struct yml_dict_iter pair = yml_dict_iter(node);
     const char *type = yml_value_as_string(pair.key);
 
@@ -366,11 +326,6 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
     const struct yml_node *left_margin = yml_get_value(pair.value, "left_margin");
     const struct yml_node *right_margin = yml_get_value(pair.value, "right_margin");
     const struct yml_node *on_click = yml_get_value(pair.value, "on_click");
-
-    assert(margin == NULL || yml_is_scalar(margin));
-    assert(left_margin == NULL || yml_is_scalar(left_margin));
-    assert(right_margin == NULL || yml_is_scalar(right_margin));
-    assert(on_click == NULL || yml_is_scalar(on_click));
 
     int left = margin != NULL ? yml_value_as_int(margin) :
         left_margin != NULL ? yml_value_as_int(left_margin) : 0;
@@ -403,7 +358,6 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
         assert(false);
 
     const struct yml_node *deco_node = yml_get_value(pair.value, "deco");
-    assert(deco_node == NULL || yml_is_dict(deco_node));
 
     if (deco_node != NULL)
         ret->deco = deco_from_config(deco_node);
@@ -415,7 +369,6 @@ static struct module *
 module_label_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
-    assert(c != NULL);
     return module_label(particle_from_config(c, parent_font));
 }
 
@@ -425,10 +378,6 @@ module_clock_from_config(const struct yml_node *node, const struct font *parent_
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *date_format = yml_get_value(node, "date-format");
     const struct yml_node *time_format = yml_get_value(node, "time-format");
-
-    assert(c != NULL);
-    assert(date_format == NULL || yml_is_scalar(date_format));
-    assert(time_format == NULL || yml_is_scalar(time_format));
 
     return module_clock(
         particle_from_config(c, parent_font),
@@ -440,7 +389,6 @@ static struct module *
 module_xwindow_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
-    assert(c != NULL);
     return module_xwindow(particle_from_config(c, parent_font));
 }
 
@@ -451,11 +399,6 @@ module_i3_from_config(const struct yml_node *node, const struct font *parent_fon
     const struct yml_node *spacing = yml_get_value(node, "spacing");
     const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
     const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
-
-    assert(yml_is_dict(c));
-    assert(spacing == NULL || yml_is_scalar(spacing));
-    assert(left_spacing == NULL || yml_is_scalar(left_spacing));
-    assert(right_spacing == NULL || yml_is_scalar(right_spacing));
 
     int left = spacing != NULL ? yml_value_as_int(spacing) :
         left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
@@ -469,7 +412,6 @@ module_i3_from_config(const struct yml_node *node, const struct font *parent_fon
          it.key != NULL;
          yml_dict_next(&it), idx++)
     {
-        assert(yml_is_scalar(it.key));
         workspaces[idx].name = yml_value_as_string(it.key);
         workspaces[idx].content = particle_from_config(it.value, parent_font);
     }
@@ -485,10 +427,6 @@ module_battery_from_config(const struct yml_node *node,
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *poll_interval = yml_get_value(node, "poll_interval");
 
-    assert(yml_is_dict(c));
-    assert(yml_is_scalar(name));
-    assert(poll_interval == NULL || yml_is_scalar(poll_interval));
-
     return module_battery(
         yml_value_as_string(name),
         particle_from_config(c, parent_font),
@@ -500,8 +438,6 @@ module_xkb_from_config(const struct yml_node *node,
                        const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
-    assert(yml_is_dict(c));
-
     return module_xkb(particle_from_config(c, parent_font));
 }
 
@@ -511,8 +447,6 @@ module_backlight_from_config(const struct yml_node *node,
 {
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *c = yml_get_value(node, "content");
-
-    assert(yml_is_scalar(name));
 
     return module_backlight(
         yml_value_as_string(name), particle_from_config(c, parent_font));
@@ -525,10 +459,6 @@ module_mpd_from_config(const struct yml_node *node,
     const struct yml_node *host = yml_get_value(node, "host");
     const struct yml_node *port = yml_get_value(node, "port");
     const struct yml_node *c = yml_get_value(node, "content");
-
-    assert(yml_is_scalar(host));
-    assert(port == NULL || yml_is_scalar(port));
-    assert(yml_is_dict(c));
 
     return module_mpd(
         yml_value_as_string(host),
@@ -543,8 +473,6 @@ module_network_from_config(const struct yml_node *node,
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *content = yml_get_value(node, "content");
 
-    assert(yml_is_scalar(name));
-
     return module_network(
         yml_value_as_string(name), particle_from_config(content, parent_font));
 }
@@ -557,10 +485,6 @@ module_removables_from_config(const struct yml_node *node,
     const struct yml_node *spacing = yml_get_value(node, "spacing");
     const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
     const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
-
-    assert(spacing == NULL || yml_is_scalar(spacing));
-    assert(left_spacing == NULL || yml_is_scalar(left_spacing));
-    assert(right_spacing == NULL || yml_is_scalar(right_spacing));
 
     int left = spacing != NULL ? yml_value_as_int(spacing) :
         left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
@@ -578,10 +502,6 @@ module_alsa_from_config(const struct yml_node *node,
     const struct yml_node *card = yml_get_value(node, "card");
     const struct yml_node *mixer = yml_get_value(node, "mixer");
     const struct yml_node *content = yml_get_value(node, "content");
-
-    assert(yml_is_scalar(card));
-    assert(yml_is_scalar(mixer));
-    assert(content != NULL);
 
     return module_alsa(
         yml_value_as_string(card),
@@ -641,8 +561,6 @@ conf_to_bar(const struct yml_node *bar)
 
     const struct yml_node *border = yml_get_value(bar, "border");
     if (border != NULL) {
-        assert(yml_is_dict(border));
-
         const struct yml_node *width = yml_get_value(border, "width");
         const struct yml_node *color = yml_get_value(border, "color");
 
@@ -678,13 +596,8 @@ conf_to_bar(const struct yml_node *bar)
                  it.node != NULL;
                  yml_list_next(&it), idx++)
             {
-                assert(yml_is_dict(it.node));
-                assert(yml_dict_length(it.node) == 1);
-
                 struct yml_dict_iter m = yml_dict_iter(it.node);
-
                 const char *mod_name = yml_value_as_string(m.key);
-                assert(mod_name != NULL);
 
                 if (strcmp(mod_name, "label") == 0)
                     mods[idx] = module_label_from_config(m.value, font);
