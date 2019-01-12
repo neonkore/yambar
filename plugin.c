@@ -29,9 +29,8 @@ fini(void)
             LOG_ERR("%s: dlclose(): %s", plug->item.name, dl_error);
 
         free(plug->item.name);
+        tll_remove(libs, plug);
     }
-
-    tll_free(libs);
 }
 
 const struct module_info *
