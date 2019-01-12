@@ -61,12 +61,8 @@ plugin_load_module(const char *name)
     tll_push_back(libs, ((struct plugin){strdup(name), lib}));
     struct plugin *plug = &tll_back(libs);
 
-    /* TODO: use same name in all modules */
-    char sym[128];
-    snprintf(sym, sizeof(sym), "module_%s", name);
-
     dlerror(); /* Clear previous error */
-    plug->sym = dlsym(lib, sym);
+    plug->sym = dlsym(lib, "module_info");
 
     const char *dlsym_error = dlerror();
     if (dlsym_error != NULL) {

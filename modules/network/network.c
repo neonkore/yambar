@@ -545,7 +545,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
         yml_value_as_string(name), conf_to_particle(content, parent_font));
 }
 
-const struct module_info module_network = {
+const struct module_info module_info = {
     .from_conf = &from_conf,
     .attr_count = 3,
     .attrs = {

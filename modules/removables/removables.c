@@ -579,7 +579,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
         conf_to_particle(content, parent_font), left, right);
 }
 
-const struct module_info module_removables = {
+const struct module_info module_info = {
     .from_conf = &from_conf,
     .attr_count = 5,
     .attrs = {

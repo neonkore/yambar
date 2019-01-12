@@ -703,7 +703,7 @@ verify_content(keychain_t *chain, const struct yml_node *node)
     return true;
 }
 
-const struct module_info module_i3 = {
+const struct module_info module_info = {
     .from_conf = &from_conf,
     .attr_count = 5,
     .attrs = {
