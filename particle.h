@@ -3,12 +3,22 @@
 #include <cairo.h>
 
 #include "color.h"
+#include "config-verify.h"
 #include "decoration.h"
 #include "font.h"
 #include "tag.h"
+#include "yml.h"
 
 struct bar;
+struct particle;
 struct exposable;
+
+struct particle_info {
+    struct particle *(*from_conf)(const struct yml_node *node,
+                                  const struct font *parent_font);
+    size_t attr_count;  /* TODO: reomve, NULL-terminate attr list instead */
+    const struct attr_info attrs[];
+};
 
 struct particle {
     void *private;
