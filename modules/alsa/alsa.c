@@ -9,6 +9,7 @@
 #define LOG_ENABLE_DBG 0
 #include "../../log.h"
 #include "../../bar.h"
+#include "../../config.h"
 #include "../../tllist.h"
 
 struct private {
@@ -249,7 +250,7 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
-struct module *
+static struct module *
 module_alsa(const char *card, const char *mixer, struct particle *label)
 {
     struct private *priv = malloc(sizeof(*priv));
@@ -266,4 +267,18 @@ module_alsa(const char *card, const char *mixer, struct particle *label)
     mod->destroy = &destroy;
     mod->content = &content;
     return mod;
+}
+
+struct module *
+module_alsa_from_config(const struct yml_node *node,
+                        const struct font *parent_font)
+{
+    const struct yml_node *card = yml_get_value(node, "card");
+    const struct yml_node *mixer = yml_get_value(node, "mixer");
+    const struct yml_node *content = yml_get_value(node, "content");
+
+    return module_alsa(
+        yml_value_as_string(card),
+        yml_value_as_string(mixer),
+        conf_to_particle(content, parent_font));
 }

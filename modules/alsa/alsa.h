@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../../font.h"
 #include "../../module.h"
 #include "../../particle.h"
+#include "../../yml.h"
 
-struct module *module_alsa(
-    const char *card, const char *mixer, struct particle *label);
+struct module *module_alsa_from_config(
+    const struct yml_node *node, const struct font *parent_font);

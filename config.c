@@ -179,9 +179,6 @@ particle_string_from_config(const struct yml_node *node,
         fg_color, left_margin, right_margin, on_click_template);
 }
 
-static struct particle * particle_from_config(
-    const struct yml_node *node, const struct font *parent_font);
-
 static struct particle *
 particle_list_from_config(const struct yml_node *node,
                           const struct font *parent_font,
@@ -207,7 +204,7 @@ particle_list_from_config(const struct yml_node *node,
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
-        parts[idx] = particle_from_config(it.node, parent_font);
+        parts[idx] = conf_to_particle(it.node, parent_font);
     }
 
     return particle_list_new(
@@ -233,11 +230,11 @@ particle_map_from_config(const struct yml_node *node,
          yml_dict_next(&it), idx++)
     {
         particle_map[idx].tag_value = yml_value_as_string(it.key);
-        particle_map[idx].particle = particle_from_config(it.value, parent_font);
+        particle_map[idx].particle = conf_to_particle(it.value, parent_font);
     }
 
     struct particle *default_particle = def != NULL
-        ? particle_from_config(def, parent_font)
+        ? conf_to_particle(def, parent_font)
         : NULL;
 
     return particle_map_new(
@@ -262,7 +259,7 @@ particle_ramp_from_config(const struct yml_node *node,
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
-        parts[idx] = particle_from_config(it.node, parent_font);
+        parts[idx] = conf_to_particle(it.node, parent_font);
     }
 
     return particle_ramp_new(
@@ -287,11 +284,11 @@ particle_progress_bar_from_config(const struct yml_node *node,
     return particle_progress_bar_new(
         yml_value_as_string(tag),
         yml_value_as_int(length),
-        particle_from_config(start, parent_font),
-        particle_from_config(end, parent_font),
-        particle_from_config(fill, parent_font),
-        particle_from_config(empty, parent_font),
-        particle_from_config(indicator, parent_font),
+        conf_to_particle(start, parent_font),
+        conf_to_particle(end, parent_font),
+        conf_to_particle(fill, parent_font),
+        conf_to_particle(empty, parent_font),
+        conf_to_particle(indicator, parent_font),
         left_margin, right_margin, on_click_template);
 }
 
@@ -307,14 +304,14 @@ particle_simple_list_from_config(const struct yml_node *node,
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
-        parts[idx] = particle_from_config(it.node, parent_font);
+        parts[idx] = conf_to_particle(it.node, parent_font);
     }
 
     return particle_list_new(parts, count, 0, 2, 0, 0, NULL);
 }
 
-static struct particle *
-particle_from_config(const struct yml_node *node, const struct font *parent_font)
+struct particle *
+conf_to_particle(const struct yml_node *node, const struct font *parent_font)
 {
     if (yml_is_list(node))
         return particle_simple_list_from_config(node, parent_font);
@@ -369,7 +366,7 @@ static struct module *
 module_label_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
-    return module_label(particle_from_config(c, parent_font));
+    return module_label(conf_to_particle(c, parent_font));
 }
 
 static struct module *
@@ -380,7 +377,7 @@ module_clock_from_config(const struct yml_node *node, const struct font *parent_
     const struct yml_node *time_format = yml_get_value(node, "time-format");
 
     return module_clock(
-        particle_from_config(c, parent_font),
+        conf_to_particle(c, parent_font),
         date_format != NULL ? yml_value_as_string(date_format) : "%x",
         time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
 }
@@ -389,7 +386,7 @@ static struct module *
 module_xwindow_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
-    return module_xwindow(particle_from_config(c, parent_font));
+    return module_xwindow(conf_to_particle(c, parent_font));
 }
 
 static struct module *
@@ -413,7 +410,7 @@ module_i3_from_config(const struct yml_node *node, const struct font *parent_fon
          yml_dict_next(&it), idx++)
     {
         workspaces[idx].name = yml_value_as_string(it.key);
-        workspaces[idx].content = particle_from_config(it.value, parent_font);
+        workspaces[idx].content = conf_to_particle(it.value, parent_font);
     }
 
     return module_i3(workspaces, yml_dict_length(c), left, right);
@@ -429,7 +426,7 @@ module_battery_from_config(const struct yml_node *node,
 
     return module_battery(
         yml_value_as_string(name),
-        particle_from_config(c, parent_font),
+        conf_to_particle(c, parent_font),
         poll_interval != NULL ? yml_value_as_int(poll_interval) : 60);
 }
 
@@ -438,7 +435,7 @@ module_xkb_from_config(const struct yml_node *node,
                        const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
-    return module_xkb(particle_from_config(c, parent_font));
+    return module_xkb(conf_to_particle(c, parent_font));
 }
 
 static struct module *
@@ -449,7 +446,7 @@ module_backlight_from_config(const struct yml_node *node,
     const struct yml_node *c = yml_get_value(node, "content");
 
     return module_backlight(
-        yml_value_as_string(name), particle_from_config(c, parent_font));
+        yml_value_as_string(name), conf_to_particle(c, parent_font));
 }
 
 static struct module *
@@ -463,7 +460,7 @@ module_mpd_from_config(const struct yml_node *node,
     return module_mpd(
         yml_value_as_string(host),
         port != NULL ? yml_value_as_int(port) : 0,
-        particle_from_config(c, parent_font));
+        conf_to_particle(c, parent_font));
 }
 
 static struct module *
@@ -474,7 +471,7 @@ module_network_from_config(const struct yml_node *node,
     const struct yml_node *content = yml_get_value(node, "content");
 
     return module_network(
-        yml_value_as_string(name), particle_from_config(content, parent_font));
+        yml_value_as_string(name), conf_to_particle(content, parent_font));
 }
 
 static struct module *
@@ -492,21 +489,7 @@ module_removables_from_config(const struct yml_node *node,
         right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
 
     return module_removables(
-        particle_from_config(content, parent_font), left, right);
-}
-
-static struct module *
-module_alsa_from_config(const struct yml_node *node,
-                        const struct font *parent_font)
-{
-    const struct yml_node *card = yml_get_value(node, "card");
-    const struct yml_node *mixer = yml_get_value(node, "mixer");
-    const struct yml_node *content = yml_get_value(node, "content");
-
-    return module_alsa(
-        yml_value_as_string(card),
-        yml_value_as_string(mixer),
-        particle_from_config(content, parent_font));
+        conf_to_particle(content, parent_font), left, right);
 }
 
 struct bar *
