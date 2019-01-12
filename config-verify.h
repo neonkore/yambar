@@ -26,6 +26,10 @@ chain_pop(keychain_t *chain)
     tll_pop_back(*chain);
 }
 
+const char *conf_err_prefix(
+    const keychain_t *chain, const struct yml_node *node);
+
+
 bool conf_verify_string(keychain_t *chain, const struct yml_node *node);
 bool conf_verify_int(keychain_t *chain, const struct yml_node *node);
 
