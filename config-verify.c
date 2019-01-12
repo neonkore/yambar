@@ -13,6 +13,7 @@
 #include "modules/battery/battery.h"
 #include "modules/clock/clock.h"
 #include "modules/i3/i3.h"
+#include "modules/label/label.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -434,11 +435,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    static const struct attr_info label[] = {
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
     static const struct attr_info mpd[] = {
         {"host", true, &conf_verify_string},
         {"port", false, &conf_verify_int},
@@ -480,6 +476,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"battery", &module_battery},
         {"clock", &module_clock},
         {"i3", &module_i3},
+        {"label", &module_label},
     };
 
     static const struct {
@@ -487,7 +484,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"label", label, sizeof(label) / sizeof(label[0])},
         {"mpd", mpd, sizeof(mpd) / sizeof(mpd[0])},
         {"network", network, sizeof(network) / sizeof(network[0])},
         {"removables", removables, sizeof(removables) / sizeof(removables[0])},
