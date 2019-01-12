@@ -21,6 +21,17 @@ struct plugin {
 
 static tll(struct plugin) plugins = tll_init();
 
+static const char *
+type2str(enum plugin_type type)
+{
+    switch (type) {
+    case PLUGIN_MODULE:   return "module";
+    case PLUGIN_PARTICLE: return "particle";
+    }
+
+    return NULL;
+}
+
 static void
 free_plugin(struct plugin plug)
 {
@@ -29,7 +40,7 @@ free_plugin(struct plugin plug)
 
     const char *dl_error = dlerror();
     if (dl_error != NULL)
-        LOG_ERR("%s: dlclose(): %s", plug.name, dl_error);
+        LOG_ERR("%s: %s: dlclose(): %s", type2str(plug.type), plug.name, dl_error);
 
     free(plug.name);
 }
@@ -46,7 +57,7 @@ _load_plugin(const char *name, enum plugin_type type)
     /* Have we already loaded it? */
     tll_foreach(plugins, plug) {
         if (plug->item.type == type && strcmp(plug->item.name, name) == 0) {
-            LOG_DBG("%s already loaded: %p", name, plug->item.lib);
+            LOG_DBG("%s: %s already loaded: %p", type2str(type), name, plug->item.lib);
             assert(plug->item.sym != NULL);
             return plug->item.sym;
         }
@@ -57,10 +68,10 @@ _load_plugin(const char *name, enum plugin_type type)
 
     /* Not loaded - do it now */
     void *lib = dlopen(path, RTLD_LOCAL | RTLD_NOW);
-    LOG_DBG("%s: dlopened to %p", name, lib);
+    LOG_DBG("%s: %s: dlopened to %p", type2str(type), name, lib);
 
     if (lib == NULL) {
-        LOG_ERR("%s: dlopen: %s", name, dlerror());
+        LOG_ERR("%s: %s: dlopen: %s", type2str(type), name, dlerror());
         return NULL;
     }
 
@@ -73,7 +84,7 @@ _load_plugin(const char *name, enum plugin_type type)
 
     const char *dlsym_error = dlerror();
     if (dlsym_error != NULL) {
-        LOG_ERR("%s: dlsym: %s", name, dlsym_error);
+        LOG_ERR("%s: %s: dlsym: %s", type2str(type), name, dlsym_error);
         return NULL;
     }
 
