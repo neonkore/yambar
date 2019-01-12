@@ -377,24 +377,6 @@ module_xkb_from_config(const struct yml_node *node,
     return module_xkb(conf_to_particle(c, parent_font));
 }
 
-static struct module *
-module_removables_from_config(const struct yml_node *node,
-                              const struct font *parent_font)
-{
-    const struct yml_node *content = yml_get_value(node, "content");
-    const struct yml_node *spacing = yml_get_value(node, "spacing");
-    const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
-    const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
-
-    int left = spacing != NULL ? yml_value_as_int(spacing) :
-        left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
-    int right = spacing != NULL ? yml_value_as_int(spacing) :
-        right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
-
-    return module_removables(
-        conf_to_particle(content, parent_font), left, right);
-}
-
 struct bar *
 conf_to_bar(const struct yml_node *bar)
 {
@@ -501,14 +483,14 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_mpd.from_conf(m.value, font);
                 else if (strcmp(mod_name, "network") == 0)
                     mods[idx] = module_network.from_conf(m.value, font);
+                else if (strcmp(mod_name, "removables") == 0)
+                    mods[idx] = module_removables.from_conf(m.value, font);
 
 
                 else if (strcmp(mod_name, "xwindow") == 0)
                     mods[idx] = module_xwindow_from_config(m.value, font);
                 else if (strcmp(mod_name, "xkb") == 0)
                     mods[idx] = module_xkb_from_config(m.value, font);
-                else if (strcmp(mod_name, "removables") == 0)
-                    mods[idx] = module_removables_from_config(m.value, font);
                 else
                     assert(false);
             }
