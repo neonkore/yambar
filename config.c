@@ -378,17 +378,6 @@ module_xkb_from_config(const struct yml_node *node,
 }
 
 static struct module *
-module_network_from_config(const struct yml_node *node,
-                           const struct font *parent_font)
-{
-    const struct yml_node *name = yml_get_value(node, "name");
-    const struct yml_node *content = yml_get_value(node, "content");
-
-    return module_network(
-        yml_value_as_string(name), conf_to_particle(content, parent_font));
-}
-
-static struct module *
 module_removables_from_config(const struct yml_node *node,
                               const struct font *parent_font)
 {
@@ -510,14 +499,14 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_label.from_conf(m.value, font);
                 else if (strcmp(mod_name, "mpd") == 0)
                     mods[idx] = module_mpd.from_conf(m.value, font);
+                else if (strcmp(mod_name, "network") == 0)
+                    mods[idx] = module_network.from_conf(m.value, font);
 
 
                 else if (strcmp(mod_name, "xwindow") == 0)
                     mods[idx] = module_xwindow_from_config(m.value, font);
                 else if (strcmp(mod_name, "xkb") == 0)
                     mods[idx] = module_xkb_from_config(m.value, font);
-                else if (strcmp(mod_name, "network") == 0)
-                    mods[idx] = module_network_from_config(m.value, font);
                 else if (strcmp(mod_name, "removables") == 0)
                     mods[idx] = module_removables_from_config(m.value, font);
                 else
