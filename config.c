@@ -370,19 +370,6 @@ module_label_from_config(const struct yml_node *node, const struct font *parent_
 }
 
 static struct module *
-module_clock_from_config(const struct yml_node *node, const struct font *parent_font)
-{
-    const struct yml_node *c = yml_get_value(node, "content");
-    const struct yml_node *date_format = yml_get_value(node, "date-format");
-    const struct yml_node *time_format = yml_get_value(node, "time-format");
-
-    return module_clock(
-        conf_to_particle(c, parent_font),
-        date_format != NULL ? yml_value_as_string(date_format) : "%x",
-        time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
-}
-
-static struct module *
 module_xwindow_from_config(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *c = yml_get_value(node, "content");
@@ -563,11 +550,11 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_backlight.from_conf(m.value, font);
                 else if (strcmp(mod_name, "battery") == 0)
                     mods[idx] = module_battery.from_conf(m.value, font);
+                else if (strcmp(mod_name, "clock") == 0)
+                    mods[idx] = module_clock.from_conf(m.value, font);
 
                 else if (strcmp(mod_name, "label") == 0)
                     mods[idx] = module_label_from_config(m.value, font);
-                else if (strcmp(mod_name, "clock") == 0)
-                    mods[idx] = module_clock_from_config(m.value, font);
                 else if (strcmp(mod_name, "xwindow") == 0)
                     mods[idx] = module_xwindow_from_config(m.value, font);
                 else if (strcmp(mod_name, "i3") == 0)

@@ -7,6 +7,7 @@
 #include <poll.h>
 
 #include "../../bar.h"
+#include "../../config.h"
 
 struct private {
     struct particle *label;
@@ -78,9 +79,8 @@ run(struct module_run_context *ctx)
     return 0;
 }
 
-struct module *
-module_clock(struct particle *label,
-             const char *date_format, const char *time_format)
+static struct module *
+clock_new(struct particle *label, const char *date_format, const char *time_format)
 {
     struct private *m = malloc(sizeof(*m));
     m->label = label;
@@ -94,3 +94,28 @@ module_clock(struct particle *label,
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    const struct yml_node *date_format = yml_get_value(node, "date-format");
+    const struct yml_node *time_format = yml_get_value(node, "time-format");
+
+    return clock_new(
+        conf_to_particle(c, parent_font),
+        date_format != NULL ? yml_value_as_string(date_format) : "%x",
+        time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
+}
+
+const struct module_info module_clock = {
+    .from_conf = &from_conf,
+    .attr_count = 4,
+    .attrs = {
+        {"date-format", false, &conf_verify_string},
+        {"time-format", false, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+     },
+};
