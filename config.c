@@ -5,10 +5,6 @@
 #include <string.h>
 #include <assert.h>
 
-
-#include <dlfcn.h>
-
-
 #include "color.h"
 
 #include "decoration.h"
@@ -26,6 +22,7 @@
 
 #include "module.h"
 #include "config-verify.h"
+#include "plugin.h"
 
 static uint8_t
 hex_nibble(char hex)
@@ -444,18 +441,7 @@ conf_to_bar(const struct yml_node *bar)
                 struct yml_dict_iter m = yml_dict_iter(it.node);
                 const char *mod_name = yml_value_as_string(m.key);
 
-                char path[1024];
-                snprintf(path, sizeof(path), "./modules/lib%s.so", mod_name);
-
-                void *lib = dlopen(path, RTLD_LOCAL | RTLD_NOW | RTLD_NOLOAD);
-                assert(lib != NULL);
-
-                char sym[1024];
-                snprintf(sym, sizeof(sym), "module_%s", mod_name);
-
-                const struct module_info *info = dlsym(lib, sym);
-                assert(info != NULL);
-
+                const struct module_info *info = plugin_load_module(mod_name);
                 mods[idx] = info->from_conf(m.value, font);
             }
 

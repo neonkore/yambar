@@ -30,6 +30,7 @@ add_executable(f00bar
   main.c
   module.c module.h
   particle.c particle.h
+  plugin.c plugin.h
   tag.c tag.h
   xcb.c xcb.h
   yml.c yml.h

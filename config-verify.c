@@ -3,15 +3,10 @@
 #include <string.h>
 #include <assert.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <dlfcn.h>
-
 #define LOG_MODULE "config:verify"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "plugin.h"
 #include "tllist.h"
 
 const char *
@@ -434,39 +429,12 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    char path[1024];
-    snprintf(path, sizeof(path), "./modules/lib%s.so", mod_name);
-
-    void *lib = dlopen(path, RTLD_LOCAL | RTLD_NOW | RTLD_NOLOAD);
-
-    if (lib == NULL)
-        lib = dlopen(path, RTLD_LOCAL | RTLD_NOW);
-
-    if (lib == NULL) {
-        const char *dl_error = dlerror();
-        if (dl_error != NULL)
-            LOG_ERR("%s: dlopen: %s", mod_name, dlerror());
-        else
-            LOG_ERR("%s: invalid module name: %s",
-                    conf_err_prefix(chain, module), mod_name);
-
+    const struct module_info *info = plugin_load_module(mod_name);
+    if (info == NULL) {
+        LOG_ERR(
+            "%s: invalid module name: %s", conf_err_prefix(chain, node), mod_name);
         return false;
     }
-
-    char sym[1024];
-    snprintf(sym, sizeof(sym), "module_%s", mod_name);
-
-    dlerror(); /* Clear previous error */
-    const struct module_info *info = dlsym(lib, sym);
-
-    const char *dlsym_error = dlerror();
-    if (dlsym_error != NULL) {
-        LOG_ERR("%s: dlsym: %s", mod_name, dlsym_error);
-        dlclose(lib);
-        return false;
-    }
-
-    assert(info != NULL);
 
     if (!conf_verify_dict(chain_push(chain, mod_name), values,
                           info->attrs, info->attr_count))
@@ -512,45 +480,6 @@ verify_bar_location(keychain_t *chain, const struct yml_node *node)
     return conf_verify_enum(chain, node, (const char *[]){"top", "bottom"}, 2);
 }
 
-#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
-static void
-find_modules(void)
-{
-    int cwd = open(".", O_RDONLY);
-    assert(cwd != -1);
-
-    int modules = openat(cwd, "modules", O_RDONLY);
-    assert(modules != -1);
-
-    DIR *dir = fdopendir(modules);
-    assert(dir != NULL);
-
-    for (struct dirent *e = readdir(dir); e != NULL; e = readdir(dir)) {
-        const size_t len = strlen(e->d_name);
-
-        if (len <= 6) {
-            /* Need at least "libX.so" */
-            continue;
-        }
-
-        if (strncmp(e->d_name, "lib", 3) != 0)
-            continue;
-
-        if (strcmp(&e->d_name[len - 3], ".so") != 0)
-            continue;
-
-        char *name = malloc(len - 6 + 1);
-        memcpy(name, &e->d_name[3], len - 6);
-        name[len - 6] = '\0';
-
-        LOG_DBG("%s", name);
-        free(name);
-    }
-
-    closedir(dir);
-}
-#endif
-
 bool
 conf_verify_bar(const struct yml_node *bar)
 {
@@ -558,10 +487,6 @@ conf_verify_bar(const struct yml_node *bar)
         LOG_ERR("bar is not a dictionary");
         return false;
     }
-
-#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
-    find_modules();
-#endif
 
     keychain_t chain = tll_init();
     chain_push(&chain, "bar");
