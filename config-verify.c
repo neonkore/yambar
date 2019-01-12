@@ -12,6 +12,7 @@
 #include "modules/backlight/backlight.h"
 #include "modules/battery/battery.h"
 #include "modules/clock/clock.h"
+#include "modules/i3/i3.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -413,35 +414,6 @@ conf_verify_particle(keychain_t *chain, const struct yml_node *node)
     }
 }
 
-static bool
-verify_i3_content(keychain_t *chain, const struct yml_node *node)
-{
-    if (!yml_is_dict(node)) {
-        LOG_ERR(
-            "%s: must be a dictionary of workspace-name: particle mappings",
-            err_prefix(chain, node));
-        return false;
-    }
-
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string (a i3 workspace name)",
-                    err_prefix(chain, it.key));
-            return false;
-        }
-
-        if (!conf_verify_particle(chain_push(chain, key), it.value))
-            return false;
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
 
 static bool
 verify_module(keychain_t *chain, const struct yml_node *node)
@@ -471,14 +443,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"host", true, &conf_verify_string},
         {"port", false, &conf_verify_int},
         {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
-    static const struct attr_info i3[] = {
-        {"spacing", false, &conf_verify_int},
-        {"left-spacing", false, &conf_verify_int},
-        {"right-spacing", false, &conf_verify_int},
-        {"content", true, &verify_i3_content},
         {"anchors", false, NULL},
     };
 
@@ -515,6 +479,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"backlight", &module_backlight},
         {"battery", &module_battery},
         {"clock", &module_clock},
+        {"i3", &module_i3},
     };
 
     static const struct {
@@ -522,7 +487,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"i3", i3, sizeof(i3) / sizeof(i3[0])},
         {"label", label, sizeof(label) / sizeof(label[0])},
         {"mpd", mpd, sizeof(mpd) / sizeof(mpd[0])},
         {"network", network, sizeof(network) / sizeof(network[0])},

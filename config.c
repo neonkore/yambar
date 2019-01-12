@@ -377,33 +377,6 @@ module_xwindow_from_config(const struct yml_node *node, const struct font *paren
 }
 
 static struct module *
-module_i3_from_config(const struct yml_node *node, const struct font *parent_font)
-{
-    const struct yml_node *c = yml_get_value(node, "content");
-    const struct yml_node *spacing = yml_get_value(node, "spacing");
-    const struct yml_node *left_spacing = yml_get_value(node, "left_spacing");
-    const struct yml_node *right_spacing = yml_get_value(node, "right_spacing");
-
-    int left = spacing != NULL ? yml_value_as_int(spacing) :
-        left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
-    int right = spacing != NULL ? yml_value_as_int(spacing) :
-        right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
-
-    struct i3_workspaces workspaces[yml_dict_length(c)];
-
-    size_t idx = 0;
-    for (struct yml_dict_iter it = yml_dict_iter(c);
-         it.key != NULL;
-         yml_dict_next(&it), idx++)
-    {
-        workspaces[idx].name = yml_value_as_string(it.key);
-        workspaces[idx].content = conf_to_particle(it.value, parent_font);
-    }
-
-    return module_i3(workspaces, yml_dict_length(c), left, right);
-}
-
-static struct module *
 module_xkb_from_config(const struct yml_node *node,
                        const struct font *parent_font)
 {
@@ -552,14 +525,14 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_battery.from_conf(m.value, font);
                 else if (strcmp(mod_name, "clock") == 0)
                     mods[idx] = module_clock.from_conf(m.value, font);
-
+                else if (strcmp(mod_name, "i3") == 0)
+                    mods[idx] = module_i3.from_conf(m.value, font);
+ 
                 else if (strcmp(mod_name, "label") == 0)
                     mods[idx] = module_label_from_config(m.value, font);
                 else if (strcmp(mod_name, "xwindow") == 0)
                     mods[idx] = module_xwindow_from_config(m.value, font);
-                else if (strcmp(mod_name, "i3") == 0)
-                    mods[idx] = module_i3_from_config(m.value, font);
-                else if (strcmp(mod_name, "xkb") == 0)
+               else if (strcmp(mod_name, "xkb") == 0)
                     mods[idx] = module_xkb_from_config(m.value, font);
                 else if (strcmp(mod_name, "mpd") == 0)
                     mods[idx] = module_mpd_from_config(m.value, font);
