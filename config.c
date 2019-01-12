@@ -16,7 +16,7 @@
 #include "particles/empty.h"
 #include "particles/list.h"
 #include "particles/map.h"
-#include "particles/progress_bar.h"
+#include "particles/progress-bar.h"
 #include "particles/ramp.h"
 #include "particles/string.h"
 
@@ -351,7 +351,7 @@ particle_from_config(const struct yml_node *node, const struct font *parent_font
     else if (strcmp(type, "ramp") == 0)
         ret = particle_ramp_from_config(
             pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "progress_bar") == 0)
+    else if (strcmp(type, "progress-bar") == 0)
         ret = particle_progress_bar_from_config(
             pair.value, parent_font, left, right, on_click_template);
     else

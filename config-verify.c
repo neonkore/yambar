@@ -334,9 +334,9 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 
 #define COMMON_ATTRS                          \
     {"margin", false, &verify_int},           \
-    {"left_margin", false, &verify_int},      \
-    {"right_margin", false, &verify_int},     \
-    {"on_click", false, &verify_string},
+    {"left-margin", false, &verify_int},      \
+    {"right-margin", false, &verify_int},     \
+    {"on-click", false, &verify_string},
 
     static const struct attr_info empty[] = {
         COMMON_ATTRS
@@ -345,8 +345,8 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info list[] = {
         {"items", true, &verify_list_items},
         {"spacing", false, &verify_int},
-        {"left_spacing", false, &verify_int},
-        {"right_spacing", false, &verify_int},
+        {"left-spacing", false, &verify_int},
+        {"right-spacing", false, &verify_int},
         COMMON_ATTRS
     };
 
@@ -394,7 +394,7 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         {"empty", empty, sizeof(empty) / sizeof(empty[0])},
         {"list", list, sizeof(list) / sizeof(list[0])},
         {"map", map, sizeof(map) / sizeof(map[0])},
-        {"progress_bar", progress_bar, sizeof(progress_bar) / sizeof(progress_bar[0])},
+        {"progress-bar", progress_bar, sizeof(progress_bar) / sizeof(progress_bar[0])},
         {"ramp", ramp, sizeof(ramp) / sizeof(ramp[0])},
         {"string", string, sizeof(string) / sizeof(string[0])},
     };
@@ -496,7 +496,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
 
     static const struct attr_info battery[] = {
         {"name", true, &verify_string},
-        {"poll_interval", false, &verify_int},
+        {"poll-interval", false, &verify_int},
         {"content", true, &verify_particle},
         {"anchors", false, NULL},
     };
@@ -522,8 +522,8 @@ verify_module(keychain_t *chain, const struct yml_node *node)
 
     static const struct attr_info i3[] = {
         {"spacing", false, &verify_int},
-        {"left_spacing", false, &verify_int},
-        {"right_spacing", false, &verify_int},
+        {"left-spacing", false, &verify_int},
+        {"right-spacing", false, &verify_int},
         {"content", true, &verify_i3_content},
         {"anchors", false, NULL},
     };
@@ -536,8 +536,8 @@ verify_module(keychain_t *chain, const struct yml_node *node)
 
     static const struct attr_info removables[] = {
         {"spacing", false, &verify_int},
-        {"left_spacing", false, &verify_int},
-        {"right_spacing", false, &verify_int},
+        {"left-spacing", false, &verify_int},
+        {"right-spacing", false, &verify_int},
         {"content", true, &verify_particle},
         {"anchors", false, NULL},
     };
@@ -641,8 +641,8 @@ config_verify_bar(const struct yml_node *bar)
         {"background", true, &verify_color},
 
         {"spacing", false, &verify_int},
-        {"left_spacing", false, &verify_int},
-        {"right_spacing", false, &verify_int},
+        {"left-spacing", false, &verify_int},
+        {"right-spacing", false, &verify_int},
 
         {"margin", false, &verify_int},
         {"left_margin", false, &verify_int},

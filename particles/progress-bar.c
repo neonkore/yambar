@@ -1,4 +1,4 @@
-#include "progress_bar.h"
+#include "progress-bar.h"
 
 #include <stdlib.h>
 #include <string.h>
