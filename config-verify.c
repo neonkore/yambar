@@ -1,4 +1,4 @@
-#include "config-verify.h"
+#include "config.h"
 
 #include <string.h>
 #include <assert.h>
@@ -7,27 +7,6 @@
 #define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "tllist.h"
-
-typedef tll(const char *) keychain_t;
-
-struct attr_info {
-    const char *name;
-    bool required;
-    bool (*verify)(keychain_t *chain, const struct yml_node *node);
-};
-
-static keychain_t *
-chain_push(keychain_t *chain, const char *key)
-{
-    tll_push_back(*chain, key);
-    return chain;
-}
-
-static void
-chain_pop(keychain_t *chain)
-{
-    tll_pop_back(*chain);
-}
 
 static const char *
 err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -46,8 +25,8 @@ err_prefix(const keychain_t *chain, const struct yml_node *node)
     return msg;
 }
 
-static bool
-verify_string(keychain_t *chain, const struct yml_node *node)
+bool
+conf_verify_string(keychain_t *chain, const struct yml_node *node)
 {
     const char *s = yml_value_as_string(node);
     if (s == NULL) {
@@ -58,8 +37,8 @@ verify_string(keychain_t *chain, const struct yml_node *node)
     return true;
 }
 
-static bool
-verify_int(keychain_t *chain, const struct yml_node *node)
+bool
+conf_verify_int(keychain_t *chain, const struct yml_node *node)
 {
     if (yml_value_is_int(node))
         return true;
@@ -69,9 +48,9 @@ verify_int(keychain_t *chain, const struct yml_node *node)
     return false;
 }
 
-static bool
-verify_enum(keychain_t *chain, const struct yml_node *node,
-            const char *values[], size_t count)
+bool
+conf_verify_enum(keychain_t *chain, const struct yml_node *node,
+                 const char *values[], size_t count)
 {
     const char *s = yml_value_as_string(node);
     if (s == NULL) {
@@ -91,9 +70,9 @@ verify_enum(keychain_t *chain, const struct yml_node *node,
     return false;
 }
 
-static bool
-verify_dict(keychain_t *chain, const struct yml_node *node,
-            const struct attr_info info[], size_t count)
+bool
+conf_verify_dict(keychain_t *chain, const struct yml_node *node,
+                 const struct attr_info info[], size_t count)
 {
     if (!yml_is_dict(node)) {
         LOG_ERR("%s: must be a dictionary", err_prefix(chain, node));
@@ -146,8 +125,8 @@ verify_dict(keychain_t *chain, const struct yml_node *node,
     return true;
 }
 
-static bool
-verify_color(keychain_t *chain, const struct yml_node *node)
+bool
+conf_verify_color(keychain_t *chain, const struct yml_node *node)
 {
     const char *s = yml_value_as_string(node);
     if (s == NULL) {
@@ -168,14 +147,14 @@ verify_color(keychain_t *chain, const struct yml_node *node)
 }
 
 
-static bool
-verify_font(keychain_t *chain, const struct yml_node *node)
+bool
+conf_verify_font(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"family", true, &verify_string},
+        {"family", true, &conf_verify_string},
     };
 
-    return verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
+    return conf_verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
 }
 
 static bool verify_decoration(keychain_t *chain, const struct yml_node *node);
@@ -227,12 +206,12 @@ verify_decoration(keychain_t *chain, const struct yml_node *node)
     }
 
     static const struct attr_info background[] = {
-        {"color", true, &verify_color},
+        {"color", true, &conf_verify_color},
     };
 
     static const struct attr_info underline[] = {
-        {"size", true, &verify_int},
-        {"color", true, &verify_color},
+        {"size", true, &conf_verify_int},
+        {"color", true, &conf_verify_color},
     };
 
     static const struct {
@@ -248,7 +227,7 @@ verify_decoration(keychain_t *chain, const struct yml_node *node)
         if (strcmp(decos[i].name, deco_name) != 0)
             continue;
 
-        if (!verify_dict(chain_push(chain, deco_name),
+        if (!conf_verify_dict(chain_push(chain, deco_name),
                          values, decos[i].attrs, decos[i].count))
         {
             return false;
@@ -263,8 +242,6 @@ verify_decoration(keychain_t *chain, const struct yml_node *node)
     return false;
 }
 
-static bool verify_particle(keychain_t *chain, const struct yml_node *node);
-
 static bool
 verify_list_items(keychain_t *chain, const struct yml_node *node)
 {
@@ -274,7 +251,7 @@ verify_list_items(keychain_t *chain, const struct yml_node *node)
          it.node != NULL;
          yml_list_next(&it))
     {
-        if (!verify_particle(chain, it.node))
+        if (!conf_verify_particle(chain, it.node))
             return false;
     }
 
@@ -302,7 +279,7 @@ verify_map_values(keychain_t *chain, const struct yml_node *node)
             return false;
         }
 
-        if (!verify_particle(chain_push(chain, key), it.value))
+        if (!conf_verify_particle(chain_push(chain, key), it.value))
             return false;
 
         chain_pop(chain);
@@ -312,7 +289,7 @@ verify_map_values(keychain_t *chain, const struct yml_node *node)
 }
 
 static bool
-verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
+conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 {
     assert(yml_is_dict(node));
 
@@ -333,10 +310,10 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     }
 
 #define COMMON_ATTRS                          \
-    {"margin", false, &verify_int},           \
-    {"left-margin", false, &verify_int},      \
-    {"right-margin", false, &verify_int},     \
-    {"on-click", false, &verify_string},
+    {"margin", false, &conf_verify_int},           \
+    {"left-margin", false, &conf_verify_int},      \
+    {"right-margin", false, &conf_verify_int},     \
+    {"on-click", false, &conf_verify_string},
 
     static const struct attr_info empty[] = {
         COMMON_ATTRS
@@ -344,42 +321,42 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 
     static const struct attr_info list[] = {
         {"items", true, &verify_list_items},
-        {"spacing", false, &verify_int},
-        {"left-spacing", false, &verify_int},
-        {"right-spacing", false, &verify_int},
+        {"spacing", false, &conf_verify_int},
+        {"left-spacing", false, &conf_verify_int},
+        {"right-spacing", false, &conf_verify_int},
         COMMON_ATTRS
     };
 
     static const struct attr_info map[] = {
-        {"tag", true, &verify_string},
+        {"tag", true, &conf_verify_string},
         {"values", true, &verify_map_values},
-        {"default", false, &verify_particle},
+        {"default", false, &conf_verify_particle},
         COMMON_ATTRS
     };
 
     static const struct attr_info progress_bar[] = {
-        {"tag", true, &verify_string},
-        {"length", true, &verify_int},
+        {"tag", true, &conf_verify_string},
+        {"length", true, &conf_verify_int},
         /* TODO: make these optional? Default to empty */
-        {"start", true, &verify_particle},
-        {"end", true, &verify_particle},
-        {"fill", true, &verify_particle},
-        {"empty", true, &verify_particle},
-        {"indicator", true, &verify_particle},
+        {"start", true, &conf_verify_particle},
+        {"end", true, &conf_verify_particle},
+        {"fill", true, &conf_verify_particle},
+        {"empty", true, &conf_verify_particle},
+        {"indicator", true, &conf_verify_particle},
         COMMON_ATTRS
     };
 
     static const struct attr_info ramp[] = {
-        {"tag", true, &verify_string},
+        {"tag", true, &conf_verify_string},
         {"items", true, &verify_list_items},
         COMMON_ATTRS
     };
 
     static const struct attr_info string[] = {
-        {"text", true, &verify_string},
-        {"max", false, &verify_int},
-        {"font", false, &verify_font},
-        {"foreground", false, &verify_color},
+        {"text", true, &conf_verify_string},
+        {"max", false, &conf_verify_int},
+        {"font", false, &conf_verify_font},
+        {"foreground", false, &conf_verify_color},
         {"deco", false, &verify_decoration},
         COMMON_ATTRS
     };
@@ -403,7 +380,7 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         if (strcmp(particles[i].name, particle_name) != 0)
             continue;
 
-        if (!verify_dict(chain_push(chain, particle_name), values,
+        if (!conf_verify_dict(chain_push(chain, particle_name), values,
                          particles[i].attrs, particles[i].count))
         {
             return false;
@@ -418,11 +395,11 @@ verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     return false;
 }
 
-static bool
-verify_particle(keychain_t *chain, const struct yml_node *node)
+bool
+conf_verify_particle(keychain_t *chain, const struct yml_node *node)
 {
     if (yml_is_dict(node))
-        return verify_particle_dictionary(chain, node);
+        return conf_verify_particle_dictionary(chain, node);
     else if (yml_is_list(node))
         return verify_list_items(chain, node);
     else {
@@ -453,7 +430,7 @@ verify_i3_content(keychain_t *chain, const struct yml_node *node)
             return false;
         }
 
-        if (!verify_particle(chain_push(chain, key), it.value))
+        if (!conf_verify_particle(chain_push(chain, key), it.value))
             return false;
 
         chain_pop(chain);
@@ -482,73 +459,73 @@ verify_module(keychain_t *chain, const struct yml_node *node)
     }
 
     static const struct attr_info alsa[] = {
-        {"card", true, &verify_string},
-        {"mixer", true, &verify_string},
-        {"content", true, &verify_particle},
+        {"card", true, &conf_verify_string},
+        {"mixer", true, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info backlight[] = {
-        {"name", true, &verify_string},
-        {"content", true, &verify_particle},
+        {"name", true, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info battery[] = {
-        {"name", true, &verify_string},
-        {"poll-interval", false, &verify_int},
-        {"content", true, &verify_particle},
+        {"name", true, &conf_verify_string},
+        {"poll-interval", false, &conf_verify_int},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info clock[] = {
-        {"date-format", false, &verify_string},
-        {"time-format", false, &verify_string},
-        {"content", true, &verify_particle},
+        {"date-format", false, &conf_verify_string},
+        {"time-format", false, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info label[] = {
-        {"content", true, &verify_particle},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info mpd[] = {
-        {"host", true, &verify_string},
-        {"port", false, &verify_int},
-        {"content", true, &verify_particle},
+        {"host", true, &conf_verify_string},
+        {"port", false, &conf_verify_int},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info i3[] = {
-        {"spacing", false, &verify_int},
-        {"left-spacing", false, &verify_int},
-        {"right-spacing", false, &verify_int},
+        {"spacing", false, &conf_verify_int},
+        {"left-spacing", false, &conf_verify_int},
+        {"right-spacing", false, &conf_verify_int},
         {"content", true, &verify_i3_content},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info network[] = {
-        {"name", true, &verify_string},
-        {"content", true, &verify_particle},
+        {"name", true, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info removables[] = {
-        {"spacing", false, &verify_int},
-        {"left-spacing", false, &verify_int},
-        {"right-spacing", false, &verify_int},
-        {"content", true, &verify_particle},
+        {"spacing", false, &conf_verify_int},
+        {"left-spacing", false, &conf_verify_int},
+        {"right-spacing", false, &conf_verify_int},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info xkb[] = {
-        {"content", true, &verify_particle},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
     static const struct attr_info xwindow[] = {
-        {"content", true, &verify_particle},
+        {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
     };
 
@@ -574,7 +551,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         if (strcmp(modules[i].name, mod_name) != 0)
             continue;
 
-        if (!verify_dict(chain_push(chain, mod_name), values,
+        if (!conf_verify_dict(chain_push(chain, mod_name), values,
                          modules[i].attrs, modules[i].count))
         {
             return false;
@@ -611,21 +588,21 @@ static bool
 verify_bar_border(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"width", true, &verify_int},
-        {"color", true, &verify_color},
+        {"width", true, &conf_verify_int},
+        {"color", true, &conf_verify_color},
     };
 
-    return verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
+    return conf_verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
 }
 
 static bool
 verify_bar_location(keychain_t *chain, const struct yml_node *node)
 {
-    return verify_enum(chain, node, (const char *[]){"top", "bottom"}, 2);
+    return conf_verify_enum(chain, node, (const char *[]){"top", "bottom"}, 2);
 }
 
 bool
-config_verify_bar(const struct yml_node *bar)
+conf_verify_bar(const struct yml_node *bar)
 {
     if (!yml_is_dict(bar)) {
         LOG_ERR("bar is not a dictionary");
@@ -636,27 +613,27 @@ config_verify_bar(const struct yml_node *bar)
     chain_push(&chain, "bar");
 
     static const struct attr_info attrs[] = {
-        {"height", true, &verify_int},
+        {"height", true, &conf_verify_int},
         {"location", true, &verify_bar_location},
-        {"background", true, &verify_color},
+        {"background", true, &conf_verify_color},
 
-        {"spacing", false, &verify_int},
-        {"left-spacing", false, &verify_int},
-        {"right-spacing", false, &verify_int},
+        {"spacing", false, &conf_verify_int},
+        {"left-spacing", false, &conf_verify_int},
+        {"right-spacing", false, &conf_verify_int},
 
-        {"margin", false, &verify_int},
-        {"left_margin", false, &verify_int},
-        {"right_margin", false, &verify_int},
+        {"margin", false, &conf_verify_int},
+        {"left_margin", false, &conf_verify_int},
+        {"right_margin", false, &conf_verify_int},
 
         {"border", false, &verify_bar_border},
-        {"font", false, &verify_font},
+        {"font", false, &conf_verify_font},
 
         {"left", false, &verify_module_list},
         {"center", false, &verify_module_list},
         {"right", false, &verify_module_list},
     };
 
-    bool ret = verify_dict(&chain, bar, attrs, sizeof(attrs) / sizeof(attrs[0]));
+    bool ret = conf_verify_dict(&chain, bar, attrs, sizeof(attrs) / sizeof(attrs[0]));
     tll_free(chain);
     return ret;
 }
