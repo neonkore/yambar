@@ -445,7 +445,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
     static const struct {
         const char *name;
         const struct module_info *info;
-    } modules_v2[] = {
+    } modules[] = {
         {"alsa", &module_alsa},
         {"backlight", &module_backlight},
         {"battery", &module_battery},
@@ -459,35 +459,14 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"xwindow", &module_xwindow},
     };
 
-    static const struct {
-        const char *name;
-        const struct attr_info *attrs;
-        size_t count;
-    } modules[] = {
-    };
-
-    for (size_t i = 0; i < sizeof(modules_v2) / sizeof(modules_v2[0]); i++) {
-        if (strcmp(modules_v2[i].name, mod_name) != 0)
-            continue;
-
-        if (!conf_verify_dict(chain_push(chain, mod_name),
-                              values,
-                              modules_v2[i].info->attrs,
-                              modules_v2[i].info->attr_count))
-        {
-            return false;
-        }
-
-        chain_pop(chain);
-        return true;
-    }
-
     for (size_t i = 0; i < sizeof(modules) / sizeof(modules[0]); i++) {
         if (strcmp(modules[i].name, mod_name) != 0)
             continue;
 
-        if (!conf_verify_dict(chain_push(chain, mod_name), values,
-                         modules[i].attrs, modules[i].count))
+        if (!conf_verify_dict(chain_push(chain, mod_name),
+                              values,
+                              modules[i].info->attrs,
+                              modules[i].info->attr_count))
         {
             return false;
         }
