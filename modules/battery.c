@@ -12,9 +12,9 @@
 #include <libudev.h>
 
 #define LOG_MODULE "battery"
-#include "../../log.h"
-#include "../../bar.h"
-#include "../../config.h"
+#include "../log.h"
+#include "../bar.h"
+#include "../config.h"
 
 enum state { STATE_FULL, STATE_CHARGING, STATE_DISCHARGING };
 

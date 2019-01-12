@@ -14,11 +14,11 @@
 
 #define LOG_MODULE "network"
 #define LOG_ENABLE_DBG 0
-#include "../../log.h"
-#include "../../bar.h"
-#include "../../config.h"
-#include "../../module.h"
-#include "../../tllist.h"
+#include "../log.h"
+#include "../bar.h"
+#include "../config.h"
+#include "../module.h"
+#include "../tllist.h"
 
 struct af_addr {
     int family;

@@ -3,7 +3,7 @@
 
 #include <poll.h>
 
-#include "../../config.h"
+#include "../config.h"
 
 struct private {
     struct particle *label;

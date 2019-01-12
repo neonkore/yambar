@@ -11,9 +11,9 @@
 #include <libudev.h>
 
 #define LOG_MODULE "battery"
-#include "../../log.h"
-#include "../../bar.h"
-#include "../../config.h"
+#include "../log.h"
+#include "../bar.h"
+#include "../config.h"
 
 struct private {
     struct particle *label;

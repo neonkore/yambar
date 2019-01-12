@@ -14,11 +14,11 @@
 
 #define LOG_MODULE "removables"
 #define LOG_ENABLE_DBG 0
-#include "../../log.h"
-#include "../../bar.h"
-#include "../../config.h"
-#include "../../particles/dynlist.h"
-#include "../../tllist.h"
+#include "../log.h"
+#include "../bar.h"
+#include "../config.h"
+#include "../particles/dynlist.h"
+#include "../tllist.h"
 
 typedef tll(char *) mount_point_list_t;
 

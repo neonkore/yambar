@@ -5,8 +5,8 @@
 
 #include <poll.h>
 
-#include "../../bar.h"
-#include "../../config.h"
+#include "../bar.h"
+#include "../config.h"
 
 struct private {
     struct particle *label;
