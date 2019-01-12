@@ -18,6 +18,7 @@
 #include "modules/mpd/mpd.h"
 #include "modules/network/network.h"
 #include "modules/removables/removables.h"
+#include "modules/xkb/xkb.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -439,11 +440,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    static const struct attr_info xkb[] = {
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
     static const struct attr_info xwindow[] = {
         {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
@@ -463,6 +459,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"mpd", &module_mpd},
         {"network", &module_network},
         {"removables", &module_removables},
+        {"xkb", &module_xkb},
     };
 
     static const struct {
@@ -470,7 +467,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"xkb", xkb, sizeof(xkb) / sizeof(xkb[0])},
         {"xwindow", xwindow, sizeof(xwindow) / sizeof(xwindow[0])},
     };
 
