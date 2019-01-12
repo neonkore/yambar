@@ -8,6 +8,8 @@
 #include "log.h"
 #include "tllist.h"
 
+#include "modules/alsa/alsa.h"
+
 static const char *
 err_prefix(const keychain_t *chain, const struct yml_node *node)
 {
@@ -458,13 +460,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    static const struct attr_info alsa[] = {
-        {"card", true, &conf_verify_string},
-        {"mixer", true, &conf_verify_string},
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
     static const struct attr_info backlight[] = {
         {"name", true, &conf_verify_string},
         {"content", true, &conf_verify_particle},
@@ -529,12 +524,19 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"anchors", false, NULL},
     };
 
+    /* TODO: this will dlopened later */
+    static const struct {
+        const char *name;
+        const struct module_info *info;
+    } modules_v2[] = {
+        {"alsa", &module_alsa},
+    };
+
     static const struct {
         const char *name;
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"alsa", alsa, sizeof(alsa) / sizeof(alsa[0])},
         {"backlight", backlight, sizeof(backlight) / sizeof(backlight[0])},
         {"battery", battery, sizeof(battery) / sizeof(battery[0])},
         {"clock", clock, sizeof(clock) / sizeof(clock[0])},
@@ -546,6 +548,22 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         {"xkb", xkb, sizeof(xkb) / sizeof(xkb[0])},
         {"xwindow", xwindow, sizeof(xwindow) / sizeof(xwindow[0])},
     };
+
+    for (size_t i = 0; i < sizeof(modules_v2) / sizeof(modules_v2[0]); i++) {
+        if (strcmp(modules_v2[i].name, mod_name) != 0)
+            continue;
+
+        if (!conf_verify_dict(chain_push(chain, mod_name),
+                              values,
+                              modules_v2[i].info->attrs,
+                              modules_v2[i].info->attr_count))
+        {
+            return false;
+        }
+
+        chain_pop(chain);
+        return true;
+    }
 
     for (size_t i = 0; i < sizeof(modules) / sizeof(modules[0]); i++) {
         if (strcmp(modules[i].name, mod_name) != 0)

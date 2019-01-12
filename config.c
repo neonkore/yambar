@@ -603,7 +603,7 @@ conf_to_bar(const struct yml_node *bar)
                 else if (strcmp(mod_name, "removables") == 0)
                     mods[idx] = module_removables_from_config(m.value, font);
                 else if (strcmp(mod_name, "alsa") == 0)
-                    mods[idx] = module_alsa_from_config(m.value, font);
+                    mods[idx] = module_alsa.from_conf(m.value, font);
                 else
                     assert(false);
             }

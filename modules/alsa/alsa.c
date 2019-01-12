@@ -251,7 +251,7 @@ run(struct module_run_context *ctx)
 }
 
 static struct module *
-module_alsa(const char *card, const char *mixer, struct particle *label)
+alsa_new(const char *card, const char *mixer, struct particle *label)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->label = label;
@@ -269,16 +269,27 @@ module_alsa(const char *card, const char *mixer, struct particle *label)
     return mod;
 }
 
-struct module *
-module_alsa_from_config(const struct yml_node *node,
-                        const struct font *parent_font)
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
 {
     const struct yml_node *card = yml_get_value(node, "card");
     const struct yml_node *mixer = yml_get_value(node, "mixer");
     const struct yml_node *content = yml_get_value(node, "content");
 
-    return module_alsa(
+    return alsa_new(
         yml_value_as_string(card),
         yml_value_as_string(mixer),
         conf_to_particle(content, parent_font));
 }
+
+const struct module_info module_alsa = {
+    .from_conf = &from_conf,
+    .attr_count = 4,
+    .attrs = {
+        {"card", true, &conf_verify_string},
+        {"mixer", true, &conf_verify_string},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL}
+    },
+};
