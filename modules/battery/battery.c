@@ -16,6 +16,7 @@
 #define LOG_MODULE "battery"
 #include "../../log.h"
 #include "../../bar.h"
+#include "../../config.h"
 
 enum state { STATE_FULL, STATE_CHARGING, STATE_DISCHARGING };
 
@@ -326,9 +327,8 @@ out:
     return ret;
 }
 
-struct module *
-module_battery(const char *battery, struct particle *label,
-               int poll_interval_secs)
+static struct module *
+battery_new(const char *battery, struct particle *label, int poll_interval_secs)
 {
     struct private *m = malloc(sizeof(*m));
     m->label = label;
@@ -344,3 +344,28 @@ module_battery(const char *battery, struct particle *label,
     mod->content = &content;
     return mod;
 }
+
+static struct module *
+from_conf(const struct yml_node *node, const struct font *parent_font)
+{
+    const struct yml_node *c = yml_get_value(node, "content");
+    const struct yml_node *name = yml_get_value(node, "name");
+    const struct yml_node *poll_interval = yml_get_value(node, "poll_interval");
+
+    return battery_new(
+        yml_value_as_string(name),
+        conf_to_particle(c, parent_font),
+        poll_interval != NULL ? yml_value_as_int(poll_interval) : 60);
+}
+
+const struct module_info module_battery = {
+    .from_conf = &from_conf,
+    .attr_count = 4,
+    .attrs = {
+        {"name", true, &conf_verify_string},
+        {"poll-interval", false, &conf_verify_int},
+        {"content", true, &conf_verify_particle},
+        {"anchors", false, NULL},
+        {NULL, false, NULL},
+    },
+};

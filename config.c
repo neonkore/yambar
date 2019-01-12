@@ -417,20 +417,6 @@ module_i3_from_config(const struct yml_node *node, const struct font *parent_fon
 }
 
 static struct module *
-module_battery_from_config(const struct yml_node *node,
-                           const struct font *parent_font)
-{
-    const struct yml_node *c = yml_get_value(node, "content");
-    const struct yml_node *name = yml_get_value(node, "name");
-    const struct yml_node *poll_interval = yml_get_value(node, "poll_interval");
-
-    return module_battery(
-        yml_value_as_string(name),
-        conf_to_particle(c, parent_font),
-        poll_interval != NULL ? yml_value_as_int(poll_interval) : 60);
-}
-
-static struct module *
 module_xkb_from_config(const struct yml_node *node,
                        const struct font *parent_font)
 {
@@ -575,6 +561,8 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_alsa.from_conf(m.value, font);
                 else if (strcmp(mod_name, "backlight") == 0)
                     mods[idx] = module_backlight.from_conf(m.value, font);
+                else if (strcmp(mod_name, "battery") == 0)
+                    mods[idx] = module_battery.from_conf(m.value, font);
 
                 else if (strcmp(mod_name, "label") == 0)
                     mods[idx] = module_label_from_config(m.value, font);
@@ -584,8 +572,6 @@ conf_to_bar(const struct yml_node *bar)
                     mods[idx] = module_xwindow_from_config(m.value, font);
                 else if (strcmp(mod_name, "i3") == 0)
                     mods[idx] = module_i3_from_config(m.value, font);
-                else if (strcmp(mod_name, "battery") == 0)
-                    mods[idx] = module_battery_from_config(m.value, font);
                 else if (strcmp(mod_name, "xkb") == 0)
                     mods[idx] = module_xkb_from_config(m.value, font);
                 else if (strcmp(mod_name, "mpd") == 0)

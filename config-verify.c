@@ -10,6 +10,7 @@
 
 #include "modules/alsa/alsa.h"
 #include "modules/backlight/backlight.h"
+#include "modules/battery/battery.h"
 
 static const char *
 err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -461,13 +462,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    static const struct attr_info battery[] = {
-        {"name", true, &conf_verify_string},
-        {"poll-interval", false, &conf_verify_int},
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
-    };
-
     static const struct attr_info clock[] = {
         {"date-format", false, &conf_verify_string},
         {"time-format", false, &conf_verify_string},
@@ -526,6 +520,7 @@ verify_module(keychain_t *chain, const struct yml_node *node)
     } modules_v2[] = {
         {"alsa", &module_alsa},
         {"backlight", &module_backlight},
+        {"battery", &module_battery},
     };
 
     static const struct {
@@ -533,7 +528,6 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } modules[] = {
-        {"battery", battery, sizeof(battery) / sizeof(battery[0])},
         {"clock", clock, sizeof(clock) / sizeof(clock[0])},
         {"i3", i3, sizeof(i3) / sizeof(i3[0])},
         {"label", label, sizeof(label) / sizeof(label[0])},
