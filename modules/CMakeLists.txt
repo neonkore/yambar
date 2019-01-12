@@ -26,7 +26,6 @@ target_compile_options(i3 PRIVATE ${JSON_CFLAGS_OTHER})
 target_include_directories(i3 PRIVATE ${JSON_INCLUDE_DIRS})
 target_link_libraries(i3 module-sdk ${JSON_LIBRARIES})
 
-
 add_library(label MODULE label.c)
 target_link_libraries(label module-sdk)
 
