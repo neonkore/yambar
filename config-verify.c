@@ -9,6 +9,8 @@
 #include "plugin.h"
 #include "tllist.h"
 
+#include "particles/empty.h"
+
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
 {
@@ -315,10 +317,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},
 
-    static const struct attr_info empty[] = {
-        COMMON_ATTRS
-    };
-
     static const struct attr_info list[] = {
         {"items", true, &verify_list_items},
         {"spacing", false, &conf_verify_int},
@@ -365,16 +363,37 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 
     static const struct {
         const char *name;
+        const struct particle_info *info;
+    } particles_v2[] = {
+        {"empty", &particle_empty},
+    };
+
+    static const struct {
+        const char *name;
         const struct attr_info *attrs;
         size_t count;
     } particles[] = {
-        {"empty", empty, sizeof(empty) / sizeof(empty[0])},
         {"list", list, sizeof(list) / sizeof(list[0])},
         {"map", map, sizeof(map) / sizeof(map[0])},
         {"progress-bar", progress_bar, sizeof(progress_bar) / sizeof(progress_bar[0])},
         {"ramp", ramp, sizeof(ramp) / sizeof(ramp[0])},
         {"string", string, sizeof(string) / sizeof(string[0])},
     };
+
+    for (size_t i = 0; i < sizeof(particles_v2) / sizeof(particles_v2[0]); i++) {
+        if (strcmp(particles_v2[i].name, particle_name) != 0)
+            continue;
+
+        if (!conf_verify_dict(chain_push(chain, particle_name), values,
+                         particles_v2[i].info->attrs,
+                              particles_v2[i].info->attr_count))
+        {
+            return false;
+        }
+
+        chain_pop(chain);
+        return true;
+    }
 
     for (size_t i = 0; i < sizeof(particles) / sizeof(particles[0]); i++) {
         if (strcmp(particles[i].name, particle_name) != 0)

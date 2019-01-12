@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 
+#include "../config.h"
+
 static int
 begin_expose(struct exposable *exposable)
 {
@@ -29,9 +31,8 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     return exposable;
 }
 
-struct particle *
-particle_empty_new(int left_margin, int right_margin,
-                   const char *on_click_template)
+static struct particle *
+empty_new(int left_margin, int right_margin, const char *on_click_template)
 {
     struct particle *particle = particle_common_new(
         left_margin, right_margin, on_click_template);
@@ -39,3 +40,18 @@ particle_empty_new(int left_margin, int right_margin,
     particle->instantiate = &instantiate;
     return particle;
 }
+
+static struct particle *
+from_conf(const struct yml_node *node, const struct font *parent_font,
+          int left_margin, int right_margin, const char *on_click_template)
+{
+    return empty_new(left_margin, right_margin, on_click_template);
+}
+
+const struct particle_info particle_empty = {
+    .from_conf = &from_conf,
+    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 0,
+    .attrs = {
+        PARTICLE_COMMON_ATTRS,
+    },
+};

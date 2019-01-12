@@ -137,14 +137,6 @@ deco_from_config(const struct yml_node *node)
     return NULL;
 }
 
-static struct particle *
-particle_empty_from_config(const struct yml_node *node,
-                           const struct font *parent_font,
-                           int left_margin, int right_margin,
-                           const char *on_click_template)
-{
-    return particle_empty_new(left_margin, right_margin, on_click_template);
-}
 
 static struct particle *
 particle_string_from_config(const struct yml_node *node,
@@ -323,8 +315,9 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
 
     struct particle *ret = NULL;
     if (strcmp(type, "empty") == 0)
-        ret = particle_empty_from_config(
+        ret = particle_empty.from_conf(
             pair.value, parent_font, left, right, on_click_template);
+
     else if (strcmp(type, "string") == 0)
         ret = particle_string_from_config(
             pair.value, parent_font, left, right, on_click_template);
