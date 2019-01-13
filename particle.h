@@ -22,12 +22,13 @@ struct particle_info {
     size_t attr_count;  /* TODO: reomve, NULL-terminate attr list instead */
     const struct attr_info attrs[];
 
-#define PARTICLE_COMMON_ATTRS_COUNT 4
+#define PARTICLE_COMMON_ATTRS_COUNT 5
 #define PARTICLE_COMMON_ATTRS                      \
     {"margin", false, &conf_verify_int},           \
     {"left-margin", false, &conf_verify_int},      \
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},      \
+    {"deco", false, &conf_verify_decoration},      \
     {NULL, false, NULL}
 
 };

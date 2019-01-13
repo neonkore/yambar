@@ -173,13 +173,12 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
 
 const struct particle_info plugin_info = {
     .from_conf = &from_conf,
-    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 5,
+    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 4,
     .attrs = {
         {"text", true, &conf_verify_string},
         {"max", false, &conf_verify_int},
         {"font", false, &conf_verify_font},
         {"foreground", false, &conf_verify_color},
-        {"deco", false, &conf_verify_decoration},
         PARTICLE_COMMON_ATTRS,
     },
 };
