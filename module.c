@@ -13,8 +13,6 @@ module_common_new(void)
 
     mod->destroy = &module_default_destroy;
     mod->begin_expose = &module_default_begin_expose;
-    mod->expose = &module_default_expose;
-    mod->end_expose = &module_default_end_expose;
 
     /* No defaults for these; must be provided by implementation */
     mod->run = NULL;
@@ -43,17 +41,4 @@ module_default_begin_expose(struct module *mod)
     struct exposable *e = mod->content(mod);
     e->begin_expose(e);
     return e;
-}
-
-void
-module_default_expose(const struct module *mod, const struct exposable *exposable,
-                      cairo_t *cr, int x, int y, int height)
-{
-    exposable->expose(exposable, cr, x, y, height);
-}
-
-void
-module_default_end_expose(const struct module *mod, struct exposable *exposable)
-{
-    exposable->destroy(exposable);
 }

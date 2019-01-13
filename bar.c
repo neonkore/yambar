@@ -146,7 +146,7 @@ expose(const struct bar *_bar)
         struct exposable *e = bar->left.exps[i];
 
         if (e != NULL)
-            m->end_expose(m, e);
+            e->destroy(e);
 
         bar->left.exps[i] = m->begin_expose(m);
     }
@@ -156,7 +156,7 @@ expose(const struct bar *_bar)
         struct exposable *e = bar->center.exps[i];
 
         if (e != NULL)
-            m->end_expose(m, e);
+            e->destroy(e);
 
         bar->center.exps[i] = m->begin_expose(m);
     }
@@ -166,7 +166,7 @@ expose(const struct bar *_bar)
         struct exposable *e = bar->right.exps[i];
 
         if (e != NULL)
-            m->end_expose(m, e);
+            e->destroy(e);
 
         bar->right.exps[i] = m->begin_expose(m);
     }
@@ -177,17 +177,15 @@ expose(const struct bar *_bar)
     int y = bar->border.width;
     int x = bar->border.width + bar->left_margin - bar->left_spacing;
     for (size_t i = 0; i < bar->left.count; i++) {
-        const struct module *m = bar->left.mods[i];
         const struct exposable *e = bar->left.exps[i];
-        m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        e->expose(e, bar->cairo, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     x = bar->width / 2 - center_width / 2 - bar->left_spacing;
     for (size_t i = 0; i < bar->center.count; i++) {
-        const struct module *m = bar->center.mods[i];
         const struct exposable *e = bar->center.exps[i];
-        m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        e->expose(e, bar->cairo, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
@@ -198,9 +196,8 @@ expose(const struct bar *_bar)
         bar->border.width);
 
     for (size_t i = 0; i < bar->right.count; i++) {
-        const struct module *m = bar->right.mods[i];
         const struct exposable *e = bar->right.exps[i];
-        m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        e->expose(e, bar->cairo, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
@@ -678,7 +675,7 @@ run(struct bar_run_context *run_ctx)
         struct exposable *e = bar->left.exps[i];
 
         if (e != NULL)
-            m->end_expose(m, e);
+            e->destroy(e);
         m->destroy(m);
     }
     for (size_t i = 0; i < bar->center.count; i++) {
@@ -686,7 +683,7 @@ run(struct bar_run_context *run_ctx)
         struct exposable *e = bar->center.exps[i];
 
         if (e != NULL)
-            m->end_expose(m, e);
+            e->destroy(e);
         m->destroy(m);
     }
     for (size_t i = 0; i < bar->right.count; i++) {
@@ -694,7 +691,7 @@ run(struct bar_run_context *run_ctx)
         struct exposable *e = bar->right.exps[i];
 
         if (e != NULL)
-            m->end_expose(m, e);
+            e->destroy(e);
         m->destroy(m);
     }
 

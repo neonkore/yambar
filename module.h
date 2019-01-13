@@ -68,21 +68,10 @@ struct module {
      * 'content()' instead (see above).
      */
     struct exposable *(*begin_expose)(struct module *mod);
-    void (*expose)(const struct module *mod, const struct exposable *exposable,
-                   cairo_t *cr, int x, int y, int height);
-    void (*end_expose)(const struct module *mod, struct exposable *exosable);
-
 };
 
 struct module *module_common_new(void);
-void module_signal_ready(struct module_run_context *ctx);
-
 void module_default_destroy(struct module *mod);
 
+void module_signal_ready(struct module_run_context *ctx);
 struct exposable *module_default_begin_expose(struct module *mod);
-
-void module_default_expose(
-    const struct module *mod, const struct exposable *exposbale,
-    cairo_t *cr, int x, int y, int height);
-
-void module_default_end_expose(const struct module *mod, struct exposable *exposable);
