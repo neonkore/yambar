@@ -4,6 +4,9 @@ add_library(particle-sdk INTERFACE)
 target_compile_options(particle-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
 target_include_directories(particle-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
 
+add_library(dynlist SHARED dynlist.c dynlist.h)
+target_link_libraries(dynlist particle-sdk)
+
 set(CMAKE_SHARED_MODULE_PREFIX particle_)
 
 add_library(empty MODULE empty.c)
@@ -32,5 +35,7 @@ install(
   progress-bar
   ramp
   string
+
+  dynlist
 
   DESTINATION lib/f00bar)

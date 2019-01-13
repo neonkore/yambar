@@ -34,8 +34,6 @@ add_executable(f00bar
   tag.c tag.h
   xcb.c xcb.h
   yml.c yml.h
-
-  particles/dynlist.c particles/dynlist.h
   )
 
 # Make global symbols in f00bar visible to dlopen:ed plugins
