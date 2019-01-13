@@ -6,19 +6,11 @@ target_include_directories(decoration-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
 
 set(CMAKE_SHARED_MODULE_PREFIX decoration_)
 
-add_library(background MODULE background.c)
-target_link_libraries(background decoration-sdk)
+set(decorations background stack underline)
 
-add_library(stack MODULE stack.c)
-target_link_libraries(stack decoration-sdk)
+foreach (deco ${decorations})
+  add_library(${deco} MODULE ${deco}.c)
+  target_link_libraries(${deco} decoration-sdk)
+endforeach ()
 
-add_library(underline MODULE underline.c)
-target_link_libraries(underline decoration-sdk)
-
-install(
-  TARGETS
-  background
-  stack
-  underline
-
-  DESTINATION lib/f00bar)
+install(TARGETS ${decorations} DESTINATION lib/f00bar)
