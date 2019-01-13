@@ -280,7 +280,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
         conf_to_particle(content, parent_font));
 }
 
-const struct module_info module_info = {
+const struct module_info plugin_info = {
     .from_conf = &from_conf,
     .attr_count = 4,
     .attrs = {

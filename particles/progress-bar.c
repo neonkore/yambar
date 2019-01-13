@@ -7,6 +7,7 @@
 #define LOG_MODULE "progress_bar"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
+#include "../config.h"
 
 struct private {
     char *tag;
@@ -206,14 +207,14 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     return exposable;
 }
 
-struct particle *
-particle_progress_bar_new(const char *tag, int width,
-                          struct particle *start_marker,
-                          struct particle *end_marker,
-                          struct particle *fill, struct particle *empty,
-                          struct particle *indicator,
-                          int left_margin, int right_margin,
-                          const char *on_click_template)
+static struct particle *
+progress_bar_new(const char *tag, int width,
+                 struct particle *start_marker,
+                 struct particle *end_marker,
+                 struct particle *fill, struct particle *empty,
+                 struct particle *indicator,
+                 int left_margin, int right_margin,
+                 const char *on_click_template)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->tag = strdup(tag);
@@ -232,3 +233,42 @@ particle_progress_bar_new(const char *tag, int width,
 
     return particle;
 }
+
+static struct particle *
+from_conf(const struct yml_node *node, const struct font *parent_font,
+          int left_margin, int right_margin, const char *on_click_template)
+{
+    const struct yml_node *tag = yml_get_value(node, "tag");
+    const struct yml_node *length = yml_get_value(node, "length");
+    const struct yml_node *start = yml_get_value(node, "start");
+    const struct yml_node *end = yml_get_value(node, "end");
+    const struct yml_node *fill = yml_get_value(node, "fill");
+    const struct yml_node *empty = yml_get_value(node, "empty");
+    const struct yml_node *indicator = yml_get_value(node, "indicator");
+
+    return progress_bar_new(
+        yml_value_as_string(tag),
+        yml_value_as_int(length),
+        conf_to_particle(start, parent_font),
+        conf_to_particle(end, parent_font),
+        conf_to_particle(fill, parent_font),
+        conf_to_particle(empty, parent_font),
+        conf_to_particle(indicator, parent_font),
+        left_margin, right_margin, on_click_template);
+}
+
+const struct particle_info plugin_info = {
+    .from_conf = &from_conf,
+    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 7,
+    .attrs = {
+        {"tag", true, &conf_verify_string},
+        {"length", true, &conf_verify_int},
+        /* TODO: make these optional? Default to empty */
+        {"start", true, &conf_verify_particle},
+        {"end", true, &conf_verify_particle},
+        {"fill", true, &conf_verify_particle},
+        {"empty", true, &conf_verify_particle},
+        {"indicator", true, &conf_verify_particle},
+        PARTICLE_COMMON_ATTRS,
+    },
+};

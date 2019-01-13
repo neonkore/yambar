@@ -5,20 +5,14 @@
 #include <string.h>
 #include <assert.h>
 
+#include <dlfcn.h>
+
 #include "color.h"
 
 #include "decoration.h"
 #include "decorations/background.h"
 #include "decorations/stack.h"
 #include "decorations/underline.h"
-
-#include "particle.h"
-#include "particles/empty.h"
-#include "particles/list.h"
-#include "particles/map.h"
-#include "particles/progress-bar.h"
-#include "particles/ramp.h"
-#include "particles/string.h"
 
 #include "module.h"
 #include "config-verify.h"
@@ -47,10 +41,14 @@ hex_byte(const char hex[2])
     return upper << 4 | lower;
 }
 
-static struct rgba
-color_from_hexstr(const char *hex)
+struct rgba
+conf_to_color(const struct yml_node *node)
 {
+    const char *hex = yml_value_as_string(node);
+
+    assert(hex != NULL);
     assert(strlen(hex) == 8);
+
     uint8_t red = hex_byte(&hex[0]);
     uint8_t green = hex_byte(&hex[2]);
     uint8_t blue = hex_byte(&hex[4]);
@@ -71,8 +69,8 @@ color_from_hexstr(const char *hex)
     return rgba;
 }
 
-static struct font *
-font_from_config(const struct yml_node *node)
+struct font *
+conf_to_font(const struct yml_node *node)
 {
     const struct yml_node *family = yml_get_value(node, "family");
     return font_new(family != NULL ? yml_value_as_string(family) : "monospace");
@@ -82,7 +80,7 @@ static struct deco *
 deco_background_from_config(const struct yml_node *node)
 {
     const struct yml_node *color = yml_get_value(node, "color");
-    return deco_background(color_from_hexstr(yml_value_as_string(color)));
+    return deco_background(conf_to_color(color));
 }
 
 static struct deco *
@@ -90,10 +88,7 @@ deco_underline_from_config(const struct yml_node *node)
 {
     const struct yml_node *size = yml_get_value(node, "size");
     const struct yml_node *color = yml_get_value(node, "color");
-
-    return deco_underline(
-        yml_value_as_int(size),
-        color_from_hexstr(yml_value_as_string(color)));
+    return deco_underline(yml_value_as_int(size), conf_to_color(color));
 }
 
 static struct deco *deco_from_config(const struct yml_node *node);
@@ -138,150 +133,6 @@ deco_from_config(const struct yml_node *node)
 }
 
 static struct particle *
-particle_empty_from_config(const struct yml_node *node,
-                           const struct font *parent_font,
-                           int left_margin, int right_margin,
-                           const char *on_click_template)
-{
-    return particle_empty_new(left_margin, right_margin, on_click_template);
-}
-
-static struct particle *
-particle_string_from_config(const struct yml_node *node,
-                            const struct font *parent_font,
-                            int left_margin, int right_margin,
-                            const char *on_click_template)
-{
-    const struct yml_node *text = yml_get_value(node, "text");
-    const struct yml_node *max = yml_get_value(node, "max");
-    const struct yml_node *font = yml_get_value(node, "font");
-    const struct yml_node *foreground = yml_get_value(node, "foreground");
-
-    struct rgba fg_color = foreground != NULL
-        ? color_from_hexstr(yml_value_as_string(foreground)) :
-        (struct rgba){1.0, 1.0, 1.0, 1.0};
-
-    return particle_string_new(
-        yml_value_as_string(text),
-        max != NULL ? yml_value_as_int(max) : 0,
-        font != NULL ? font_from_config(font) : font_clone(parent_font),
-        fg_color, left_margin, right_margin, on_click_template);
-}
-
-static struct particle *
-particle_list_from_config(const struct yml_node *node,
-                          const struct font *parent_font,
-                          int left_margin, int right_margin,
-                          const char *on_click_template)
-{
-    const struct yml_node *items = yml_get_value(node, "items");
-
-    const struct yml_node *spacing = yml_get_value(node, "spacing");
-    const struct yml_node *_left_spacing = yml_get_value(node, "left-spacing");
-    const struct yml_node *_right_spacing = yml_get_value(node, "right-spacing");
-
-    int left_spacing = spacing != NULL ? yml_value_as_int(spacing) :
-        _left_spacing != NULL ? yml_value_as_int(_left_spacing) : 0;
-    int right_spacing = spacing != NULL ? yml_value_as_int(spacing) :
-        _right_spacing != NULL ? yml_value_as_int(_right_spacing) : 2;
-
-    size_t count = yml_list_length(items);
-    struct particle *parts[count];
-
-    size_t idx = 0;
-    for (struct yml_list_iter it = yml_list_iter(items);
-         it.node != NULL;
-         yml_list_next(&it), idx++)
-    {
-        parts[idx] = conf_to_particle(it.node, parent_font);
-    }
-
-    return particle_list_new(
-        parts, count, left_spacing, right_spacing, left_margin, right_margin,
-        on_click_template);
-}
-
-static struct particle *
-particle_map_from_config(const struct yml_node *node,
-                         const struct font *parent_font,
-                         int left_margin, int right_margin,
-                         const char *on_click_template)
-{
-    const struct yml_node *tag = yml_get_value(node, "tag");
-    const struct yml_node *values = yml_get_value(node, "values");
-    const struct yml_node *def = yml_get_value(node, "default");
-
-    struct particle_map particle_map[yml_dict_length(values)];
-
-    size_t idx = 0;
-    for (struct yml_dict_iter it = yml_dict_iter(values);
-         it.key != NULL;
-         yml_dict_next(&it), idx++)
-    {
-        particle_map[idx].tag_value = yml_value_as_string(it.key);
-        particle_map[idx].particle = conf_to_particle(it.value, parent_font);
-    }
-
-    struct particle *default_particle = def != NULL
-        ? conf_to_particle(def, parent_font)
-        : NULL;
-
-    return particle_map_new(
-        yml_value_as_string(tag), particle_map, yml_dict_length(values),
-        default_particle, left_margin, right_margin, on_click_template);
-}
-
-static struct particle *
-particle_ramp_from_config(const struct yml_node *node,
-                          const struct font *parent_font,
-                          int left_margin, int right_margin,
-                          const char *on_click_template)
-{
-    const struct yml_node *tag = yml_get_value(node, "tag");
-    const struct yml_node *items = yml_get_value(node, "items");
-
-    size_t count = yml_list_length(items);
-    struct particle *parts[count];
-
-    size_t idx = 0;
-    for (struct yml_list_iter it = yml_list_iter(items);
-         it.node != NULL;
-         yml_list_next(&it), idx++)
-    {
-        parts[idx] = conf_to_particle(it.node, parent_font);
-    }
-
-    return particle_ramp_new(
-        yml_value_as_string(tag), parts, count, left_margin, right_margin,
-        on_click_template);
-}
-
-static struct particle *
-particle_progress_bar_from_config(const struct yml_node *node,
-                                  const struct font *parent_font,
-                                  int left_margin, int right_margin,
-                                  const char *on_click_template)
-{
-    const struct yml_node *tag = yml_get_value(node, "tag");
-    const struct yml_node *length = yml_get_value(node, "length");
-    const struct yml_node *start = yml_get_value(node, "start");
-    const struct yml_node *end = yml_get_value(node, "end");
-    const struct yml_node *fill = yml_get_value(node, "fill");
-    const struct yml_node *empty = yml_get_value(node, "empty");
-    const struct yml_node *indicator = yml_get_value(node, "indicator");
-
-    return particle_progress_bar_new(
-        yml_value_as_string(tag),
-        yml_value_as_int(length),
-        conf_to_particle(start, parent_font),
-        conf_to_particle(end, parent_font),
-        conf_to_particle(fill, parent_font),
-        conf_to_particle(empty, parent_font),
-        conf_to_particle(indicator, parent_font),
-        left_margin, right_margin, on_click_template);
-}
-
-static struct particle *
 particle_simple_list_from_config(const struct yml_node *node,
                                  const struct font *parent_font)
 {
@@ -294,6 +145,18 @@ particle_simple_list_from_config(const struct yml_node *node,
          yml_list_next(&it), idx++)
     {
         parts[idx] = conf_to_particle(it.node, parent_font);
+    }
+
+    /* Lazy-loaded function pointer to particle_list_new() */
+    static struct particle *(*particle_list_new)(
+        struct particle *particles[], size_t count,
+        int left_spacing, int right_spacing, int left_margin, int right_margin,
+        const char *on_click_template) = NULL;
+
+    if (particle_list_new == NULL) {
+        const struct plugin *plug = plugin_load("list", PLUGIN_PARTICLE);
+        particle_list_new = dlsym(plug->lib, "particle_list_new");
+        assert(particle_list_new != NULL);
     }
 
     return particle_list_new(parts, count, 0, 2, 0, 0, NULL);
@@ -321,27 +184,11 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     const char *on_click_template
         = on_click != NULL ? yml_value_as_string(on_click) : NULL;
 
-    struct particle *ret = NULL;
-    if (strcmp(type, "empty") == 0)
-        ret = particle_empty_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "string") == 0)
-        ret = particle_string_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "list") == 0)
-        ret = particle_list_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "map") == 0)
-        ret = particle_map_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "ramp") == 0)
-        ret = particle_ramp_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "progress-bar") == 0)
-        ret = particle_progress_bar_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else
-        assert(false);
+    const struct particle_info *info = plugin_load_particle(type);
+    assert(info != NULL);
+
+    struct particle *ret = info->from_conf(
+        pair.value, parent_font, left, right, on_click_template);
 
     const struct yml_node *deco_node = yml_get_value(pair.value, "deco");
 
@@ -371,7 +218,7 @@ conf_to_bar(const struct yml_node *bar)
         ? BAR_TOP : BAR_BOTTOM;
 
     const struct yml_node *background = yml_get_value(bar, "background");
-    conf.background = color_from_hexstr(yml_value_as_string(background));
+    conf.background = conf_to_color(background);
 
     /*
      * Optional attributes
@@ -410,7 +257,7 @@ conf_to_bar(const struct yml_node *bar)
             conf.border.width = yml_value_as_int(width);
 
         if (color != NULL)
-            conf.border.color = color_from_hexstr(yml_value_as_string(color));
+            conf.border.color = conf_to_color(color);
     }
 
     /* Create a default font */
@@ -419,7 +266,7 @@ conf_to_bar(const struct yml_node *bar)
     const struct yml_node *font_node = yml_get_value(bar, "font");
     if (font_node != NULL) {
         font_destroy(font);
-        font = font_from_config(font_node);
+        font = conf_to_font(font_node);
     }
 
     const struct yml_node *left = yml_get_value(bar, "left");

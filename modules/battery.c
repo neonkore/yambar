@@ -356,7 +356,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
         poll_interval != NULL ? yml_value_as_int(poll_interval) : 60);
 }
 
-const struct module_info module_info = {
+const struct module_info plugin_info = {
     .from_conf = &from_conf,
     .attr_count = 4,
     .attrs = {

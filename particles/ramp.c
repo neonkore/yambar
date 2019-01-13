@@ -6,6 +6,8 @@
 
 #include <stdio.h>
 
+#include "../config.h"
+
 struct private {
     char *tag;
     struct particle **particles;
@@ -132,10 +134,9 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     return exposable;
 }
 
-struct particle *
-particle_ramp_new(const char *tag, struct particle *particles[], size_t count,
-                  int left_margin, int right_margin,
-                  const char *on_click_template)
+static struct particle *
+ramp_new(const char *tag, struct particle *particles[], size_t count,
+         int left_margin, int right_margin, const char *on_click_template)
 {
     struct particle *particle = particle_common_new(
         left_margin, right_margin, on_click_template);
@@ -153,3 +154,36 @@ particle_ramp_new(const char *tag, struct particle *particles[], size_t count,
     particle->private = priv;
     return particle;
 }
+
+static struct particle *
+from_conf(const struct yml_node *node, const struct font *parent_font,
+          int left_margin, int right_margin, const char *on_click_template)
+{
+    const struct yml_node *tag = yml_get_value(node, "tag");
+    const struct yml_node *items = yml_get_value(node, "items");
+
+    size_t count = yml_list_length(items);
+    struct particle *parts[count];
+
+    size_t idx = 0;
+    for (struct yml_list_iter it = yml_list_iter(items);
+         it.node != NULL;
+         yml_list_next(&it), idx++)
+    {
+        parts[idx] = conf_to_particle(it.node, parent_font);
+    }
+
+    return ramp_new(
+        yml_value_as_string(tag), parts, count, left_margin, right_margin,
+        on_click_template);
+}
+
+const struct particle_info plugin_info = {
+    .from_conf = &from_conf,
+    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 2,
+    .attrs = {
+        {"tag", true, &conf_verify_string},
+        {"items", true, &conf_verify_particle_list_items},
+         PARTICLE_COMMON_ATTRS,
+    },
+};

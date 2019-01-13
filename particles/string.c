@@ -7,6 +7,7 @@
 #define LOG_MODULE "string"
 #define LOG_ENABLE_DBG 1
 #include "../log.h"
+#include "../config.h"
 
 struct private {
     char *text;
@@ -130,10 +131,10 @@ particle_destroy(struct particle *particle)
     particle_default_destroy(particle);
 }
 
-struct particle *
-particle_string_new(const char *text, size_t max_len, struct font *font,
-                    struct rgba foreground, int left_margin, int right_margin,
-                    const char *on_click_template)
+static struct particle *
+string_new(const char *text, size_t max_len, struct font *font,
+           struct rgba foreground, int left_margin, int right_margin,
+           const char *on_click_template)
 {
     struct private *p = malloc(sizeof(*p));
     p->text = strdup(text);
@@ -150,3 +151,34 @@ particle_string_new(const char *text, size_t max_len, struct font *font,
 
     return particle;
 }
+
+static struct particle *
+from_conf(const struct yml_node *node, const struct font *parent_font,
+          int left_margin, int right_margin, const char *on_click_template)
+{
+    const struct yml_node *text = yml_get_value(node, "text");
+    const struct yml_node *max = yml_get_value(node, "max");
+    const struct yml_node *font = yml_get_value(node, "font");
+    const struct yml_node *foreground = yml_get_value(node, "foreground");
+
+    struct rgba fg_color = foreground != NULL
+        ? conf_to_color(foreground) : (struct rgba){1.0, 1.0, 1.0, 1.0};
+
+    return string_new(
+        yml_value_as_string(text),
+        max != NULL ? yml_value_as_int(max) : 0,
+        font != NULL ? conf_to_font(font) : font_clone(parent_font),
+        fg_color, left_margin, right_margin, on_click_template);
+}
+
+const struct particle_info plugin_info = {
+    .from_conf = &from_conf,
+    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 4,
+    .attrs = {
+        {"text", true, &conf_verify_string},
+        {"max", false, &conf_verify_int},
+        {"font", false, &conf_verify_font},
+        {"foreground", false, &conf_verify_color},
+        PARTICLE_COMMON_ATTRS,
+    },
+};

@@ -4,6 +4,15 @@
 #include <string.h>
 #include <assert.h>
 
+#define LOG_MODULE "map"
+#include "../log.h"
+#include "../config.h"
+
+struct particle_map {
+    const char *tag_value;
+    struct particle *particle;
+};
+
 struct private {
     char *tag;
     struct particle *default_particle;
@@ -136,11 +145,11 @@ particle_destroy(struct particle *particle)
     particle_default_destroy(particle);
 }
 
-struct particle *
-particle_map_new(const char *tag, const struct particle_map *particle_map,
-                 size_t count, struct particle *default_particle,
-                 int left_margin, int right_margin,
-                 const char *on_click_template)
+static struct particle *
+map_new(const char *tag, const struct particle_map *particle_map,
+        size_t count, struct particle *default_particle,
+        int left_margin, int right_margin,
+        const char *on_click_template)
 {
     struct particle *particle = particle_common_new(
         left_margin, right_margin, on_click_template);
@@ -161,3 +170,71 @@ particle_map_new(const char *tag, const struct particle_map *particle_map,
     particle->private = priv;
     return particle;
 }
+
+static bool
+verify_map_values(keychain_t *chain, const struct yml_node *node)
+{
+    if (!yml_is_dict(node)) {
+        LOG_ERR(
+            "%s: must be a dictionary of workspace-name: particle mappings",
+            conf_err_prefix(chain, node));
+        return false;
+    }
+
+    for (struct yml_dict_iter it = yml_dict_iter(node);
+         it.key != NULL;
+         yml_dict_next(&it))
+    {
+        const char *key = yml_value_as_string(it.key);
+        if (key == NULL) {
+            LOG_ERR("%s: key must be a string", conf_err_prefix(chain, it.key));
+            return false;
+        }
+
+        if (!conf_verify_particle(chain_push(chain, key), it.value))
+            return false;
+
+        chain_pop(chain);
+    }
+
+    return true;
+}
+
+static struct particle *
+from_conf(const struct yml_node *node, const struct font *parent_font,
+          int left_margin, int right_margin, const char *on_click_template)
+{
+    const struct yml_node *tag = yml_get_value(node, "tag");
+    const struct yml_node *values = yml_get_value(node, "values");
+    const struct yml_node *def = yml_get_value(node, "default");
+
+    struct particle_map particle_map[yml_dict_length(values)];
+
+    size_t idx = 0;
+    for (struct yml_dict_iter it = yml_dict_iter(values);
+         it.key != NULL;
+         yml_dict_next(&it), idx++)
+    {
+        particle_map[idx].tag_value = yml_value_as_string(it.key);
+        particle_map[idx].particle = conf_to_particle(it.value, parent_font);
+    }
+
+    struct particle *default_particle = def != NULL
+        ? conf_to_particle(def, parent_font)
+        : NULL;
+
+    return map_new(
+        yml_value_as_string(tag), particle_map, yml_dict_length(values),
+        default_particle, left_margin, right_margin, on_click_template);
+}
+
+const struct particle_info plugin_info = {
+    .from_conf = &from_conf,
+    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 3,
+    .attrs = {
+        {"tag", true, &conf_verify_string},
+        {"values", true, &verify_map_values},
+        {"default", false, &conf_verify_particle},
+        PARTICLE_COMMON_ATTRS,
+    },
+};

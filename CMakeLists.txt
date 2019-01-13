@@ -40,12 +40,6 @@ add_executable(f00bar
   decorations/underline.c decorations/underline.h
 
   particles/dynlist.c particles/dynlist.h
-  particles/empty.c particles/empty.h
-  particles/list.c particles/list.h
-  particles/map.c particles/map.h
-  particles/progress-bar.c particles/progress-bar.h
-  particles/ramp.c particles/ramp.h
-  particles/string.c particles/string.h
   )
 
 # TODO: directory global
@@ -78,15 +72,10 @@ target_link_libraries(f00bar
   ${YAML_LIBRARIES}
   )
 
-add_library(module-sdk INTERFACE)
-target_compile_definitions(module-sdk INTERFACE _GNU_SOURCE)
-target_compile_options(module-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
-target_include_directories(module-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
-target_link_libraries(module-sdk INTERFACE ${CMAKE_THREAD_LIBS_INIT})
-
 set_property(TARGET f00bar PROPERTY INSTALL_RPATH \$ORIGIN/../lib/f00bar)
-set_property(TARGET f00bar PROPERTY BUILD_RPATH \$ORIGIN/modules)
+set_property(TARGET f00bar PROPERTY BUILD_RPATH "\$ORIGIN/modules;\$ORIGIN/particles")
 
 install(TARGETS f00bar DESTINATION bin)
 
+add_subdirectory(particles)
 add_subdirectory(modules)

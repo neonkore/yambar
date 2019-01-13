@@ -4,6 +4,7 @@
 #define LOG_MODULE "list"
 #define LOG_ENABLE_DBG 1
 #include "../log.h"
+#include "../config.h"
 
 struct private {
     struct particle **particles;
@@ -165,3 +166,46 @@ particle_list_new(
 
     return particle;
 }
+
+static struct particle *
+from_conf(const struct yml_node *node, const struct font *parent_font,
+          int left_margin, int right_margin, const char *on_click_template)
+{
+    const struct yml_node *items = yml_get_value(node, "items");
+
+    const struct yml_node *spacing = yml_get_value(node, "spacing");
+    const struct yml_node *_left_spacing = yml_get_value(node, "left-spacing");
+    const struct yml_node *_right_spacing = yml_get_value(node, "right-spacing");
+
+    int left_spacing = spacing != NULL ? yml_value_as_int(spacing) :
+        _left_spacing != NULL ? yml_value_as_int(_left_spacing) : 0;
+    int right_spacing = spacing != NULL ? yml_value_as_int(spacing) :
+        _right_spacing != NULL ? yml_value_as_int(_right_spacing) : 2;
+
+    size_t count = yml_list_length(items);
+    struct particle *parts[count];
+
+    size_t idx = 0;
+    for (struct yml_list_iter it = yml_list_iter(items);
+         it.node != NULL;
+         yml_list_next(&it), idx++)
+    {
+        parts[idx] = conf_to_particle(it.node, parent_font);
+    }
+
+    return particle_list_new(
+        parts, count, left_spacing, right_spacing, left_margin, right_margin,
+        on_click_template);
+}
+
+const struct particle_info plugin_info = {
+    .from_conf = &from_conf,
+    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 4,
+    .attrs = {
+        {"items", true, &conf_verify_particle_list_items},
+        {"spacing", false, &conf_verify_int},
+        {"left-spacing", false, &conf_verify_int},
+        {"right-spacing", false, &conf_verify_int},
+        PARTICLE_COMMON_ATTRS,
+    },
+};
