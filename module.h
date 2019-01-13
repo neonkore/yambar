@@ -15,6 +15,11 @@ struct module_info {
     bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
     struct module *(*from_conf)(const struct yml_node *node,
                                 struct conf_inherit inherited);
+
+#define MODULE_COMMON_ATTRS                        \
+    {"font", false, &conf_verify_font},            \
+    {"foreground", false, &conf_verify_color},     \
+    {NULL, false, NULL}
 };
 
 struct module_run_context {

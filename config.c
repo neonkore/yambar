@@ -191,18 +191,29 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
 
     const char *on_click_template
         = on_click != NULL ? yml_value_as_string(on_click) : NULL;
+    struct deco *deco = deco_node != NULL ? deco_from_config(deco_node) : NULL;
+
+    /*
+     * Font and foreground are inheritable attributes. Each particle
+     * may specify its own font/foreground values, which will then be
+     * used by itself, and all its sub-particles. If *not* specified,
+     * we inherit the values from our parent. Note that since
+     * particles actually *use* the font/foreground values, we must
+     * clone the font, since each particle takes ownership of its own
+     * font.
+     */
     struct font *font = font_node != NULL
         ? conf_to_font(font_node) : font_clone(inherited.font);
     struct rgba foreground = foreground_node != NULL
         ? conf_to_color(foreground_node) : inherited.foreground;
-    struct deco *deco = deco_node != NULL ? deco_from_config(deco_node) : NULL;
 
+    /* Instantiate base/common particle */
     struct particle *common = particle_common_new(
         left, right, on_click_template, font, foreground, deco);
 
     const struct particle_info *info = plugin_load_particle(type);
-    assert(info != NULL);
 
+    assert(info != NULL);
     return info->from_conf(pair.value, common);
 }
 
@@ -312,8 +323,25 @@ conf_to_bar(const struct yml_node *bar)
                 struct yml_dict_iter m = yml_dict_iter(it.node);
                 const char *mod_name = yml_value_as_string(m.key);
 
+                /*
+                 * These aren't used by the modules, but passed down
+                 * to particles. This allows us to specify a default
+                 * font and foreground for each module, and having it
+                 * applied to all its particles.
+                 */
+                const struct yml_node *mod_font = yml_get_value(m.value, "font");
+                const struct yml_node *mod_foreground = yml_get_value(
+                    m.value, "foreground");
+
+                struct conf_inherit mod_inherit = {
+                    .font = mod_font != NULL
+                        ? conf_to_font(mod_font) : inherited.font,
+                    .foreground = mod_foreground != NULL
+                        ? conf_to_color(mod_foreground) : inherited.foreground,
+                };
+
                 const struct module_info *info = plugin_load_module(mod_name);
-                mods[idx] = info->from_conf(m.value, inherited);
+                mods[idx] = info->from_conf(m.value, mod_inherit);
             }
 
             if (i == 0) {

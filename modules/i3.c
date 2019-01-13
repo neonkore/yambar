@@ -710,7 +710,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
         {"right-spacing", false, &conf_verify_int},
         {"content", true, &verify_content},
         {"anchors", false, NULL},
-        {NULL, false, NULL}
+        MODULE_COMMON_ATTRS,
     };
 
     return conf_verify_dict(chain, node, attrs);
