@@ -475,7 +475,7 @@ mpd_new(const char *host, uint16_t port, struct particle *label)
     return mod;
 }
 
-static struct module *
+struct module *
 from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *host = yml_get_value(node, "host");
@@ -488,7 +488,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
         conf_to_particle(c, inherited));
 }
 
-static bool
+bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
@@ -501,8 +501,3 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
-
-const struct module_info plugin_info = {
-    .verify_conf = &verify_conf,
-    .from_conf = &from_conf,
-};

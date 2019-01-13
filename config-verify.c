@@ -335,17 +335,17 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    const struct module_info *info = plugin_load_module(mod_name);
-    if (info == NULL) {
+    const struct module_iface *iface = plugin_load_module(mod_name);
+    if (iface == NULL) {
         LOG_ERR(
             "%s: invalid module name: %s", conf_err_prefix(chain, node), mod_name);
         return false;
     }
 
-    assert(info->verify_conf != NULL);
+    assert(iface->verify_conf != NULL);
 
     chain_push(chain, mod_name);
-    if (!info->verify_conf(chain, values))
+    if (!iface->verify_conf(chain, values))
         return false;
 
     chain_pop(chain);

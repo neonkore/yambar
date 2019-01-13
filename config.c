@@ -340,8 +340,8 @@ conf_to_bar(const struct yml_node *bar)
                         ? conf_to_color(mod_foreground) : inherited.foreground,
                 };
 
-                const struct module_info *info = plugin_load_module(mod_name);
-                mods[idx] = info->from_conf(m.value, mod_inherit);
+                const struct module_iface *iface = plugin_load_module(mod_name);
+                mods[idx] = iface->from_conf(m.value, mod_inherit);
             }
 
             if (i == 0) {

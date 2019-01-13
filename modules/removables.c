@@ -557,7 +557,7 @@ removables_new(struct particle *label, int left_spacing, int right_spacing)
     return mod;
 }
 
-static struct module *
+struct module *
 from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *content = yml_get_value(node, "content");
@@ -573,7 +573,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     return removables_new(conf_to_particle(content, inherited), left, right);
 }
 
-static bool
+bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
@@ -587,8 +587,3 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
-
-const struct module_info plugin_info = {
-    .verify_conf = &verify_conf,
-    .from_conf = &from_conf,
-};

@@ -9,18 +9,6 @@
 #include "yml.h"
 
 struct bar;
-struct module;
-
-struct module_info {
-    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
-    struct module *(*from_conf)(
-        const struct yml_node *node, struct conf_inherit inherited);
-
-#define MODULE_COMMON_ATTRS                        \
-    {"font", false, &conf_verify_font},            \
-    {"foreground", false, &conf_verify_color},     \
-    {NULL, false, NULL}
-};
 
 struct module {
     const struct bar *bar;
@@ -47,3 +35,9 @@ struct module {
 struct module *module_common_new(void);
 void module_default_destroy(struct module *mod);
 struct exposable *module_begin_expose(struct module *mod);
+
+/* List of attributes *all* modules implement */
+#define MODULE_COMMON_ATTRS                        \
+    {"font", false, &conf_verify_font},            \
+    {"foreground", false, &conf_verify_color},     \
+    {NULL, false, NULL}

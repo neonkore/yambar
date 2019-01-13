@@ -47,7 +47,8 @@ plugin_load(const char *name, enum plugin_type type)
     tll_foreach(plugins, plug) {
         if (plug->item.type == type && strcmp(plug->item.name, name) == 0) {
             LOG_DBG("%s: %s already loaded: %p", type2str(type), name, plug->item.lib);
-            assert(plug->item.sym != NULL);
+            assert(plug->item.dummy.sym1 != NULL);
+            assert(plug->item.dummy.sym2 != NULL);
             return &plug->item;
         }
     }
@@ -66,23 +67,18 @@ plugin_load(const char *name, enum plugin_type type)
         return NULL;
     }
 
-    tll_push_back(plugins, ((struct plugin){strdup(name), type, lib, {NULL}}));
+    tll_push_back(plugins, ((struct plugin){strdup(name), type, lib, {{NULL}}}));
     struct plugin *plug = &tll_back(plugins);
 
     dlerror(); /* Clear previous error */
     const char *dl_error = NULL;
 
-    if (type == PLUGIN_MODULE) {
-        plug->sym = dlsym(lib, "plugin_info");
-        dl_error = dlerror();
-    } else {
-        plug->particle.verify_conf = dlsym(lib, "verify_conf");
-        dl_error = dlerror();
+    plug->dummy.sym1 = dlsym(lib, "verify_conf");
+    dl_error = dlerror();
 
-        if (dl_error == NULL) {
-            plug->particle.from_conf = dlsym(lib, "from_conf");
-            dl_error = dlerror();
-        }
+    if (dl_error == NULL) {
+        plug->dummy.sym2 = dlsym(lib, "from_conf");
+        dl_error = dlerror();
     }
 
     if (dl_error != NULL) {
@@ -93,11 +89,11 @@ plugin_load(const char *name, enum plugin_type type)
     return plug;
 }
 
-const struct module_info *
+const struct module_iface *
 plugin_load_module(const char *name)
 {
     const struct plugin *plug = plugin_load(name, PLUGIN_MODULE);
-    return plug != NULL ? plug->sym : NULL;
+    return plug != NULL ? &plug->module : NULL;
 }
 
 const struct particle_iface *
