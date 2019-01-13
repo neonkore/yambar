@@ -12,6 +12,7 @@
 #include "particles/empty.h"
 #include "particles/list.h"
 #include "particles/map.h"
+#include "particles/progress-bar.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -290,18 +291,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},
 
-    static const struct attr_info progress_bar[] = {
-        {"tag", true, &conf_verify_string},
-        {"length", true, &conf_verify_int},
-        /* TODO: make these optional? Default to empty */
-        {"start", true, &conf_verify_particle},
-        {"end", true, &conf_verify_particle},
-        {"fill", true, &conf_verify_particle},
-        {"empty", true, &conf_verify_particle},
-        {"indicator", true, &conf_verify_particle},
-        COMMON_ATTRS
-    };
-
     static const struct attr_info ramp[] = {
         {"tag", true, &conf_verify_string},
         {"items", true, &conf_verify_particle_list_items},
@@ -326,6 +315,7 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         {"empty", &particle_empty},
         {"list", &particle_list},
         {"map", &particle_map},
+        {"progress-bar", &particle_progress_bar},
     };
 
     static const struct {
@@ -333,7 +323,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } particles[] = {
-        {"progress-bar", progress_bar, sizeof(progress_bar) / sizeof(progress_bar[0])},
         {"ramp", ramp, sizeof(ramp) / sizeof(ramp[0])},
         {"string", string, sizeof(string) / sizeof(string[0])},
     };

@@ -27,7 +27,8 @@ struct particle_info {
     {"margin", false, &conf_verify_int},           \
     {"left-margin", false, &conf_verify_int},      \
     {"right-margin", false, &conf_verify_int},     \
-    {"on-click", false, &conf_verify_string}
+    {"on-click", false, &conf_verify_string},      \
+    {NULL, false, NULL}
 
 };
 

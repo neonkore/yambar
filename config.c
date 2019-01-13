@@ -187,31 +187,6 @@ particle_ramp_from_config(const struct yml_node *node,
 }
 
 static struct particle *
-particle_progress_bar_from_config(const struct yml_node *node,
-                                  const struct font *parent_font,
-                                  int left_margin, int right_margin,
-                                  const char *on_click_template)
-{
-    const struct yml_node *tag = yml_get_value(node, "tag");
-    const struct yml_node *length = yml_get_value(node, "length");
-    const struct yml_node *start = yml_get_value(node, "start");
-    const struct yml_node *end = yml_get_value(node, "end");
-    const struct yml_node *fill = yml_get_value(node, "fill");
-    const struct yml_node *empty = yml_get_value(node, "empty");
-    const struct yml_node *indicator = yml_get_value(node, "indicator");
-
-    return particle_progress_bar_new(
-        yml_value_as_string(tag),
-        yml_value_as_int(length),
-        conf_to_particle(start, parent_font),
-        conf_to_particle(end, parent_font),
-        conf_to_particle(fill, parent_font),
-        conf_to_particle(empty, parent_font),
-        conf_to_particle(indicator, parent_font),
-        left_margin, right_margin, on_click_template);
-}
-
-static struct particle *
 particle_simple_list_from_config(const struct yml_node *node,
                                  const struct font *parent_font)
 {
@@ -261,15 +236,15 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     else if (strcmp(type, "map") == 0)
         ret = particle_map.from_conf(
             pair.value, parent_font, left, right, on_click_template);
+    else if (strcmp(type, "progress-bar") == 0)
+        ret = particle_progress_bar.from_conf(
+            pair.value, parent_font, left, right, on_click_template);
 
     else if (strcmp(type, "string") == 0)
         ret = particle_string_from_config(
             pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "ramp") == 0)
         ret = particle_ramp_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "progress-bar") == 0)
-        ret = particle_progress_bar_from_config(
             pair.value, parent_font, left, right, on_click_template);
     else
         assert(false);
