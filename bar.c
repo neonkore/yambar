@@ -91,19 +91,19 @@ calculate_widths(const struct private *b, int *left, int *center, int *right)
     for (size_t i = 0; i < b->left.count; i++) {
         struct module_expose_context *e = &b->left.exps[i];
         assert(e->exposable != NULL);
-        *left += b->left_spacing + e->width + b->right_spacing;
+        *left += b->left_spacing + e->exposable->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->center.count; i++) {
         struct module_expose_context *e = &b->center.exps[i];
         assert(e->exposable != NULL);
-        *center += b->left_spacing + e->width + b->right_spacing;
+        *center += b->left_spacing + e->exposable->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->right.count; i++) {
         struct module_expose_context *e = &b->right.exps[i];
         assert(e->exposable != NULL);
-        *right += b->left_spacing + e->width + b->right_spacing;
+        *right += b->left_spacing + e->exposable->width + b->right_spacing;
     }
 
     /* No spacing on the edges (that's what the margins are for) */
@@ -180,7 +180,7 @@ expose(const struct bar *_bar)
         const struct module *m = bar->left.mods[i];
         const struct module_expose_context *e = &bar->left.exps[i];
         m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + e->width + bar->right_spacing;
+        x += bar->left_spacing + e->exposable->width + bar->right_spacing;
     }
 
     x = bar->width / 2 - center_width / 2 - bar->left_spacing;
@@ -188,7 +188,7 @@ expose(const struct bar *_bar)
         const struct module *m = bar->center.mods[i];
         const struct module_expose_context *e = &bar->center.exps[i];
         m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + e->width + bar->right_spacing;
+        x += bar->left_spacing + e->exposable->width + bar->right_spacing;
     }
 
     x = bar->width - (
@@ -201,7 +201,7 @@ expose(const struct bar *_bar)
         const struct module *m = bar->right.mods[i];
         const struct module_expose_context *e = &bar->right.exps[i];
         m->expose(m, e, bar->cairo, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + e->width + bar->right_spacing;
+        x += bar->left_spacing + e->exposable->width + bar->right_spacing;
     }
 
     cairo_surface_flush(bar->cairo_surface);
@@ -279,14 +279,14 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
         const struct module_expose_context *e = &b->left.exps[i];
 
         mx += b->left_spacing;
-        if (x >= mx && x < mx + e->width) {
+        if (x >= mx && x < mx + e->exposable->width) {
             assert(e->exposable != NULL);
             if (e->exposable->on_mouse != NULL)
                 e->exposable->on_mouse(e->exposable, bar, event, x - mx, y);
             return;
         }
 
-        mx += e->width + b->right_spacing;
+        mx += e->exposable->width + b->right_spacing;
     }
 
     mx = b->width / 2 - center_width / 2 - b->left_spacing;
@@ -294,14 +294,14 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
         const struct module_expose_context *e = &b->center.exps[i];
 
         mx += b->left_spacing;
-        if (x >= mx && x < mx + e->width) {
+        if (x >= mx && x < mx + e->exposable->width) {
             assert(e->exposable != NULL);
             if (e->exposable->on_mouse != NULL)
                 e->exposable->on_mouse(e->exposable, bar, event, x - mx, y);
             return;
         }
 
-        mx += e->width + b->right_spacing;
+        mx += e->exposable->width + b->right_spacing;
     }
 
     mx = b->width - (right_width + b->left_spacing + b->right_margin + b->border.width);
@@ -309,14 +309,14 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
         const struct module_expose_context *e = &b->right.exps[i];
 
         mx += b->left_spacing;
-        if (x >= mx && x < mx + e->width) {
+        if (x >= mx && x < mx + e->exposable->width) {
             assert(e->exposable != NULL);
             if (e->exposable->on_mouse != NULL)
                 e->exposable->on_mouse(e->exposable, bar, event, x - mx, y);
             return;
         }
 
-        mx += e->width + b->right_spacing;
+        mx += e->exposable->width + b->right_spacing;
     }
 
     set_cursor(bar, "left_ptr");

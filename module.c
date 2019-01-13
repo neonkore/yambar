@@ -41,9 +41,10 @@ struct module_expose_context
 module_default_begin_expose(struct module *mod)
 {
     struct exposable *e = mod->content(mod);
+    e->begin_expose(e);
+
     return (struct module_expose_context){
         .exposable = e,
-        .width = e->begin_expose(e),
         .private = NULL,
     };
 }

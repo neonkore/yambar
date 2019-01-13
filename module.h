@@ -13,8 +13,8 @@ struct module;
 
 struct module_info {
     bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
-    struct module *(*from_conf)(const struct yml_node *node,
-                                struct conf_inherit inherited);
+    struct module *(*from_conf)(
+        const struct yml_node *node, struct conf_inherit inherited);
 
 #define MODULE_COMMON_ATTRS                        \
     {"font", false, &conf_verify_font},            \
@@ -30,7 +30,6 @@ struct module_run_context {
 
 struct module_expose_context {
     struct exposable *exposable;
-    int width;
     void *private;
 };
 
