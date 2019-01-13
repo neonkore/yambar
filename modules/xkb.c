@@ -55,12 +55,25 @@ content(struct module *mod)
 {
     const struct private *m = mod->private;
 
+    mtx_lock(&mod->lock);
+
+    const char *name = "";
+    const char *symbol = "";
+
+    if (m->current < m->layouts.count) {
+        name = m->layouts.layouts[m->current].name;
+        symbol = m->layouts.layouts[m->current].symbol;
+    }
+
     struct tag_set tags = {
         .tags = (struct tag *[]){
-            tag_new_string(mod, "name", m->layouts.layouts[m->current].name),
-            tag_new_string(mod, "symbol", m->layouts.layouts[m->current].symbol)},
+            tag_new_string(mod, "name", name),
+            tag_new_string(mod, "symbol", symbol),
+        },
         .count = 2,
     };
+
+    mtx_unlock(&mod->lock);
 
     struct exposable *exposable = m->label->instantiate(m->label, &tags);
 
