@@ -534,13 +534,13 @@ network_new(const char *iface, struct particle *label)
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *content = yml_get_value(node, "content");
 
     return network_new(
-        yml_value_as_string(name), conf_to_particle(content, parent_font));
+        yml_value_as_string(name), conf_to_particle(content, inherited));
 }
 
 static bool

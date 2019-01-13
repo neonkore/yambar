@@ -14,6 +14,7 @@
 #include "decorations/stack.h"
 #include "decorations/underline.h"
 
+#include "bar.h"
 #include "module.h"
 #include "config-verify.h"
 #include "plugin.h"
@@ -134,7 +135,7 @@ deco_from_config(const struct yml_node *node)
 
 static struct particle *
 particle_simple_list_from_config(const struct yml_node *node,
-                                 const struct font *parent_font)
+                                 struct conf_inherit inherited)
 {
     size_t count = yml_list_length(node);
     struct particle *parts[count];
@@ -144,7 +145,7 @@ particle_simple_list_from_config(const struct yml_node *node,
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
-        parts[idx] = conf_to_particle(it.node, parent_font);
+        parts[idx] = conf_to_particle(it.node, inherited);
     }
 
     /* Lazy-loaded function pointer to particle_list_new() */
@@ -161,17 +162,16 @@ particle_simple_list_from_config(const struct yml_node *node,
     }
 
     struct particle *common = particle_common_new(
-        0, 0, NULL, font_clone(parent_font),
-        (struct rgba){1.0, 1.0, 1.0, 1.0}, NULL);
+        0, 0, NULL, font_clone(inherited.font), inherited.foreground, NULL);
 
     return particle_list_new(common, parts, count, 0, 2);
 }
 
 struct particle *
-conf_to_particle(const struct yml_node *node, const struct font *parent_font)
+conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
 {
     if (yml_is_list(node))
-        return particle_simple_list_from_config(node, parent_font);
+        return particle_simple_list_from_config(node, inherited);
 
     struct yml_dict_iter pair = yml_dict_iter(node);
     const char *type = yml_value_as_string(pair.key);
@@ -192,9 +192,9 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     const char *on_click_template
         = on_click != NULL ? yml_value_as_string(on_click) : NULL;
     struct font *font = font_node != NULL
-        ? conf_to_font(font_node) : font_clone(parent_font);
+        ? conf_to_font(font_node) : font_clone(inherited.font);
     struct rgba foreground = foreground_node != NULL
-        ? conf_to_color(foreground_node) : (struct rgba){1.0, 1.0, 1.0, 1.0};
+        ? conf_to_color(foreground_node) : inherited.foreground;
     struct deco *deco = deco_node != NULL ? deco_from_config(deco_node) : NULL;
 
     struct particle *common = particle_common_new(
@@ -268,14 +268,30 @@ conf_to_bar(const struct yml_node *bar)
             conf.border.color = conf_to_color(color);
     }
 
-    /* Create a default font */
+    /*
+     * Create a default font and foreground
+     *
+     * These aren't used by the bar itself, but passed down to modules
+     * and particles. This allows us to specify a default font and
+     * foreground color at top-level.
+     */
     struct font *font = font_new("sans");
+    struct rgba foreground = (struct rgba){1.0, 1.0, 1.0, 1.0}; /* White */
 
     const struct yml_node *font_node = yml_get_value(bar, "font");
     if (font_node != NULL) {
         font_destroy(font);
         font = conf_to_font(font_node);
     }
+
+    const struct yml_node *foreground_node = yml_get_value(bar, "foreground");
+    if (foreground_node != NULL)
+        foreground = conf_to_color(foreground_node);
+
+    struct conf_inherit inherited = {
+        .font = font,
+        .foreground = foreground,
+    };
 
     const struct yml_node *left = yml_get_value(bar, "left");
     const struct yml_node *center = yml_get_value(bar, "center");
@@ -297,7 +313,7 @@ conf_to_bar(const struct yml_node *bar)
                 const char *mod_name = yml_value_as_string(m.key);
 
                 const struct module_info *info = plugin_load_module(mod_name);
-                mods[idx] = info->from_conf(m.value, font);
+                mods[idx] = info->from_conf(m.value, inherited);
             }
 
             if (i == 0) {

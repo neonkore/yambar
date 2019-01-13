@@ -167,7 +167,8 @@ from_conf(const struct yml_node *node, struct particle *common)
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
-        parts[idx] = conf_to_particle(it.node, common->font);
+        parts[idx] = conf_to_particle(
+            it.node, (struct conf_inherit){common->font, common->foreground});
     }
 
     return ramp_new(common, yml_value_as_string(tag), parts, count);

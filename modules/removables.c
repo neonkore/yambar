@@ -561,7 +561,7 @@ removables_new(struct particle *label, int left_spacing, int right_spacing)
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *content = yml_get_value(node, "content");
     const struct yml_node *spacing = yml_get_value(node, "spacing");
@@ -573,8 +573,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
     int right = spacing != NULL ? yml_value_as_int(spacing) :
         right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
 
-    return removables_new(
-        conf_to_particle(content, parent_font), left, right);
+    return removables_new(conf_to_particle(content, inherited), left, right);
 }
 
 static bool

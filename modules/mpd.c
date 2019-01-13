@@ -479,7 +479,7 @@ mpd_new(const char *host, uint16_t port, struct particle *label)
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *host = yml_get_value(node, "host");
     const struct yml_node *port = yml_get_value(node, "port");
@@ -488,7 +488,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
     return mpd_new(
         yml_value_as_string(host),
         port != NULL ? yml_value_as_int(port) : 0,
-        conf_to_particle(c, parent_font));
+        conf_to_particle(c, inherited));
 }
 
 static bool

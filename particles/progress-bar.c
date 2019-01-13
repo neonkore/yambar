@@ -239,15 +239,20 @@ from_conf(const struct yml_node *node, struct particle *common)
     const struct yml_node *empty = yml_get_value(node, "empty");
     const struct yml_node *indicator = yml_get_value(node, "indicator");
 
+    struct conf_inherit inherited = {
+        .font = common->font,
+        .foreground = common->foreground,
+    };
+
     return progress_bar_new(
         common,
         yml_value_as_string(tag),
         yml_value_as_int(length),
-        conf_to_particle(start, common->font),
-        conf_to_particle(end, common->font),
-        conf_to_particle(fill, common->font),
-        conf_to_particle(empty, common->font),
-        conf_to_particle(indicator, common->font));
+        conf_to_particle(start, inherited),
+        conf_to_particle(end, inherited),
+        conf_to_particle(fill, inherited),
+        conf_to_particle(empty, inherited),
+        conf_to_particle(indicator, inherited));
 }
 
 static bool

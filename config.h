@@ -1,9 +1,10 @@
 #pragma once
 
-#include "bar.h"
 #include "font.h"
-#include "particle.h"
 #include "yml.h"
+
+struct bar;
+struct particle;
 
 bool conf_verify_bar(const struct yml_node *bar);
 struct bar *conf_to_bar(const struct yml_node *bar);
@@ -15,5 +16,10 @@ struct bar *conf_to_bar(const struct yml_node *bar);
 struct rgba conf_to_color(const struct yml_node *node);
 struct font *conf_to_font(const struct yml_node *node);
 
+struct conf_inherit {
+    const struct font *font;
+    struct rgba foreground;
+};
+
 struct particle * conf_to_particle(
-    const struct yml_node *node, const struct font *parent_font);
+    const struct yml_node *node, struct conf_inherit inherited);

@@ -205,17 +205,22 @@ from_conf(const struct yml_node *node, struct particle *common)
 
     struct particle_map particle_map[yml_dict_length(values)];
 
+    struct conf_inherit inherited = {
+        .font = common->font,
+        .foreground = common->foreground
+    };
+
     size_t idx = 0;
     for (struct yml_dict_iter it = yml_dict_iter(values);
          it.key != NULL;
          yml_dict_next(&it), idx++)
     {
         particle_map[idx].tag_value = yml_value_as_string(it.key);
-        particle_map[idx].particle = conf_to_particle(it.value, common->font);
+        particle_map[idx].particle = conf_to_particle(it.value, inherited);
     }
 
     struct particle *default_particle = def != NULL
-        ? conf_to_particle(def, common->font) : NULL;
+        ? conf_to_particle(def, inherited) : NULL;
 
     return map_new(
         common, yml_value_as_string(tag), particle_map, yml_dict_length(values),

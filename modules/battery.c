@@ -344,7 +344,7 @@ battery_new(const char *battery, struct particle *label, int poll_interval_secs)
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *name = yml_get_value(node, "name");
@@ -352,7 +352,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
 
     return battery_new(
         yml_value_as_string(name),
-        conf_to_particle(c, parent_font),
+        conf_to_particle(c, inherited),
         poll_interval != NULL ? yml_value_as_int(poll_interval) : 60);
 }
 

@@ -215,13 +215,13 @@ backlight_new(const char *device, struct particle *label)
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *c = yml_get_value(node, "content");
 
     return backlight_new(
-        yml_value_as_string(name), conf_to_particle(c, parent_font));
+        yml_value_as_string(name), conf_to_particle(c, inherited));
 }
 
 static bool

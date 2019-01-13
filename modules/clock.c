@@ -95,14 +95,14 @@ clock_new(struct particle *label, const char *date_format, const char *time_form
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *date_format = yml_get_value(node, "date-format");
     const struct yml_node *time_format = yml_get_value(node, "time-format");
 
     return clock_new(
-        conf_to_particle(c, parent_font),
+        conf_to_particle(c, inherited),
         date_format != NULL ? yml_value_as_string(date_format) : "%x",
         time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
 }

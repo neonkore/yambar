@@ -14,7 +14,8 @@ struct exposable;
 
 struct particle_info {
     bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
-    struct particle *(*from_conf)(const struct yml_node *node, struct particle *common);
+    struct particle *(*from_conf)(
+        const struct yml_node *node, struct particle *common);
 
 #define PARTICLE_COMMON_ATTRS_COUNT 5
 #define PARTICLE_COMMON_ATTRS                      \

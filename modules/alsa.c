@@ -268,7 +268,7 @@ alsa_new(const char *card, const char *mixer, struct particle *label)
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *card = yml_get_value(node, "card");
     const struct yml_node *mixer = yml_get_value(node, "mixer");
@@ -277,7 +277,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
     return alsa_new(
         yml_value_as_string(card),
         yml_value_as_string(mixer),
-        conf_to_particle(content, parent_font));
+        conf_to_particle(content, inherited));
 }
 
 static bool

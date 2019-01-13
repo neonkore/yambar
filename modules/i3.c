@@ -645,7 +645,7 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *spacing = yml_get_value(node, "spacing");
@@ -665,7 +665,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
          yml_dict_next(&it), idx++)
     {
         workspaces[idx].name = yml_value_as_string(it.key);
-        workspaces[idx].content = conf_to_particle(it.value, parent_font);
+        workspaces[idx].content = conf_to_particle(it.value, inherited);
     }
 
     return i3_new(workspaces, yml_dict_length(c), left, right);

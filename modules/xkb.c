@@ -453,10 +453,10 @@ xkb_new(struct particle *label)
 }
 
 static struct module *
-from_conf(const struct yml_node *node, const struct font *parent_font)
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
-    return xkb_new(conf_to_particle(c, parent_font));
+    return xkb_new(conf_to_particle(c, inherited));
 }
 
 static bool

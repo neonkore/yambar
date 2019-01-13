@@ -416,6 +416,7 @@ conf_verify_bar(const struct yml_node *bar)
 
         {"border", false, &verify_bar_border},
         {"font", false, &conf_verify_font},
+        {"foreground", false, &conf_verify_color},
 
         {"left", false, &verify_module_list},
         {"center", false, &verify_module_list},

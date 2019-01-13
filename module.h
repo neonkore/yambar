@@ -3,7 +3,7 @@
 #include <threads.h>
 #include <cairo.h>
 
-#include "config-verify.h"
+#include "config.h"
 #include "particle.h"
 #include "tag.h"
 #include "yml.h"
@@ -14,7 +14,7 @@ struct module;
 struct module_info {
     bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
     struct module *(*from_conf)(const struct yml_node *node,
-                               const struct font *parent_font);
+                                struct conf_inherit inherited);
 };
 
 struct module_run_context {
