@@ -7,6 +7,7 @@ set(CMAKE_C_STANDARD 11)
 
 set_property(DIRECTORY . APPEND PROPERTY COMPILE_DEFINITIONS
   $<$<CONFIG:Debug>:_DEBUG>
+  _GNU_SOURCE
   )
 
 set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
@@ -14,11 +15,10 @@ set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render xcb-cursor) # Core
-pkg_check_modules(FONTCONFIG REQUIRED fontconfig)                   # Core
-pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)          # Core
-pkg_check_modules(YAML REQUIRED yaml-0.1)                           # Core (configuration)
-
+pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render xcb-cursor)
+pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
+pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)
+pkg_check_modules(YAML REQUIRED yaml-0.1)
 
 add_executable(f00bar
   bar.c bar.h
@@ -41,9 +41,6 @@ add_executable(f00bar
 
   particles/dynlist.c particles/dynlist.h
   )
-
-# TODO: directory global
-target_compile_definitions(f00bar PRIVATE _GNU_SOURCE)
 
 # Make global symbols in f00bar visible to dlopen:ed plugins
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")

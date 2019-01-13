@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
 add_library(particle-sdk INTERFACE)
-target_compile_definitions(particle-sdk INTERFACE _GNU_SOURCE)
 target_compile_options(particle-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
 target_include_directories(particle-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
 
