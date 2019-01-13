@@ -5,7 +5,7 @@ target_compile_options(particle-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
 target_include_directories(particle-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
 
 add_library(dynlist SHARED dynlist.c dynlist.h)
-target_link_libraries(dynlist particle-sdk)
+target_link_libraries(dynlist PRIVATE particle-sdk)
 
 set(CMAKE_SHARED_MODULE_PREFIX particle_)
 

@@ -4,6 +4,7 @@
 
 #define LOG_MODULE "dynlist"
 #include "../log.h"
+#include "../particle.h"
 
 struct private {
     int left_spacing;
