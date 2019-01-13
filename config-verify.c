@@ -13,6 +13,7 @@
 #include "particles/list.h"
 #include "particles/map.h"
 #include "particles/progress-bar.h"
+#include "particles/ramp.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -291,12 +292,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},
 
-    static const struct attr_info ramp[] = {
-        {"tag", true, &conf_verify_string},
-        {"items", true, &conf_verify_particle_list_items},
-        COMMON_ATTRS
-    };
-
     static const struct attr_info string[] = {
         {"text", true, &conf_verify_string},
         {"max", false, &conf_verify_int},
@@ -316,6 +311,7 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         {"list", &particle_list},
         {"map", &particle_map},
         {"progress-bar", &particle_progress_bar},
+        {"ramp", &particle_ramp},
     };
 
     static const struct {
@@ -323,7 +319,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } particles[] = {
-        {"ramp", ramp, sizeof(ramp) / sizeof(ramp[0])},
         {"string", string, sizeof(string) / sizeof(string[0])},
     };
 

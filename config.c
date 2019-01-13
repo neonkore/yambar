@@ -162,31 +162,6 @@ particle_string_from_config(const struct yml_node *node,
 
 
 static struct particle *
-particle_ramp_from_config(const struct yml_node *node,
-                          const struct font *parent_font,
-                          int left_margin, int right_margin,
-                          const char *on_click_template)
-{
-    const struct yml_node *tag = yml_get_value(node, "tag");
-    const struct yml_node *items = yml_get_value(node, "items");
-
-    size_t count = yml_list_length(items);
-    struct particle *parts[count];
-
-    size_t idx = 0;
-    for (struct yml_list_iter it = yml_list_iter(items);
-         it.node != NULL;
-         yml_list_next(&it), idx++)
-    {
-        parts[idx] = conf_to_particle(it.node, parent_font);
-    }
-
-    return particle_ramp_new(
-        yml_value_as_string(tag), parts, count, left_margin, right_margin,
-        on_click_template);
-}
-
-static struct particle *
 particle_simple_list_from_config(const struct yml_node *node,
                                  const struct font *parent_font)
 {
@@ -239,12 +214,12 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     else if (strcmp(type, "progress-bar") == 0)
         ret = particle_progress_bar.from_conf(
             pair.value, parent_font, left, right, on_click_template);
+    else if (strcmp(type, "ramp") == 0)
+        ret = particle_ramp.from_conf(
+            pair.value, parent_font, left, right, on_click_template);
 
     else if (strcmp(type, "string") == 0)
         ret = particle_string_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "ramp") == 0)
-        ret = particle_ramp_from_config(
             pair.value, parent_font, left, right, on_click_template);
     else
         assert(false);
