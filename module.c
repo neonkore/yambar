@@ -37,29 +37,23 @@ module_signal_ready(struct module_run_context *ctx)
     write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
 }
 
-struct module_expose_context
+struct exposable *
 module_default_begin_expose(struct module *mod)
 {
     struct exposable *e = mod->content(mod);
     e->begin_expose(e);
-
-    return (struct module_expose_context){
-        .exposable = e,
-        .private = NULL,
-    };
+    return e;
 }
 
 void
-module_default_expose(const struct module *mod,
-                      const struct module_expose_context *ctx, cairo_t *cr,
-                      int x, int y, int height)
+module_default_expose(const struct module *mod, const struct exposable *exposable,
+                      cairo_t *cr, int x, int y, int height)
 {
-    ctx->exposable->expose(ctx->exposable, cr, x, y, height);
+    exposable->expose(exposable, cr, x, y, height);
 }
 
 void
-module_default_end_expose(const struct module *mod,
-                          struct module_expose_context *ctx)
+module_default_end_expose(const struct module *mod, struct exposable *exposable)
 {
-    ctx->exposable->destroy(ctx->exposable);
+    exposable->destroy(exposable);
 }

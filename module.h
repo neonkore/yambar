@@ -28,11 +28,6 @@ struct module_run_context {
     int abort_fd;
 };
 
-struct module_expose_context {
-    struct exposable *exposable;
-    void *private;
-};
-
 struct module {
     const struct bar *bar;
     mtx_t lock;
@@ -72,11 +67,10 @@ struct module {
      * (module_default_*) is good enough. In this case, implement
      * 'content()' instead (see above).
      */
-    struct module_expose_context (*begin_expose)(struct module *mod);
-    void (*expose)(const struct module *mod,
-                   const struct module_expose_context *ctx,
+    struct exposable *(*begin_expose)(struct module *mod);
+    void (*expose)(const struct module *mod, const struct exposable *exposable,
                    cairo_t *cr, int x, int y, int height);
-    void (*end_expose)(const struct module *mod, struct module_expose_context *ctx);
+    void (*end_expose)(const struct module *mod, struct exposable *exosable);
 
 };
 
@@ -85,13 +79,10 @@ void module_signal_ready(struct module_run_context *ctx);
 
 void module_default_destroy(struct module *mod);
 
-struct module_expose_context module_default_begin_expose(
-    struct module *mod);
+struct exposable *module_default_begin_expose(struct module *mod);
 
 void module_default_expose(
-    const struct module *mod,
-    const struct module_expose_context *ctx, cairo_t *cr,
-    int x, int y, int height);
+    const struct module *mod, const struct exposable *exposbale,
+    cairo_t *cr, int x, int y, int height);
 
-void module_default_end_expose(
-    const struct module *mod, struct module_expose_context *ctx);
+void module_default_end_expose(const struct module *mod, struct exposable *exposable);
