@@ -109,7 +109,6 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
 
 const struct module_info plugin_info = {
     .from_conf = &from_conf,
-    .attr_count = 4,
     .attrs = {
         {"date-format", false, &conf_verify_string},
         {"time-format", false, &conf_verify_string},

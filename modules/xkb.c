@@ -461,7 +461,6 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
 
 const struct module_info plugin_info = {
     .from_conf = &from_conf,
-    .attr_count = 2,
     .attrs = {
         {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},

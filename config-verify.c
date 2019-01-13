@@ -73,12 +73,17 @@ conf_verify_enum(keychain_t *chain, const struct yml_node *node,
 
 bool
 conf_verify_dict(keychain_t *chain, const struct yml_node *node,
-                 const struct attr_info info[], size_t count)
+                 const struct attr_info info[])
 {
     if (!yml_is_dict(node)) {
         LOG_ERR("%s: must be a dictionary", conf_err_prefix(chain, node));
         return false;
     }
+
+    /* Count the attributes */
+    size_t count = 0;
+    for (; info[count].name != NULL; count++)
+        ;
 
     bool exists[count];
     memset(exists, 0, sizeof(exists));
@@ -153,9 +158,10 @@ conf_verify_font(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"family", true, &conf_verify_string},
+        {NULL, false, NULL},
     };
 
-    return conf_verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
+    return conf_verify_dict(chain, node, attrs);
 }
 
 static bool
@@ -206,11 +212,13 @@ conf_verify_decoration(keychain_t *chain, const struct yml_node *node)
 
     static const struct attr_info background[] = {
         {"color", true, &conf_verify_color},
+        {NULL, false, NULL},
     };
 
     static const struct attr_info underline[] = {
         {"size", true, &conf_verify_int},
         {"color", true, &conf_verify_color},
+        {NULL, false, NULL},
     };
 
     static const struct {
@@ -226,11 +234,9 @@ conf_verify_decoration(keychain_t *chain, const struct yml_node *node)
         if (strcmp(decos[i].name, deco_name) != 0)
             continue;
 
-        if (!conf_verify_dict(chain_push(chain, deco_name),
-                         values, decos[i].attrs, decos[i].count))
-        {
+        chain_push(chain, deco_name);
+        if (!conf_verify_dict(chain, values, decos[i].attrs))
             return false;
-        }
 
         chain_pop(chain);
         return true;
@@ -286,8 +292,8 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    if (!conf_verify_dict(chain_push(chain, particle_name), values,
-                          info->attrs, info->attr_count))
+    chain_push(chain, particle_name);
+    if (!conf_verify_dict(chain, values, info->attrs))
         return false;
 
     chain_pop(chain);
@@ -335,8 +341,8 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    if (!conf_verify_dict(chain_push(chain, mod_name), values,
-                          info->attrs, info->attr_count))
+    chain_push(chain, mod_name);
+    if (!conf_verify_dict(chain, values, info->attrs))
         return false;
 
     chain_pop(chain);
@@ -368,9 +374,10 @@ verify_bar_border(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"width", true, &conf_verify_int},
         {"color", true, &conf_verify_color},
+        {NULL, false, NULL},
     };
 
-    return conf_verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
+    return conf_verify_dict(chain, node, attrs);
 }
 
 static bool
@@ -409,9 +416,11 @@ conf_verify_bar(const struct yml_node *bar)
         {"left", false, &verify_module_list},
         {"center", false, &verify_module_list},
         {"right", false, &verify_module_list},
+
+        {NULL, false, NULL},
     };
 
-    bool ret = conf_verify_dict(&chain, bar, attrs, sizeof(attrs) / sizeof(attrs[0]));
+    bool ret = conf_verify_dict(&chain, bar, attrs);
     tll_free(chain);
     return ret;
 }

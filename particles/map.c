@@ -230,7 +230,6 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
 
 const struct particle_info plugin_info = {
     .from_conf = &from_conf,
-    .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 3,
     .attrs = {
         {"tag", true, &conf_verify_string},
         {"values", true, &verify_map_values},

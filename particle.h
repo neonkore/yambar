@@ -18,8 +18,6 @@ struct particle_info {
                                   const struct font *parent_font,
                                   int left_margin, int right_margin,
                                   const char *on_click_template);
-
-    size_t attr_count;  /* TODO: reomve, NULL-terminate attr list instead */
     const struct attr_info attrs[];
 
 #define PARTICLE_COMMON_ATTRS_COUNT 5

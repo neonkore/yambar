@@ -493,7 +493,6 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
 
 const struct module_info plugin_info = {
     .from_conf = &from_conf,
-    .attr_count = 4,
     .attrs = {
         {"host", true, &conf_verify_string},
         {"port", false, &conf_verify_int},

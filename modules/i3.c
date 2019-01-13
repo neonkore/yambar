@@ -703,7 +703,6 @@ verify_content(keychain_t *chain, const struct yml_node *node)
 
 const struct module_info plugin_info = {
     .from_conf = &from_conf,
-    .attr_count = 5,
     .attrs = {
         {"spacing", false, &conf_verify_int},
         {"left-spacing", false, &conf_verify_int},

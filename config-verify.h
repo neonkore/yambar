@@ -36,7 +36,7 @@ bool conf_verify_int(keychain_t *chain, const struct yml_node *node);
 bool conf_verify_enum(keychain_t *chain, const struct yml_node *node,
                       const char *values[], size_t count);
 bool conf_verify_dict(keychain_t *chain, const struct yml_node *node,
-                      const struct attr_info info[], size_t count);
+                      const struct attr_info info[]); /* NULL-terminated list */
 
 bool conf_verify_color(keychain_t *chain, const struct yml_node *node);
 bool conf_verify_font(keychain_t *chain, const struct yml_node *node);
