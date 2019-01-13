@@ -25,7 +25,7 @@ add_library(ramp MODULE ramp.c)
 target_link_libraries(ramp particle-sdk)
 
 add_library(string MODULE string.c)
-target_link_libraries(string particle-sdk)
+target_link_libraries(string particle-sdk ${CAIRO_LIBRARIES})
 
 install(
   TARGETS
