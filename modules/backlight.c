@@ -41,11 +41,15 @@ content(struct module *mod)
     const struct private *m = mod->private;
 
     mtx_lock(&mod->lock);
+
+    const long current = m->current_brightness;
+    const long max = m->max_brightness;
+    const long percent = max > 0 ? 100 * current / max : 0;
+
     struct tag_set tags = {
         .tags = (struct tag *[]){
-            tag_new_int_range(
-                mod, "brightness", m->current_brightness, 0, m->max_brightness),
-            tag_new_int_range(mod, "percent", 100 * m->current_brightness / m->max_brightness, 0, 100),
+            tag_new_int_range(mod, "brightness", current, 0, max),
+            tag_new_int_range(mod, "percent", percent, 0, 100),
         },
         .count = 2,
     };
