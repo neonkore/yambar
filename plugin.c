@@ -69,7 +69,6 @@ plugin_load(const char *name, enum plugin_type type)
     tll_push_back(plugins, ((struct plugin){strdup(name), type, lib, NULL}));
     struct plugin *plug = &tll_back(plugins);
 
-    /* TODO: rename to plugin_info or so, in both modules and particles */
     dlerror(); /* Clear previous error */
     plug->sym = dlsym(lib, "plugin_info");
 
