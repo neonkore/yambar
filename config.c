@@ -77,60 +77,18 @@ conf_to_font(const struct yml_node *node)
     return font_new(family != NULL ? yml_value_as_string(family) : "monospace");
 }
 
-static struct deco *
-deco_background_from_config(const struct yml_node *node)
-{
-    const struct yml_node *color = yml_get_value(node, "color");
-    return deco_background(conf_to_color(color));
-}
-
-static struct deco *
-deco_underline_from_config(const struct yml_node *node)
-{
-    const struct yml_node *size = yml_get_value(node, "size");
-    const struct yml_node *color = yml_get_value(node, "color");
-    return deco_underline(yml_value_as_int(size), conf_to_color(color));
-}
-
-static struct deco *deco_from_config(const struct yml_node *node);
-
-static struct deco *
-deco_stack_from_config(const struct yml_node *node)
-{
-    size_t count = yml_list_length(node);
-
-    struct deco *decos[count];
-    size_t idx = 0;
-
-    for (struct yml_list_iter it = yml_list_iter(node);
-         it.node != NULL;
-         yml_list_next(&it), idx++)
-    {
-        decos[idx] = deco_from_config(it.node);
-    }
-
-    return deco_stack(decos, count);
-}
-
-static struct deco *
-deco_from_config(const struct yml_node *node)
+struct deco *
+conf_to_deco(const struct yml_node *node)
 {
     struct yml_dict_iter it = yml_dict_iter(node);
     const struct yml_node *deco_type = it.key;
     const struct yml_node *deco_data = it.value;
 
     const char *type = yml_value_as_string(deco_type);
+    const struct deco_iface *iface = plugin_load_deco(type);
 
-    if (strcmp(type, "background") == 0)
-        return deco_background_from_config(deco_data);
-    else if (strcmp(type, "underline") == 0)
-        return deco_underline_from_config(deco_data);
-    else if (strcmp(type, "stack") == 0)
-        return deco_stack_from_config(deco_data);
-    else
-        assert(false);
-
-    return NULL;
+    assert(iface != NULL);
+    return iface->from_conf(deco_data);
 }
 
 static struct particle *
@@ -191,7 +149,7 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
 
     const char *on_click_template
         = on_click != NULL ? yml_value_as_string(on_click) : NULL;
-    struct deco *deco = deco_node != NULL ? deco_from_config(deco_node) : NULL;
+    struct deco *deco = deco_node != NULL ? conf_to_deco(deco_node) : NULL;
 
     /*
      * Font and foreground are inheritable attributes. Each particle

@@ -8,3 +8,6 @@ struct deco {
                    int x, int y, int width, int height);
     void (*destroy)(struct deco *deco);
 };
+
+#define DECORATION_COMMON_ATTRS  \
+    {NULL, false, NULL}

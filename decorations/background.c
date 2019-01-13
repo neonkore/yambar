@@ -2,6 +2,9 @@
 
 #include <stdlib.h>
 
+#include "../config.h"
+#include "../config-verify.h"
+
 struct private {
     struct rgba color;
 };
@@ -24,8 +27,8 @@ expose(const struct deco *deco, cairo_t *cr, int x, int y, int width, int height
     cairo_fill(cr);
 }
 
-struct deco *
-deco_background(struct rgba color)
+static struct deco *
+background_new(struct rgba color)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->color = color;
@@ -36,4 +39,22 @@ deco_background(struct rgba color)
     deco->destroy = &destroy;
 
     return deco;
+}
+
+struct deco *
+from_conf(const struct yml_node *node)
+{
+    const struct yml_node *color = yml_get_value(node, "color");
+    return background_new(conf_to_color(color));
+}
+
+bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
+{
+    static const struct attr_info attrs[] = {
+        {"color", true, &conf_verify_color},
+        DECORATION_COMMON_ATTRS,
+    };
+
+    return conf_verify_dict(chain, node, attrs);
 }
