@@ -22,3 +22,14 @@ target_link_libraries(ramp particle-sdk)
 
 add_library(string MODULE string.c string.h)
 target_link_libraries(string particle-sdk)
+
+install(
+  TARGETS
+  empty
+  list
+  map
+  progress-bar
+  ramp
+  string
+
+  DESTINATION lib/f00bar)
