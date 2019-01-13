@@ -211,10 +211,10 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
     struct particle *common = particle_common_new(
         left, right, on_click_template, font, foreground, deco);
 
-    const struct particle_info *info = plugin_load_particle(type);
+    const struct particle_iface *iface = plugin_load_particle(type);
 
-    assert(info != NULL);
-    return info->from_conf(pair.value, common);
+    assert(iface != NULL);
+    return iface->from_conf(pair.value, common);
 }
 
 struct bar *

@@ -195,7 +195,7 @@ verify_map_values(keychain_t *chain, const struct yml_node *node)
     return true;
 }
 
-static struct particle *
+struct particle *
 from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
@@ -226,7 +226,7 @@ from_conf(const struct yml_node *node, struct particle *common)
         default_particle);
 }
 
-static bool
+bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
@@ -238,8 +238,3 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
-
-const struct particle_info plugin_info = {
-    .verify_conf = &verify_conf,
-    .from_conf = &from_conf,
-};

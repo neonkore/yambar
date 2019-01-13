@@ -133,7 +133,7 @@ string_new(struct particle *common, const char *text, size_t max_len)
     return common;
 }
 
-static struct particle *
+struct particle *
 from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *text = yml_get_value(node, "text");
@@ -145,7 +145,7 @@ from_conf(const struct yml_node *node, struct particle *common)
         max != NULL ? yml_value_as_int(max) : 0);
 }
 
-static bool
+bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
@@ -156,8 +156,3 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
-
-const struct particle_info plugin_info = {
-    .verify_conf = &verify_conf,
-    .from_conf = &from_conf,
-};

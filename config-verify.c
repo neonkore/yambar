@@ -284,18 +284,17 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    const struct particle_info *info = plugin_load_particle(particle_name);
-    if (info == NULL) {
-        LOG_ERR(
-            "%s: invalid particle name: %s",
-            conf_err_prefix(chain, particle), particle_name);
+    const struct particle_iface *iface = plugin_load_particle(particle_name);
+    if (iface == NULL) {
+        LOG_ERR("%s: invalid particle name: %s",
+                conf_err_prefix(chain, particle), particle_name);
         return false;
     }
 
-    assert(info->verify_conf != NULL);
+    assert(iface->verify_conf != NULL);
 
     chain_push(chain, particle_name);
-    if (!info->verify_conf(chain, values))
+    if (!iface->verify_conf(chain, values))
         return false;
 
     chain_pop(chain);

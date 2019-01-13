@@ -9,25 +9,6 @@
 #include "yml.h"
 
 struct bar;
-struct particle;
-struct exposable;
-
-struct particle_info {
-    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
-    struct particle *(*from_conf)(
-        const struct yml_node *node, struct particle *common);
-
-#define PARTICLE_COMMON_ATTRS                      \
-    {"margin", false, &conf_verify_int},           \
-    {"left-margin", false, &conf_verify_int},      \
-    {"right-margin", false, &conf_verify_int},     \
-    {"on-click", false, &conf_verify_string},      \
-    {"font", false, &conf_verify_font},            \
-    {"foreground", false, &conf_verify_color},     \
-    {"deco", false, &conf_verify_decoration},      \
-    {NULL, false, NULL}
-
-};
 
 struct particle {
     void *private;
@@ -80,3 +61,14 @@ void exposable_render_deco(
 void exposable_default_on_mouse(
     struct exposable *exposable, struct bar *bar,
     enum mouse_event event, int x, int y);
+
+/* List of attributes *all* particles implement */
+#define PARTICLE_COMMON_ATTRS                      \
+    {"margin", false, &conf_verify_int},           \
+    {"left-margin", false, &conf_verify_int},      \
+    {"right-margin", false, &conf_verify_int},     \
+    {"on-click", false, &conf_verify_string},      \
+    {"font", false, &conf_verify_font},            \
+    {"foreground", false, &conf_verify_color},     \
+    {"deco", false, &conf_verify_decoration},      \
+    {NULL, false, NULL}
