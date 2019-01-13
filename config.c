@@ -47,10 +47,14 @@ hex_byte(const char hex[2])
     return upper << 4 | lower;
 }
 
-static struct rgba
-color_from_hexstr(const char *hex)
+struct rgba
+conf_to_color(const struct yml_node *node)
 {
+    const char *hex = yml_value_as_string(node);
+
+    assert(hex != NULL);
     assert(strlen(hex) == 8);
+
     uint8_t red = hex_byte(&hex[0]);
     uint8_t green = hex_byte(&hex[2]);
     uint8_t blue = hex_byte(&hex[4]);
@@ -71,8 +75,8 @@ color_from_hexstr(const char *hex)
     return rgba;
 }
 
-static struct font *
-font_from_config(const struct yml_node *node)
+struct font *
+conf_to_font(const struct yml_node *node)
 {
     const struct yml_node *family = yml_get_value(node, "family");
     return font_new(family != NULL ? yml_value_as_string(family) : "monospace");
@@ -82,7 +86,7 @@ static struct deco *
 deco_background_from_config(const struct yml_node *node)
 {
     const struct yml_node *color = yml_get_value(node, "color");
-    return deco_background(color_from_hexstr(yml_value_as_string(color)));
+    return deco_background(conf_to_color(color));
 }
 
 static struct deco *
@@ -90,10 +94,7 @@ deco_underline_from_config(const struct yml_node *node)
 {
     const struct yml_node *size = yml_get_value(node, "size");
     const struct yml_node *color = yml_get_value(node, "color");
-
-    return deco_underline(
-        yml_value_as_int(size),
-        color_from_hexstr(yml_value_as_string(color)));
+    return deco_underline(yml_value_as_int(size), conf_to_color(color));
 }
 
 static struct deco *deco_from_config(const struct yml_node *node);
@@ -136,30 +137,6 @@ deco_from_config(const struct yml_node *node)
 
     return NULL;
 }
-
-
-static struct particle *
-particle_string_from_config(const struct yml_node *node,
-                            const struct font *parent_font,
-                            int left_margin, int right_margin,
-                            const char *on_click_template)
-{
-    const struct yml_node *text = yml_get_value(node, "text");
-    const struct yml_node *max = yml_get_value(node, "max");
-    const struct yml_node *font = yml_get_value(node, "font");
-    const struct yml_node *foreground = yml_get_value(node, "foreground");
-
-    struct rgba fg_color = foreground != NULL
-        ? color_from_hexstr(yml_value_as_string(foreground)) :
-        (struct rgba){1.0, 1.0, 1.0, 1.0};
-
-    return particle_string_new(
-        yml_value_as_string(text),
-        max != NULL ? yml_value_as_int(max) : 0,
-        font != NULL ? font_from_config(font) : font_clone(parent_font),
-        fg_color, left_margin, right_margin, on_click_template);
-}
-
 
 static struct particle *
 particle_simple_list_from_config(const struct yml_node *node,
@@ -217,9 +194,8 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     else if (strcmp(type, "ramp") == 0)
         ret = particle_ramp.from_conf(
             pair.value, parent_font, left, right, on_click_template);
-
     else if (strcmp(type, "string") == 0)
-        ret = particle_string_from_config(
+        ret = particle_string.from_conf(
             pair.value, parent_font, left, right, on_click_template);
     else
         assert(false);
@@ -252,7 +228,7 @@ conf_to_bar(const struct yml_node *bar)
         ? BAR_TOP : BAR_BOTTOM;
 
     const struct yml_node *background = yml_get_value(bar, "background");
-    conf.background = color_from_hexstr(yml_value_as_string(background));
+    conf.background = conf_to_color(background);
 
     /*
      * Optional attributes
@@ -291,7 +267,7 @@ conf_to_bar(const struct yml_node *bar)
             conf.border.width = yml_value_as_int(width);
 
         if (color != NULL)
-            conf.border.color = color_from_hexstr(yml_value_as_string(color));
+            conf.border.color = conf_to_color(color);
     }
 
     /* Create a default font */
@@ -300,7 +276,7 @@ conf_to_bar(const struct yml_node *bar)
     const struct yml_node *font_node = yml_get_value(bar, "font");
     if (font_node != NULL) {
         font_destroy(font);
-        font = font_from_config(font_node);
+        font = conf_to_font(font_node);
     }
 
     const struct yml_node *left = yml_get_value(bar, "left");

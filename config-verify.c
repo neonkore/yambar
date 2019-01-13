@@ -14,6 +14,7 @@
 #include "particles/map.h"
 #include "particles/progress-bar.h"
 #include "particles/ramp.h"
+#include "particles/string.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -164,8 +165,6 @@ conf_verify_font(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs, sizeof(attrs) / sizeof(attrs[0]));
 }
 
-static bool verify_decoration(keychain_t *chain, const struct yml_node *node);
-
 static bool
 verify_decoration_stack(keychain_t *chain, const struct yml_node *node)
 {
@@ -178,15 +177,15 @@ verify_decoration_stack(keychain_t *chain, const struct yml_node *node)
          it.node != NULL;
          yml_list_next(&it))
     {
-        if (!verify_decoration(chain, it.node))
+        if (!conf_verify_decoration(chain, it.node))
             return false;
     }
 
     return true;
 }
 
-static bool
-verify_decoration(keychain_t *chain, const struct yml_node *node)
+bool
+conf_verify_decoration(keychain_t *chain, const struct yml_node *node)
 {
     assert(yml_is_dict(node));
 
@@ -292,15 +291,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},
 
-    static const struct attr_info string[] = {
-        {"text", true, &conf_verify_string},
-        {"max", false, &conf_verify_int},
-        {"font", false, &conf_verify_font},
-        {"foreground", false, &conf_verify_color},
-        {"deco", false, &verify_decoration},
-        COMMON_ATTRS
-    };
-
 #undef COMMON_ATTRS
 
     static const struct {
@@ -312,6 +302,7 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         {"map", &particle_map},
         {"progress-bar", &particle_progress_bar},
         {"ramp", &particle_ramp},
+        {"string", &particle_string},
     };
 
     static const struct {
@@ -319,7 +310,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } particles[] = {
-        {"string", string, sizeof(string) / sizeof(string[0])},
     };
 
     for (size_t i = 0; i < sizeof(particles_v2) / sizeof(particles_v2[0]); i++) {
