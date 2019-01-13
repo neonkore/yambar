@@ -36,10 +36,6 @@ struct module {
     /*
      * Called by module_begin_expose(). Should return an
      * exposable (an instantiated particle).
-     *
-     * You may also choose to implement begin_expose(), expose() and
-     * end_expose() yourself, in which case you do *not* have to
-     * implement content().
      */
     struct exposable *(*content)(struct module *mod);
 
