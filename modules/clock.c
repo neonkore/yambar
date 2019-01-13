@@ -107,7 +107,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
         time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
 }
 
-const struct module_info module_info = {
+const struct module_info plugin_info = {
     .from_conf = &from_conf,
     .attr_count = 4,
     .attrs = {

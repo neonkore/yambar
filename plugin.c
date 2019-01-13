@@ -69,7 +69,7 @@ plugin_load(const char *name, enum plugin_type type)
 
     /* TODO: rename to plugin_info or so, in both modules and particles */
     dlerror(); /* Clear previous error */
-    plug->sym = dlsym(lib, type == PLUGIN_MODULE ? "module_info" : "plugin_info");
+    plug->sym = dlsym(lib, "plugin_info");
 
     const char *dlsym_error = dlerror();
     if (dlsym_error != NULL) {
