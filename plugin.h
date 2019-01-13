@@ -4,20 +4,22 @@
 #include "module.h"
 #include "particle.h"
 
+typedef bool (*verify_func_t)(keychain_t *chain, const struct yml_node *node);
+
 struct module_iface {
-    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
+    verify_func_t verify_conf;
     struct module *(*from_conf)(
         const struct yml_node *node, struct conf_inherit inherited);
 };
 
 struct particle_iface {
-    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
+    verify_func_t verify_conf;
     struct particle *(*from_conf)(
         const struct yml_node *node, struct particle *common);
 };
 
 struct deco_iface {
-    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
+    verify_func_t verify_conf;
     struct deco *(*from_conf)(const struct yml_node *node);
 };
 
