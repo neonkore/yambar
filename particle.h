@@ -14,11 +14,11 @@ struct particle;
 struct exposable;
 
 struct particle_info {
+    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
     struct particle *(*from_conf)(const struct yml_node *node,
                                   const struct font *parent_font,
                                   int left_margin, int right_margin,
                                   const char *on_click_template);
-    const struct attr_info attrs[];
 
 #define PARTICLE_COMMON_ATTRS_COUNT 5
 #define PARTICLE_COMMON_ATTRS                      \

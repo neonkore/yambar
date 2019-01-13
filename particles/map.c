@@ -228,12 +228,20 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
         default_particle, left_margin, right_margin, on_click_template);
 }
 
-const struct particle_info plugin_info = {
-    .from_conf = &from_conf,
-    .attrs = {
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
+{
+    static const struct attr_info attrs[] = {
         {"tag", true, &conf_verify_string},
         {"values", true, &verify_map_values},
         {"default", false, &conf_verify_particle},
         PARTICLE_COMMON_ATTRS,
-    },
+    };
+
+    return conf_verify_dict(chain, node, attrs);
+}
+
+const struct particle_info plugin_info = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
 };
