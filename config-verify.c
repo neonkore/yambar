@@ -11,6 +11,7 @@
 
 #include "particles/empty.h"
 #include "particles/list.h"
+#include "particles/map.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
@@ -263,35 +264,6 @@ conf_verify_particle_list_items(keychain_t *chain, const struct yml_node *node)
 }
 
 static bool
-verify_map_values(keychain_t *chain, const struct yml_node *node)
-{
-    if (!yml_is_dict(node)) {
-        LOG_ERR(
-            "%s: must be a dictionary of workspace-name: particle mappings",
-            conf_err_prefix(chain, node));
-        return false;
-    }
-
-    for (struct yml_dict_iter it = yml_dict_iter(node);
-         it.key != NULL;
-         yml_dict_next(&it))
-    {
-        const char *key = yml_value_as_string(it.key);
-        if (key == NULL) {
-            LOG_ERR("%s: key must be a string", conf_err_prefix(chain, it.key));
-            return false;
-        }
-
-        if (!conf_verify_particle(chain_push(chain, key), it.value))
-            return false;
-
-        chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
 conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 {
     assert(yml_is_dict(node));
@@ -317,13 +289,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     {"left-margin", false, &conf_verify_int},      \
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},
-
-    static const struct attr_info map[] = {
-        {"tag", true, &conf_verify_string},
-        {"values", true, &verify_map_values},
-        {"default", false, &conf_verify_particle},
-        COMMON_ATTRS
-    };
 
     static const struct attr_info progress_bar[] = {
         {"tag", true, &conf_verify_string},
@@ -360,6 +325,7 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
     } particles_v2[] = {
         {"empty", &particle_empty},
         {"list", &particle_list},
+        {"map", &particle_map},
     };
 
     static const struct {
@@ -367,7 +333,6 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         const struct attr_info *attrs;
         size_t count;
     } particles[] = {
-        {"map", map, sizeof(map) / sizeof(map[0])},
         {"progress-bar", progress_bar, sizeof(progress_bar) / sizeof(progress_bar[0])},
         {"ramp", ramp, sizeof(ramp) / sizeof(ramp[0])},
         {"string", string, sizeof(string) / sizeof(string[0])},

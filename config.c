@@ -162,36 +162,6 @@ particle_string_from_config(const struct yml_node *node,
 
 
 static struct particle *
-particle_map_from_config(const struct yml_node *node,
-                         const struct font *parent_font,
-                         int left_margin, int right_margin,
-                         const char *on_click_template)
-{
-    const struct yml_node *tag = yml_get_value(node, "tag");
-    const struct yml_node *values = yml_get_value(node, "values");
-    const struct yml_node *def = yml_get_value(node, "default");
-
-    struct particle_map particle_map[yml_dict_length(values)];
-
-    size_t idx = 0;
-    for (struct yml_dict_iter it = yml_dict_iter(values);
-         it.key != NULL;
-         yml_dict_next(&it), idx++)
-    {
-        particle_map[idx].tag_value = yml_value_as_string(it.key);
-        particle_map[idx].particle = conf_to_particle(it.value, parent_font);
-    }
-
-    struct particle *default_particle = def != NULL
-        ? conf_to_particle(def, parent_font)
-        : NULL;
-
-    return particle_map_new(
-        yml_value_as_string(tag), particle_map, yml_dict_length(values),
-        default_particle, left_margin, right_margin, on_click_template);
-}
-
-static struct particle *
 particle_ramp_from_config(const struct yml_node *node,
                           const struct font *parent_font,
                           int left_margin, int right_margin,
@@ -288,12 +258,12 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     else if (strcmp(type, "list") == 0)
         ret = particle_list.from_conf(
             pair.value, parent_font, left, right, on_click_template);
+    else if (strcmp(type, "map") == 0)
+        ret = particle_map.from_conf(
+            pair.value, parent_font, left, right, on_click_template);
 
     else if (strcmp(type, "string") == 0)
         ret = particle_string_from_config(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "map") == 0)
-        ret = particle_map_from_config(
             pair.value, parent_font, left, right, on_click_template);
     else if (strcmp(type, "ramp") == 0)
         ret = particle_ramp_from_config(
