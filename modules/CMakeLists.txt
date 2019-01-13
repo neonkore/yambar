@@ -6,6 +6,8 @@ target_compile_options(module-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
 target_include_directories(module-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
 target_link_libraries(module-sdk INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 
+set(CMAKE_SHARED_MODULE_PREFIX module_)
+
 pkg_check_modules(ALSA REQUIRED alsa)
 add_library(alsa MODULE alsa.c)
 target_compile_options(alsa PRIVATE ${ALSA_CFLAGS_OTHER})

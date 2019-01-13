@@ -5,6 +5,8 @@ target_compile_definitions(particle-sdk INTERFACE _GNU_SOURCE)
 target_compile_options(particle-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
 target_include_directories(particle-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
 
+set(CMAKE_SHARED_MODULE_PREFIX particle_)
+
 add_library(empty MODULE empty.c empty.h)
 target_link_libraries(empty particle-sdk)
 

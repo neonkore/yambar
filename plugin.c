@@ -53,7 +53,9 @@ plugin_load(const char *name, enum plugin_type type)
     }
 
     char path[128];
-    snprintf(path, sizeof(path), "lib%s.so", name);
+    snprintf(
+        path, sizeof(path), "%s_%s.so",
+        type == PLUGIN_MODULE ? "module" : "particle", name);
 
     /* Not loaded - do it now */
     void *lib = dlopen(path, RTLD_LOCAL | RTLD_NOW);
