@@ -38,7 +38,7 @@ struct module {
     void (*destroy)(struct module *module);
 
     /*
-     * Called by module_default_begin_expose(). Should return an
+     * Called by module_begin_expose(). Should return an
      * exposable (an instantiated particle).
      *
      * You may also choose to implement begin_expose(), expose() and
@@ -50,28 +50,10 @@ struct module {
     /* refresh_in() should schedule a module content refresh after the
      * specified number of milliseconds */
     bool (*refresh_in)(struct module *mod, long milli_seconds);
-
-    /*
-     * Called by bar when it needs to refresh
-     *
-     * begin_expose() should return a module_expose_context, where the
-     * 'exposable' member is an instantiated particle, 'width' is the
-     * total width of the module, and 'private' is context data for
-     * the module (i.e. it's not touched by the bar).
-     *
-     * expose() should render the exposable
-     *
-     * end_expose() performs cleanup (destroy exposable etc)
-     *
-     * Note that for most modules, using the default implementations
-     * (module_default_*) is good enough. In this case, implement
-     * 'content()' instead (see above).
-     */
-    struct exposable *(*begin_expose)(struct module *mod);
 };
 
 struct module *module_common_new(void);
 void module_default_destroy(struct module *mod);
 
 void module_signal_ready(struct module_run_context *ctx);
-struct exposable *module_default_begin_expose(struct module *mod);
+struct exposable *module_begin_expose(struct module *mod);

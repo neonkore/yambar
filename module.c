@@ -10,9 +10,7 @@ module_common_new(void)
     mod->bar = NULL;
     mtx_init(&mod->lock, mtx_plain);
     mod->private = NULL;
-
     mod->destroy = &module_default_destroy;
-    mod->begin_expose = &module_default_begin_expose;
 
     /* No defaults for these; must be provided by implementation */
     mod->run = NULL;
@@ -36,7 +34,7 @@ module_signal_ready(struct module_run_context *ctx)
 }
 
 struct exposable *
-module_default_begin_expose(struct module *mod)
+module_begin_expose(struct module *mod)
 {
     struct exposable *e = mod->content(mod);
     e->begin_expose(e);
