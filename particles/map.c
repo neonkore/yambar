@@ -146,16 +146,10 @@ particle_destroy(struct particle *particle)
 }
 
 static struct particle *
-map_new(const char *tag, const struct particle_map *particle_map,
-        size_t count, struct particle *default_particle,
-        int left_margin, int right_margin,
-        const char *on_click_template)
+map_new(struct particle *common, const char *tag,
+        const struct particle_map particle_map[], size_t count,
+        struct particle *default_particle)
 {
-    struct particle *particle = particle_common_new(
-        left_margin, right_margin, on_click_template);
-    particle->destroy = &particle_destroy;
-    particle->instantiate = &instantiate;
-
     struct private *priv = malloc(sizeof(*priv));
     priv->tag = strdup(tag);
     priv->default_particle = default_particle;
@@ -167,8 +161,10 @@ map_new(const char *tag, const struct particle_map *particle_map,
         priv->map[i].particle = particle_map[i].particle;
     }
 
-    particle->private = priv;
-    return particle;
+    common->private = priv;
+    common->destroy = &particle_destroy;
+    common->instantiate = &instantiate;
+    return common;
 }
 
 static bool
@@ -201,8 +197,7 @@ verify_map_values(keychain_t *chain, const struct yml_node *node)
 }
 
 static struct particle *
-from_conf(const struct yml_node *node, const struct font *parent_font,
-          int left_margin, int right_margin, const char *on_click_template)
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *values = yml_get_value(node, "values");
@@ -216,16 +211,15 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
          yml_dict_next(&it), idx++)
     {
         particle_map[idx].tag_value = yml_value_as_string(it.key);
-        particle_map[idx].particle = conf_to_particle(it.value, parent_font);
+        particle_map[idx].particle = conf_to_particle(it.value, common->font);
     }
 
     struct particle *default_particle = def != NULL
-        ? conf_to_particle(def, parent_font)
-        : NULL;
+        ? conf_to_particle(def, common->font) : NULL;
 
     return map_new(
-        yml_value_as_string(tag), particle_map, yml_dict_length(values),
-        default_particle, left_margin, right_margin, on_click_template);
+        common, yml_value_as_string(tag), particle_map, yml_dict_length(values),
+        default_particle);
 }
 
 static bool

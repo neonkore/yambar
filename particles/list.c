@@ -143,10 +143,9 @@ particle_destroy(struct particle *particle)
 }
 
 struct particle *
-particle_list_new(
-    struct particle *particles[], size_t count,
-    int left_spacing, int right_spacing, int left_margin, int right_margin,
-    const char *on_click_template)
+particle_list_new(struct particle *common,
+                  struct particle *particles[], size_t count,
+                  int left_spacing, int right_spacing)
 {
     struct private *p = malloc(sizeof(*p));
     p->particles = malloc(count * sizeof(p->particles[0]));
@@ -157,22 +156,16 @@ particle_list_new(
     for (size_t i = 0; i < count; i++)
         p->particles[i] = particles[i];
 
-    struct particle *particle = particle_common_new(
-        left_margin, right_margin, on_click_template);
-
-    particle->private = p;
-    particle->destroy = &particle_destroy;
-    particle->instantiate = &instantiate;
-
-    return particle;
+    common->private = p;
+    common->destroy = &particle_destroy;
+    common->instantiate = &instantiate;
+    return common;
 }
 
 static struct particle *
-from_conf(const struct yml_node *node, const struct font *parent_font,
-          int left_margin, int right_margin, const char *on_click_template)
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *items = yml_get_value(node, "items");
-
     const struct yml_node *spacing = yml_get_value(node, "spacing");
     const struct yml_node *_left_spacing = yml_get_value(node, "left-spacing");
     const struct yml_node *_right_spacing = yml_get_value(node, "right-spacing");
@@ -190,12 +183,10 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
-        parts[idx] = conf_to_particle(it.node, parent_font);
+        parts[idx] = conf_to_particle(it.node, common->font);
     }
 
-    return particle_list_new(
-        parts, count, left_spacing, right_spacing, left_margin, right_margin,
-        on_click_template);
+    return particle_list_new(common, parts, count, left_spacing, right_spacing);
 }
 
 static bool

@@ -208,13 +208,10 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 }
 
 static struct particle *
-progress_bar_new(const char *tag, int width,
-                 struct particle *start_marker,
-                 struct particle *end_marker,
+progress_bar_new(struct particle *common, const char *tag, int width,
+                 struct particle *start_marker, struct particle *end_marker,
                  struct particle *fill, struct particle *empty,
-                 struct particle *indicator,
-                 int left_margin, int right_margin,
-                 const char *on_click_template)
+                 struct particle *indicator)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->tag = strdup(tag);
@@ -225,18 +222,14 @@ progress_bar_new(const char *tag, int width,
     priv->empty = empty;
     priv->indicator = indicator;
 
-    struct particle *particle = particle_common_new(
-        left_margin, right_margin, on_click_template);
-    particle->private = priv;
-    particle->destroy = &particle_destroy;
-    particle->instantiate = &instantiate;
-
-    return particle;
+    common->private = priv;
+    common->destroy = &particle_destroy;
+    common->instantiate = &instantiate;
+    return common;
 }
 
 static struct particle *
-from_conf(const struct yml_node *node, const struct font *parent_font,
-          int left_margin, int right_margin, const char *on_click_template)
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *length = yml_get_value(node, "length");
@@ -247,14 +240,14 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
     const struct yml_node *indicator = yml_get_value(node, "indicator");
 
     return progress_bar_new(
+        common,
         yml_value_as_string(tag),
         yml_value_as_int(length),
-        conf_to_particle(start, parent_font),
-        conf_to_particle(end, parent_font),
-        conf_to_particle(fill, parent_font),
-        conf_to_particle(empty, parent_font),
-        conf_to_particle(indicator, parent_font),
-        left_margin, right_margin, on_click_template);
+        conf_to_particle(start, common->font),
+        conf_to_particle(end, common->font),
+        conf_to_particle(fill, common->font),
+        conf_to_particle(empty, common->font),
+        conf_to_particle(indicator, common->font));
 }
 
 static bool

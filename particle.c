@@ -17,19 +17,25 @@ particle_default_destroy(struct particle *particle)
 {
     if (particle->deco != NULL)
         particle->deco->destroy(particle->deco);
+    font_destroy(particle->font);
     free(particle->on_click_template);
     free(particle);
 }
 
 struct particle *
 particle_common_new(int left_margin, int right_margin,
-                    const char *on_click_template)
+                    const char *on_click_template,
+                    struct font *font, struct rgba foreground,
+                    struct deco *deco)
 {
     struct particle *p = malloc(sizeof(*p));
     p->left_margin = left_margin;
     p->right_margin = right_margin;
-    p->on_click_template = on_click_template != NULL ? strdup(on_click_template) : NULL;
-    p->deco = NULL;
+    p->on_click_template =
+        on_click_template != NULL ? strdup(on_click_template) : NULL;
+    p->foreground = foreground;
+    p->font = font;
+    p->deco = deco;
     return p;
 }
 

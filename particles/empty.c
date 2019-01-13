@@ -32,20 +32,17 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 }
 
 static struct particle *
-empty_new(int left_margin, int right_margin, const char *on_click_template)
+empty_new(struct particle *common)
 {
-    struct particle *particle = particle_common_new(
-        left_margin, right_margin, on_click_template);
-    particle->destroy = &particle_default_destroy;
-    particle->instantiate = &instantiate;
-    return particle;
+    common->destroy = &particle_default_destroy;
+    common->instantiate = &instantiate;
+    return common;
 }
 
 static struct particle *
-from_conf(const struct yml_node *node, const struct font *parent_font,
-          int left_margin, int right_margin, const char *on_click_template)
+from_conf(const struct yml_node *node, struct particle *common)
 {
-    return empty_new(left_margin, right_margin, on_click_template);
+    return empty_new(common);
 }
 
 static bool

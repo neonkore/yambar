@@ -149,17 +149,22 @@ particle_simple_list_from_config(const struct yml_node *node,
 
     /* Lazy-loaded function pointer to particle_list_new() */
     static struct particle *(*particle_list_new)(
+        struct particle *common,
         struct particle *particles[], size_t count,
-        int left_spacing, int right_spacing, int left_margin, int right_margin,
-        const char *on_click_template) = NULL;
+        int left_spacing, int right_spacing) = NULL;
 
     if (particle_list_new == NULL) {
         const struct plugin *plug = plugin_load("list", PLUGIN_PARTICLE);
+
         particle_list_new = dlsym(plug->lib, "particle_list_new");
         assert(particle_list_new != NULL);
     }
 
-    return particle_list_new(parts, count, 0, 2, 0, 0, NULL);
+    struct particle *common = particle_common_new(
+        0, 0, NULL, font_clone(parent_font),
+        (struct rgba){1.0, 1.0, 1.0, 1.0}, NULL);
+
+    return particle_list_new(common, parts, count, 0, 2);
 }
 
 struct particle *
@@ -175,6 +180,9 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     const struct yml_node *left_margin = yml_get_value(pair.value, "left-margin");
     const struct yml_node *right_margin = yml_get_value(pair.value, "right-margin");
     const struct yml_node *on_click = yml_get_value(pair.value, "on-click");
+    const struct yml_node *font_node = yml_get_value(pair.value, "font");
+    const struct yml_node *foreground_node = yml_get_value(pair.value, "foreground");
+    const struct yml_node *deco_node = yml_get_value(pair.value, "deco");
 
     int left = margin != NULL ? yml_value_as_int(margin) :
         left_margin != NULL ? yml_value_as_int(left_margin) : 0;
@@ -183,19 +191,19 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
 
     const char *on_click_template
         = on_click != NULL ? yml_value_as_string(on_click) : NULL;
+    struct font *font = font_node != NULL
+        ? conf_to_font(font_node) : font_clone(parent_font);
+    struct rgba foreground = foreground_node != NULL
+        ? conf_to_color(foreground_node) : (struct rgba){1.0, 1.0, 1.0, 1.0};
+    struct deco *deco = deco_node != NULL ? deco_from_config(deco_node) : NULL;
+
+    struct particle *common = particle_common_new(
+        left, right, on_click_template, font, foreground, deco);
 
     const struct particle_info *info = plugin_load_particle(type);
     assert(info != NULL);
 
-    struct particle *ret = info->from_conf(
-        pair.value, parent_font, left, right, on_click_template);
-
-    const struct yml_node *deco_node = yml_get_value(pair.value, "deco");
-
-    if (deco_node != NULL)
-        ret->deco = deco_from_config(deco_node);
-
-    return ret;
+    return info->from_conf(pair.value, common);
 }
 
 struct bar *

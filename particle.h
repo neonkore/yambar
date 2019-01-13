@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cairo.h>
 
 #include "color.h"
@@ -15,10 +14,7 @@ struct exposable;
 
 struct particle_info {
     bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
-    struct particle *(*from_conf)(const struct yml_node *node,
-                                  const struct font *parent_font,
-                                  int left_margin, int right_margin,
-                                  const char *on_click_template);
+    struct particle *(*from_conf)(const struct yml_node *node, struct particle *common);
 
 #define PARTICLE_COMMON_ATTRS_COUNT 5
 #define PARTICLE_COMMON_ATTRS                      \
@@ -26,6 +22,8 @@ struct particle_info {
     {"left-margin", false, &conf_verify_int},      \
     {"right-margin", false, &conf_verify_int},     \
     {"on-click", false, &conf_verify_string},      \
+    {"font", false, &conf_verify_font},            \
+    {"foreground", false, &conf_verify_color},     \
     {"deco", false, &conf_verify_decoration},      \
     {NULL, false, NULL}
 
@@ -35,8 +33,11 @@ struct particle {
     void *private;
 
     int left_margin, right_margin;
-    struct deco *deco;
     char *on_click_template;
+
+    struct rgba foreground;
+    struct font *font;
+    struct deco *deco;
 
     void (*destroy)(struct particle *particle);
     struct exposable *(*instantiate)(const struct particle *particle,
@@ -64,8 +65,10 @@ struct exposable {
                      enum mouse_event event, int x, int y);
 };
 
-struct particle *particle_common_new(int left_margin, int right_margin,
-                                     const char *on_click_template);
+struct particle *particle_common_new(
+    int left_margin, int right_margin, const char *on_click_template,
+    struct font *font, struct rgba foreground, struct deco *deco);
+
 void particle_default_destroy(struct particle *particle);
 
 struct exposable *exposable_common_new(

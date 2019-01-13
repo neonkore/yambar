@@ -135,13 +135,9 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 }
 
 static struct particle *
-ramp_new(const char *tag, struct particle *particles[], size_t count,
-         int left_margin, int right_margin, const char *on_click_template)
+ramp_new(struct particle *common, const char *tag,
+         struct particle *particles[], size_t count)
 {
-    struct particle *particle = particle_common_new(
-        left_margin, right_margin, on_click_template);
-    particle->destroy = &particle_destroy;
-    particle->instantiate = &instantiate;
 
     struct private *priv = malloc(sizeof(*priv));
     priv->tag = strdup(tag);
@@ -151,13 +147,14 @@ ramp_new(const char *tag, struct particle *particles[], size_t count,
     for (size_t i = 0; i < count; i++)
         priv->particles[i] = particles[i];
 
-    particle->private = priv;
-    return particle;
+    common->private = priv;
+    common->destroy = &particle_destroy;
+    common->instantiate = &instantiate;
+    return common;
 }
 
 static struct particle *
-from_conf(const struct yml_node *node, const struct font *parent_font,
-          int left_margin, int right_margin, const char *on_click_template)
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *items = yml_get_value(node, "items");
@@ -170,12 +167,10 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
          it.node != NULL;
          yml_list_next(&it), idx++)
     {
-        parts[idx] = conf_to_particle(it.node, parent_font);
+        parts[idx] = conf_to_particle(it.node, common->font);
     }
 
-    return ramp_new(
-        yml_value_as_string(tag), parts, count, left_margin, right_margin,
-        on_click_template);
+    return ramp_new(common, yml_value_as_string(tag), parts, count);
 }
 
 static bool

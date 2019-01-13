@@ -12,17 +12,10 @@
 struct private {
     char *text;
     size_t max_len;
-
-    struct font *font;
-    struct rgba foreground;
 };
 
 struct eprivate {
     char *text;
-
-    const struct font *font;
-    struct rgba foreground;
-
     cairo_text_extents_t extents;
 };
 
@@ -40,7 +33,7 @@ begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
 
-    cairo_scaled_font_t *scaled = font_scaled_font(e->font);
+    cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
     cairo_scaled_font_text_extents(scaled, e->text, &e->extents);
 
     exposable->width = (exposable->particle->left_margin +
@@ -58,7 +51,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     const struct eprivate *e = exposable->private;
     const size_t text_len = strlen(e->text);
 
-    cairo_scaled_font_t *scaled = font_scaled_font(e->font);
+    cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
 
     cairo_glyph_t *glyphs = NULL;
     cairo_text_cluster_t *clusters = NULL;
@@ -73,10 +66,10 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 
     cairo_set_scaled_font(cr, scaled);
     cairo_set_source_rgba(cr,
-                          e->foreground.red,
-                          e->foreground.green,
-                          e->foreground.blue,
-                          e->foreground.alpha);
+                          exposable->particle->foreground.red,
+                          exposable->particle->foreground.green,
+                          exposable->particle->foreground.blue,
+                          exposable->particle->foreground.alpha);
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
     cairo_show_text_glyphs(
@@ -94,8 +87,6 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     struct eprivate *e = malloc(sizeof(*e));
 
     e->text = tags_expand_template(p->text, tags);
-    e->font = p->font;
-    e->foreground = p->foreground;
     memset(&e->extents, 0, sizeof(e->extents));
 
     if (p->max_len > 0) {
@@ -125,50 +116,34 @@ static void
 particle_destroy(struct particle *particle)
 {
     struct private *p = particle->private;
-    font_destroy(p->font);
     free(p->text);
     free(p);
     particle_default_destroy(particle);
 }
 
 static struct particle *
-string_new(const char *text, size_t max_len, struct font *font,
-           struct rgba foreground, int left_margin, int right_margin,
-           const char *on_click_template)
+string_new(struct particle *common, const char *text, size_t max_len)
 {
     struct private *p = malloc(sizeof(*p));
     p->text = strdup(text);
     p->max_len = max_len;
-    p->font = font;
-    p->foreground = foreground;
 
-    struct particle *particle = particle_common_new(
-        left_margin, right_margin, on_click_template);
-
-    particle->private = p;
-    particle->destroy = &particle_destroy;
-    particle->instantiate = &instantiate;
-
-    return particle;
+    common->private = p;
+    common->destroy = &particle_destroy;
+    common->instantiate = &instantiate;
+    return common;
 }
 
 static struct particle *
-from_conf(const struct yml_node *node, const struct font *parent_font,
-          int left_margin, int right_margin, const char *on_click_template)
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *text = yml_get_value(node, "text");
     const struct yml_node *max = yml_get_value(node, "max");
-    const struct yml_node *font = yml_get_value(node, "font");
-    const struct yml_node *foreground = yml_get_value(node, "foreground");
-
-    struct rgba fg_color = foreground != NULL
-        ? conf_to_color(foreground) : (struct rgba){1.0, 1.0, 1.0, 1.0};
 
     return string_new(
+        common,
         yml_value_as_string(text),
-        max != NULL ? yml_value_as_int(max) : 0,
-        font != NULL ? conf_to_font(font) : font_clone(parent_font),
-        fg_color, left_margin, right_margin, on_click_template);
+        max != NULL ? yml_value_as_int(max) : 0);
 }
 
 static bool
@@ -177,8 +152,6 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"text", true, &conf_verify_string},
         {"max", false, &conf_verify_int},
-        {"font", false, &conf_verify_font},
-        {"foreground", false, &conf_verify_color},
         PARTICLE_COMMON_ATTRS,
     };
 
