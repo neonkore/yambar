@@ -450,8 +450,6 @@ run(struct module_run_context *ctx)
     struct module *mod = ctx->module;
     struct private *m = mod->private;
 
-    module_signal_ready(ctx);
-
     struct udev *udev = udev_new();
     struct udev_monitor *dev_mon = udev_monitor_new_from_netlink(udev, "udev");
 

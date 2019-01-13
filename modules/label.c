@@ -29,7 +29,6 @@ content(struct module *mod)
 static int
 run(struct module_run_context *ctx)
 {
-    module_signal_ready(ctx);
     return 0;
 }
 

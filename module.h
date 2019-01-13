@@ -24,7 +24,6 @@ struct module_info {
 
 struct module_run_context {
     struct module *module;
-    int ready_fd;
     int abort_fd;
 };
 
@@ -54,6 +53,4 @@ struct module {
 
 struct module *module_common_new(void);
 void module_default_destroy(struct module *mod);
-
-void module_signal_ready(struct module_run_context *ctx);
 struct exposable *module_begin_expose(struct module *mod);

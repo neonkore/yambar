@@ -376,7 +376,6 @@ run(struct module_run_context *ctx)
         FILE *out = popen("i3 --get-socketpath", "r");
         if (out == NULL) {
             LOG_ERRNO("failed to execute 'i3 --get-socketpath'");
-            module_signal_ready(ctx);
             return 1;
         }
 
@@ -392,7 +391,6 @@ run(struct module_run_context *ctx)
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock == -1) {
         LOG_ERRNO("failed to create UNIX socket");
-        module_signal_ready(ctx);
         return 1;
     }
 
@@ -400,15 +398,12 @@ run(struct module_run_context *ctx)
     if (r == -1) {
         LOG_ERRNO("failed to connect to i3 socket");
         close(sock);
-        module_signal_ready(ctx);
         return 1;
     }
 
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\"]");
-
-    module_signal_ready(ctx);
 
     char buf[1 * 1024 * 1024];  /* Some replies are *big*. TODO: grow dynamically */
     size_t buf_idx = 0;

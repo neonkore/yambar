@@ -248,10 +248,8 @@ run(struct module_run_context *ctx)
     struct private *m = ctx->module->private;
 
     int base_dir_fd = initialize(m);
-    if (base_dir_fd == -1) {
-        module_signal_ready(ctx);
+    if (base_dir_fd == -1)
         return -1;
-    }
 
     LOG_INFO("%s: %s %s (at %.1f%% of original capacity)",
              m->battery, m->manufacturer, m->model,
@@ -269,7 +267,6 @@ run(struct module_run_context *ctx)
     if (status_fd == -1 || capacity_fd == -1 || energy_fd == -1 ||
         power_fd == -1 || udev == NULL || mon == NULL)
     {
-        module_signal_ready(ctx);
         goto out;
     }
 
@@ -277,7 +274,7 @@ run(struct module_run_context *ctx)
     udev_monitor_enable_receiving(mon);
 
     update_status(ctx->module, capacity_fd, energy_fd, power_fd, status_fd);
-    module_signal_ready(ctx);
+    bar->refresh(bar);
 
     while (true) {
         struct pollfd fds[] = {

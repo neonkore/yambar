@@ -144,8 +144,6 @@ run(struct module_run_context *ctx)
     struct private *m = ctx->module->private;
 
     int current_fd = initialize(m);
-    module_signal_ready(ctx);
-
     if (current_fd == -1)
         return 1;
 
@@ -164,6 +162,8 @@ run(struct module_run_context *ctx)
 
     udev_monitor_filter_add_match_subsystem_devtype(mon, "backlight", NULL);
     udev_monitor_enable_receiving(mon);
+
+    bar->refresh(bar);
 
     while (true) {
         struct pollfd fds[] = {

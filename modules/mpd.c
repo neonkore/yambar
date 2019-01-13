@@ -260,8 +260,6 @@ update_status(struct module *mod)
 static int
 run(struct module_run_context *ctx)
 {
-    module_signal_ready(ctx);
-
     struct module *mod = ctx->module;
     const struct bar *bar = mod->bar;
     struct private *m = mod->private;

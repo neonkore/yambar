@@ -179,8 +179,6 @@ run(struct module_run_context *ctx)
     struct module *mod = ctx->module;
     struct private *m = mod->private;
 
-    module_signal_ready(ctx);
-
     snd_mixer_t *handle;
     snd_mixer_open(&handle, 0);
     snd_mixer_attach(handle, m->card);
@@ -218,6 +216,8 @@ run(struct module_run_context *ctx)
     LOG_INFO("%s,%s: volume min=%ld, max=%ld, current=%ld%s",
              m->card, m->mixer, m->vol_min, m->vol_max, m->vol_cur,
              m->muted ? ", muted" : "");
+
+    mod->bar->refresh(mod->bar);
 
     while (true) {
         int fd_count = snd_mixer_poll_descriptors_count(handle);

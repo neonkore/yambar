@@ -189,7 +189,6 @@ run(struct module_run_context *ctx)
     m->conn = xcb_connect(NULL, NULL);
     if (m->conn == NULL) {
         LOG_ERR("failed to connect to X");
-        module_signal_ready(ctx);
         return 1;
     }
 
@@ -218,8 +217,7 @@ run(struct module_run_context *ctx)
     update_active_window(m);
     update_application(mod);
     update_title(mod);
-
-    module_signal_ready(ctx);
+    mod->bar->refresh(mod->bar);
 
     int xcb_fd = xcb_get_file_descriptor(m->conn);
     while (true) {

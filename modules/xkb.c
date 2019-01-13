@@ -288,7 +288,8 @@ static bool
 event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
            int xkb_event_base)
 {
-    struct private *m = ctx->module->private;
+    struct module *mod = ctx->module;
+    struct private *m = mod->private;
     const struct bar *bar = ctx->module->bar;
 
     bool ret = false;
@@ -352,13 +353,17 @@ event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
                 }
 
                 if (current < layouts.count) {
+                    mtx_lock(&mod->lock);
                     free_layouts(m->layouts);
                     m->layouts = layouts;
                     m->current = current;
+                    mtx_unlock(&mod->lock);
                     bar->refresh(bar);
                 } else {
                      /* Can happen while transitioning to a new map */
+                    mtx_lock(&mod->lock);
                     free_layouts(layouts);
+                    mtx_unlock(&mod->lock);
                 }
 
                 break;
@@ -369,7 +374,9 @@ event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
                     (const xcb_xkb_state_notify_event_t *)_evt;
 
                 if (evt->changed & XCB_XKB_STATE_PART_GROUP_STATE) {
+                    mtx_lock(&mod->lock);
                     m->current = evt->group;
+                    mtx_unlock(&mod->lock);
                     bar->refresh(bar);
                 }
 
@@ -398,38 +405,36 @@ talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
     struct private *m = ctx->module->private;
 
     if (!xkb_enable(conn))
-        goto err;
+        return false;
 
     if (!register_for_events(conn))
-        goto err;
+        return false;
 
     int xkb_event_base = get_xkb_event_base(conn);
     if (xkb_event_base == -1)
-        goto err;
+        return false;
 
     int current = get_current_layout(conn);
     if (current == -1)
-        goto err;
+        return false;
 
     struct layouts layouts = get_layouts(conn);
     if (layouts.count == -1)
-        goto err;
+        return false;
 
     if (current >= layouts.count) {
         LOG_ERR("current layout index: %d >= %zd", current, layouts.count);
         free_layouts(layouts);
-        goto err;
+        return false;
     }
 
+    mtx_lock(&ctx->module->lock);
     m->layouts = layouts;
     m->current = current;
+    mtx_unlock(&ctx->module->lock);
+    ctx->module->bar->refresh(ctx->module->bar);
 
-    module_signal_ready(ctx);
     return event_loop(ctx, conn, xkb_event_base);
-
-err:
-    module_signal_ready(ctx);
-    return false;
 }
 
 static int
@@ -438,7 +443,6 @@ run(struct module_run_context *ctx)
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
     if (conn == NULL) {
         LOG_ERR("failed to connect to X server");
-        module_signal_ready(ctx);
         return EXIT_FAILURE;
     }
 

@@ -537,14 +537,10 @@ run(struct bar_run_context *run_ctx)
     struct module_run_context run_ctx_center[bar->center.count];
     struct module_run_context run_ctx_right[bar->right.count];
 
-    int ready_fd = eventfd(0, EFD_CLOEXEC | EFD_SEMAPHORE);
-    assert(ready_fd != -1);
-
     for (size_t i = 0; i < bar->left.count; i++) {
         struct module_run_context *ctx = &run_ctx_left[i];
 
         ctx->module = bar->left.mods[i];
-        ctx->ready_fd = ready_fd;
         ctx->abort_fd = run_ctx->abort_fd;
 
         thrd_create(&thrd_left[i], (int (*)(void *))bar->left.mods[i]->run, ctx);
@@ -553,7 +549,6 @@ run(struct bar_run_context *run_ctx)
         struct module_run_context *ctx = &run_ctx_center[i];
 
         ctx->module = bar->center.mods[i];
-        ctx->ready_fd = ready_fd;
         ctx->abort_fd = run_ctx->abort_fd;
 
         thrd_create(&thrd_center[i], (int (*)(void *))bar->center.mods[i]->run, ctx);
@@ -562,25 +557,12 @@ run(struct bar_run_context *run_ctx)
         struct module_run_context *ctx = &run_ctx_right[i];
 
         ctx->module = bar->right.mods[i];
-        ctx->ready_fd = ready_fd;
         ctx->abort_fd = run_ctx->abort_fd;
 
         thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, ctx);
     }
 
-    LOG_DBG("waiting for modules to become ready");
-
-    for (size_t i = 0; i < (bar->left.count +
-                            bar->center.count +
-                            bar->right.count); i++) {
-        uint64_t b;
-        read(ready_fd, &b, sizeof(b));
-    }
-
-    close(ready_fd);
     LOG_DBG("all modules started");
-
-    refresh(_bar);
 
     int fd = xcb_get_file_descriptor(bar->conn);
 
@@ -645,6 +627,8 @@ run(struct bar_run_context *run_ctx)
             xcb_flush(bar->conn);
         }
     }
+
+    LOG_DBG("shutting down");
 
     /* Wait for modules to terminate */
     int ret = 0;

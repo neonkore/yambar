@@ -27,12 +27,6 @@ module_default_destroy(struct module *mod)
     free(mod);
 }
 
-void
-module_signal_ready(struct module_run_context *ctx)
-{
-    write(ctx->ready_fd, &(uint64_t){1}, sizeof(uint64_t));
-}
-
 struct exposable *
 module_begin_expose(struct module *mod)
 {

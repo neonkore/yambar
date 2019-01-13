@@ -459,8 +459,6 @@ run(struct module_run_context *ctx)
     struct module *mod = ctx->module;
     struct private *m = mod->private;
 
-    module_signal_ready(ctx);
-
     m->nl_sock = netlink_connect();
     if (m->nl_sock == -1)
         return 1;

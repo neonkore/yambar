@@ -54,8 +54,7 @@ static int
 run(struct module_run_context *ctx)
 {
     const struct bar *bar = ctx->module->bar;
-
-    module_signal_ready(ctx);
+    bar->refresh(bar);
 
     while (true) {
         time_t now = time(NULL);
