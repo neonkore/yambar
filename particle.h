@@ -17,7 +17,6 @@ struct particle_info {
     struct particle *(*from_conf)(
         const struct yml_node *node, struct particle *common);
 
-#define PARTICLE_COMMON_ATTRS_COUNT 5
 #define PARTICLE_COMMON_ATTRS                      \
     {"margin", false, &conf_verify_int},           \
     {"left-margin", false, &conf_verify_int},      \
