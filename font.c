@@ -121,6 +121,9 @@ font_clone(const struct font *font)
 void
 font_destroy(struct font *font)
 {
+    if (font == NULL)
+        return;
+
     cairo_scaled_font_destroy(font->scaled_font);
     free(font->name);
     free(font);
