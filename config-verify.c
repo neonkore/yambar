@@ -341,8 +341,10 @@ verify_module(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
+    assert(info->verify_conf != NULL);
+
     chain_push(chain, mod_name);
-    if (!conf_verify_dict(chain, values, info->attrs))
+    if (!info->verify_conf(chain, values))
         return false;
 
     chain_pop(chain);

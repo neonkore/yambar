@@ -12,9 +12,9 @@ struct bar;
 struct module;
 
 struct module_info {
+    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
     struct module *(*from_conf)(const struct yml_node *node,
                                const struct font *parent_font);
-    const struct attr_info attrs[];
 };
 
 struct module_run_context {

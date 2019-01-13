@@ -53,11 +53,19 @@ from_conf(const struct yml_node *node, const struct font *parent_font)
     return label_new(conf_to_particle(c, parent_font));
 }
 
-const struct module_info plugin_info = {
-    .from_conf = &from_conf,
-    .attrs = {
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
+{
+    static const struct attr_info attrs[] = {
         {"content", true, &conf_verify_particle},
         {"anchors", false, NULL},
-        {NULL, false, NULL},
-     },
+        {NULL, false, NULL}
+    };
+
+    return conf_verify_dict(chain, node, attrs);
+}
+
+const struct module_info plugin_info = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
 };

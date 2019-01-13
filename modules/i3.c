@@ -701,14 +701,22 @@ verify_content(keychain_t *chain, const struct yml_node *node)
     return true;
 }
 
-const struct module_info plugin_info = {
-    .from_conf = &from_conf,
-    .attrs = {
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
+{
+    static const struct attr_info attrs[] = {
         {"spacing", false, &conf_verify_int},
         {"left-spacing", false, &conf_verify_int},
         {"right-spacing", false, &conf_verify_int},
         {"content", true, &verify_content},
         {"anchors", false, NULL},
-        {NULL, false, NULL},
-    },
+        {NULL, false, NULL}
+    };
+
+    return conf_verify_dict(chain, node, attrs);
+}
+
+const struct module_info plugin_info = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
 };
