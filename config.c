@@ -7,16 +7,10 @@
 
 #include <dlfcn.h>
 
-#include "color.h"
-
-#include "decoration.h"
-#include "decorations/background.h"
-#include "decorations/stack.h"
-#include "decorations/underline.h"
-
 #include "bar.h"
-#include "module.h"
+#include "color.h"
 #include "config-verify.h"
+#include "module.h"
 #include "plugin.h"
 
 static uint8_t

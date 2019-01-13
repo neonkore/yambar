@@ -1,9 +1,8 @@
-#include "underline.h"
-
 #include <stdlib.h>
 
 #include "../config.h"
 #include "../config-verify.h"
+#include "../decoration.h"
 
 struct private {
     int size;

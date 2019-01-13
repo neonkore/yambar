@@ -1,9 +1,8 @@
-#include "background.h"
-
 #include <stdlib.h>
 
 #include "../config.h"
 #include "../config-verify.h"
+#include "../decoration.h"
 
 struct private {
     struct rgba color;

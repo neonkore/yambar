@@ -1,11 +1,10 @@
-#include "underline.h"
-
 #include <stdlib.h>
 
 #define LOG_MODULE "stack"
 #include "../log.h"
 #include "../config.h"
 #include "../config-verify.h"
+#include "../decoration.h"
 
 struct private {
     struct deco **decos;
