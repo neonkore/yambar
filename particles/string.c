@@ -6,6 +6,7 @@
 #define LOG_ENABLE_DBG 1
 #include "../log.h"
 #include "../config.h"
+#include "../config-verify.h"
 #include "../particle.h"
 
 struct private {

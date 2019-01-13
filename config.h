@@ -21,5 +21,6 @@ struct conf_inherit {
     struct rgba foreground;
 };
 
-struct particle * conf_to_particle(
+struct particle *conf_to_particle(
     const struct yml_node *node, struct conf_inherit inherited);
+struct deco *conf_to_deco(const struct yml_node *node);

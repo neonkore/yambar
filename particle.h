@@ -2,7 +2,6 @@
 #include <cairo.h>
 
 #include "color.h"
-#include "config-verify.h"
 #include "decoration.h"
 #include "font.h"
 #include "tag.h"

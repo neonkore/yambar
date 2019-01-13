@@ -164,25 +164,6 @@ conf_verify_font(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
-static bool
-verify_decoration_stack(keychain_t *chain, const struct yml_node *node)
-{
-    if (!yml_is_list(node)) {
-        LOG_ERR("%s: must be a list of decorations", conf_err_prefix(chain, node));
-        return false;
-    }
-
-    for (struct yml_list_iter it = yml_list_iter(node);
-         it.node != NULL;
-         yml_list_next(&it))
-    {
-        if (!conf_verify_decoration(chain, it.node))
-            return false;
-    }
-
-    return true;
-}
-
 bool
 conf_verify_decoration(keychain_t *chain, const struct yml_node *node)
 {
@@ -204,47 +185,19 @@ conf_verify_decoration(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-    if (strcmp(deco_name, "stack") == 0) {
-        bool ret = verify_decoration_stack(chain_push(chain, deco_name), values);
-        chain_pop(chain);
-        return ret;
+    const struct deco_iface *iface = plugin_load_deco(deco_name);
+    if (iface == NULL) {
+        LOG_ERR("%s: invalid decoration name: %s",
+                conf_err_prefix(chain, deco), deco_name);
+        return false;
     }
 
-    static const struct attr_info background[] = {
-        {"color", true, &conf_verify_color},
-        {NULL, false, NULL},
-    };
+    chain_push(chain, deco_name);
+    if (!iface->verify_conf(chain, values))
+        return false;
 
-    static const struct attr_info underline[] = {
-        {"size", true, &conf_verify_int},
-        {"color", true, &conf_verify_color},
-        {NULL, false, NULL},
-    };
-
-    static const struct {
-        const char *name;
-        const struct attr_info *attrs;
-        size_t count;
-    } decos[] = {
-        {"background", background, sizeof(background) / sizeof(background[0])},
-        {"underline", underline, sizeof(underline) / sizeof(underline[0])},
-    };
-
-    for (size_t i = 0; i < sizeof(decos) / sizeof(decos[0]); i++) {
-        if (strcmp(decos[i].name, deco_name) != 0)
-            continue;
-
-        chain_push(chain, deco_name);
-        if (!conf_verify_dict(chain, values, decos[i].attrs))
-            return false;
-
-        chain_pop(chain);
-        return true;
-    }
-
-    LOG_ERR(
-        "%s: invalid decoration name: %s", conf_err_prefix(chain, deco), deco_name);
-    return false;
+    chain_pop(chain);
+    return true;
 }
 
 bool

@@ -20,6 +20,7 @@
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
+#include "../config-verify.h"
 
 #include "../particles/dynlist.h"
 

@@ -35,10 +35,6 @@ add_executable(f00bar
   xcb.c xcb.h
   yml.c yml.h
 
-  decorations/background.c decorations/background.h
-  decorations/stack.c decorations/stack.h
-  decorations/underline.c decorations/underline.h
-
   particles/dynlist.c particles/dynlist.h
   )
 
@@ -70,9 +66,11 @@ target_link_libraries(f00bar
   )
 
 set_property(TARGET f00bar PROPERTY INSTALL_RPATH \$ORIGIN/../lib/f00bar)
-set_property(TARGET f00bar PROPERTY BUILD_RPATH "\$ORIGIN/modules;\$ORIGIN/particles")
+set_property(TARGET f00bar PROPERTY
+  BUILD_RPATH "\$ORIGIN/modules;\$ORIGIN/particles;\$ORIGIN/decorations")
 
 install(TARGETS f00bar DESTINATION bin)
 
-add_subdirectory(particles)
 add_subdirectory(modules)
+add_subdirectory(particles)
+add_subdirectory(decorations)

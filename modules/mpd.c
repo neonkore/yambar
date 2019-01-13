@@ -17,6 +17,7 @@
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
+#include "../config-verify.h"
 
 enum state {
     STATE_OFFLINE = 1000,

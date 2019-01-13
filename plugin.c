@@ -15,8 +15,9 @@ static const char *
 type2str(enum plugin_type type)
 {
     switch (type) {
-    case PLUGIN_MODULE:   return "module";
-    case PLUGIN_PARTICLE: return "particle";
+    case PLUGIN_MODULE:     return "module";
+    case PLUGIN_PARTICLE:   return "particle";
+    case PLUGIN_DECORATION: return "decoration";
     }
 
     return NULL;
@@ -53,10 +54,9 @@ plugin_load(const char *name, enum plugin_type type)
         }
     }
 
+
     char path[128];
-    snprintf(
-        path, sizeof(path), "%s_%s.so",
-        type == PLUGIN_MODULE ? "module" : "particle", name);
+    snprintf(path, sizeof(path), "%s_%s.so", type2str(type), name);
 
     /* Not loaded - do it now */
     void *lib = dlopen(path, RTLD_LOCAL | RTLD_NOW);
@@ -101,4 +101,11 @@ plugin_load_particle(const char *name)
 {
     const struct plugin *plug = plugin_load(name, PLUGIN_PARTICLE);
     return plug != NULL ? &plug->particle : NULL;
+}
+
+const struct deco_iface *
+plugin_load_deco(const char *name)
+{
+    const struct plugin *plug = plugin_load(name, PLUGIN_DECORATION);
+    return plug != NULL ? &plug->decoration : NULL;
 }

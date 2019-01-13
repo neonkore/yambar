@@ -4,6 +4,7 @@
 #include <poll.h>
 
 #include "../config.h"
+#include "../config-verify.h"
 #include "../module.h"
 
 struct private {

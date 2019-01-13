@@ -1,6 +1,10 @@
-#include "underline.h"
-
 #include <stdlib.h>
+
+#define LOG_MODULE "stack"
+#include "../log.h"
+#include "../config.h"
+#include "../config-verify.h"
+#include "../decoration.h"
 
 struct private {
     struct deco **decos;
@@ -26,8 +30,8 @@ expose(const struct deco *deco, cairo_t *cr, int x, int y, int width, int height
         d->decos[i]->expose(d->decos[i], cr, x, y, width, height);
 }
 
-struct deco *
-deco_stack(struct deco *decos[], size_t count)
+static struct deco *
+stack_new(struct deco *decos[], size_t count)
 {
     struct private *priv = malloc(sizeof(*priv));
     priv->decos = malloc(count * sizeof(priv->decos[0]));
@@ -42,4 +46,40 @@ deco_stack(struct deco *decos[], size_t count)
     deco->destroy = &destroy;
 
     return deco;
+}
+struct deco *
+from_conf(const struct yml_node *node)
+{
+    size_t count = yml_list_length(node);
+
+    struct deco *decos[count];
+    size_t idx = 0;
+
+    for (struct yml_list_iter it = yml_list_iter(node);
+         it.node != NULL;
+         yml_list_next(&it), idx++)
+    {
+        decos[idx] = conf_to_deco(it.node);
+    }
+
+    return stack_new(decos, count);
+}
+
+bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
+{
+    if (!yml_is_list(node)) {
+        LOG_ERR("%s: must be a list of decorations", conf_err_prefix(chain, node));
+        return false;
+    }
+
+    for (struct yml_list_iter it = yml_list_iter(node);
+         it.node != NULL;
+         yml_list_next(&it))
+    {
+        if (!conf_verify_decoration(chain, it.node))
+            return false;
+    }
+
+    return true;
 }

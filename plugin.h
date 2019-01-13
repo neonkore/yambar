@@ -4,22 +4,30 @@
 #include "module.h"
 #include "particle.h"
 
+typedef bool (*verify_func_t)(keychain_t *chain, const struct yml_node *node);
+
 struct module_iface {
-    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
+    verify_func_t verify_conf;
     struct module *(*from_conf)(
         const struct yml_node *node, struct conf_inherit inherited);
 };
 
 struct particle_iface {
-    bool (*verify_conf)(keychain_t *chain, const struct yml_node *node);
+    verify_func_t verify_conf;
     struct particle *(*from_conf)(
         const struct yml_node *node, struct particle *common);
 };
 
+struct deco_iface {
+    verify_func_t verify_conf;
+    struct deco *(*from_conf)(const struct yml_node *node);
+};
+
 const struct module_iface *plugin_load_module(const char *name);
 const struct particle_iface *plugin_load_particle(const char *name);
+const struct deco_iface *plugin_load_deco(const char *name);
 
-enum plugin_type { PLUGIN_MODULE, PLUGIN_PARTICLE };
+enum plugin_type { PLUGIN_MODULE, PLUGIN_PARTICLE, PLUGIN_DECORATION };
 
 struct plugin {
     char *name;
@@ -34,6 +42,7 @@ struct plugin {
 
         struct module_iface module;
         struct particle_iface particle;
+        struct deco_iface decoration;
     };
 };
 
