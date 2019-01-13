@@ -1,8 +1,7 @@
-#include "empty.h"
-
 #include <stdlib.h>
 
 #include "../config.h"
+#include "../particle.h"
 
 static int
 begin_expose(struct exposable *exposable)

@@ -1,5 +1,3 @@
-#include "map.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -7,6 +5,7 @@
 #define LOG_MODULE "map"
 #include "../log.h"
 #include "../config.h"
+#include "../particle.h"
 
 struct particle_map {
     const char *tag_value;

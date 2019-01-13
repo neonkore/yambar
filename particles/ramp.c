@@ -1,5 +1,3 @@
-#include "ramp.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -7,6 +5,7 @@
 #include <stdio.h>
 
 #include "../config.h"
+#include "../particle.h"
 
 struct private {
     char *tag;

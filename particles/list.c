@@ -1,10 +1,10 @@
-#include "list.h"
 #include <stdlib.h>
 
 #define LOG_MODULE "list"
 #define LOG_ENABLE_DBG 1
 #include "../log.h"
 #include "../config.h"
+#include "../particle.h"
 
 struct private {
     struct particle **particles;
