@@ -9,13 +9,6 @@
 #include "plugin.h"
 #include "tllist.h"
 
-#include "particles/empty.h"
-#include "particles/list.h"
-#include "particles/map.h"
-#include "particles/progress-bar.h"
-#include "particles/ramp.h"
-#include "particles/string.h"
-
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)
 {
@@ -285,65 +278,20 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
-#define COMMON_ATTRS                          \
-    {"margin", false, &conf_verify_int},           \
-    {"left-margin", false, &conf_verify_int},      \
-    {"right-margin", false, &conf_verify_int},     \
-    {"on-click", false, &conf_verify_string},
-
-#undef COMMON_ATTRS
-
-    static const struct {
-        const char *name;
-        const struct particle_info *info;
-    } particles_v2[] = {
-        {"empty", &particle_empty},
-        {"list", &particle_list},
-        {"map", &particle_map},
-        {"progress-bar", &particle_progress_bar},
-        {"ramp", &particle_ramp},
-        {"string", &particle_string},
-    };
-
-    static const struct {
-        const char *name;
-        const struct attr_info *attrs;
-        size_t count;
-    } particles[] = {
-    };
-
-    for (size_t i = 0; i < sizeof(particles_v2) / sizeof(particles_v2[0]); i++) {
-        if (strcmp(particles_v2[i].name, particle_name) != 0)
-            continue;
-
-        if (!conf_verify_dict(chain_push(chain, particle_name), values,
-                         particles_v2[i].info->attrs,
-                              particles_v2[i].info->attr_count))
-        {
-            return false;
-        }
-
-        chain_pop(chain);
-        return true;
+    const struct particle_info *info = plugin_load_particle(particle_name);
+    if (info == NULL) {
+        LOG_ERR(
+            "%s: invalid particle name: %s",
+            conf_err_prefix(chain, particle), particle_name);
+        return false;
     }
 
-    for (size_t i = 0; i < sizeof(particles) / sizeof(particles[0]); i++) {
-        if (strcmp(particles[i].name, particle_name) != 0)
-            continue;
+    if (!conf_verify_dict(chain_push(chain, particle_name), values,
+                          info->attrs, info->attr_count))
+        return false;
 
-        if (!conf_verify_dict(chain_push(chain, particle_name), values,
-                         particles[i].attrs, particles[i].count))
-        {
-            return false;
-        }
-
-        chain_pop(chain);
-        return true;
-    }
-
-    LOG_ERR(
-        "%s: invalid particle name: %s", conf_err_prefix(chain, particle), particle_name);
-    return false;
+    chain_pop(chain);
+    return true;
 }
 
 bool

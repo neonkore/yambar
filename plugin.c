@@ -9,16 +9,6 @@
 #include "config.h"
 #include "tllist.h"
 
-enum plugin_type { PLUGIN_MODULE, PLUGIN_PARTICLE };
-
-struct plugin {
-    char *name;
-    enum plugin_type type;
-
-    void *lib;
-    const void *sym;
-};
-
 static tll(struct plugin) plugins = tll_init();
 
 static const char *
@@ -51,15 +41,14 @@ fini(void)
     tll_free_and_free(plugins, free_plugin);
 }
 
-static const void *
-_load_plugin(const char *name, enum plugin_type type)
+const struct plugin *
+plugin_load(const char *name, enum plugin_type type)
 {
-    /* Have we already loaded it? */
     tll_foreach(plugins, plug) {
         if (plug->item.type == type && strcmp(plug->item.name, name) == 0) {
             LOG_DBG("%s: %s already loaded: %p", type2str(type), name, plug->item.lib);
             assert(plug->item.sym != NULL);
-            return plug->item.sym;
+            return &plug->item;
         }
     }
 
@@ -80,7 +69,7 @@ _load_plugin(const char *name, enum plugin_type type)
 
     /* TODO: rename to plugin_info or so, in both modules and particles */
     dlerror(); /* Clear previous error */
-    plug->sym = dlsym(lib, type == PLUGIN_MODULE ? "module_info" : "particle_info");
+    plug->sym = dlsym(lib, type == PLUGIN_MODULE ? "module_info" : "plugin_info");
 
     const char *dlsym_error = dlerror();
     if (dlsym_error != NULL) {
@@ -88,18 +77,19 @@ _load_plugin(const char *name, enum plugin_type type)
         return NULL;
     }
 
-    assert(plug->sym != NULL);
-    return plug->sym;
+    return plug;
 }
 
 const struct module_info *
 plugin_load_module(const char *name)
 {
-    return _load_plugin(name, PLUGIN_MODULE);
+    const struct plugin *plug = plugin_load(name, PLUGIN_MODULE);
+    return plug != NULL ? plug->sym : NULL;
 }
 
 const struct particle_info *
 plugin_load_particle(const char *name)
 {
-    return _load_plugin(name, PLUGIN_PARTICLE);
+    const struct plugin *plug = plugin_load(name, PLUGIN_PARTICLE);
+    return plug != NULL ? plug->sym : NULL;
 }

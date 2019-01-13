@@ -228,7 +228,7 @@ from_conf(const struct yml_node *node, const struct font *parent_font,
         default_particle, left_margin, right_margin, on_click_template);
 }
 
-const struct particle_info particle_map = {
+const struct particle_info plugin_info = {
     .from_conf = &from_conf,
     .attr_count = PARTICLE_COMMON_ATTRS_COUNT + 3,
     .attrs = {

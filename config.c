@@ -5,20 +5,14 @@
 #include <string.h>
 #include <assert.h>
 
+#include <dlfcn.h>
+
 #include "color.h"
 
 #include "decoration.h"
 #include "decorations/background.h"
 #include "decorations/stack.h"
 #include "decorations/underline.h"
-
-#include "particle.h"
-#include "particles/empty.h"
-#include "particles/list.h"
-#include "particles/map.h"
-#include "particles/progress-bar.h"
-#include "particles/ramp.h"
-#include "particles/string.h"
 
 #include "module.h"
 #include "config-verify.h"
@@ -153,6 +147,18 @@ particle_simple_list_from_config(const struct yml_node *node,
         parts[idx] = conf_to_particle(it.node, parent_font);
     }
 
+    /* Lazy-loaded function pointer to particle_list_new() */
+    static struct particle *(*particle_list_new)(
+        struct particle *particles[], size_t count,
+        int left_spacing, int right_spacing, int left_margin, int right_margin,
+        const char *on_click_template) = NULL;
+
+    if (particle_list_new == NULL) {
+        const struct plugin *plug = plugin_load("list", PLUGIN_PARTICLE);
+        particle_list_new = dlsym(plug->lib, "particle_list_new");
+        assert(particle_list_new != NULL);
+    }
+
     return particle_list_new(parts, count, 0, 2, 0, 0, NULL);
 }
 
@@ -178,27 +184,11 @@ conf_to_particle(const struct yml_node *node, const struct font *parent_font)
     const char *on_click_template
         = on_click != NULL ? yml_value_as_string(on_click) : NULL;
 
-    struct particle *ret = NULL;
-    if (strcmp(type, "empty") == 0)
-        ret = particle_empty.from_conf(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "list") == 0)
-        ret = particle_list.from_conf(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "map") == 0)
-        ret = particle_map.from_conf(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "progress-bar") == 0)
-        ret = particle_progress_bar.from_conf(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "ramp") == 0)
-        ret = particle_ramp.from_conf(
-            pair.value, parent_font, left, right, on_click_template);
-    else if (strcmp(type, "string") == 0)
-        ret = particle_string.from_conf(
-            pair.value, parent_font, left, right, on_click_template);
-    else
-        assert(false);
+    const struct particle_info *info = plugin_load_particle(type);
+    assert(info != NULL);
+
+    struct particle *ret = info->from_conf(
+        pair.value, parent_font, left, right, on_click_template);
 
     const struct yml_node *deco_node = yml_get_value(pair.value, "deco");
 
