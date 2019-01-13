@@ -1,12 +1,8 @@
 #pragma once
 
 #include <threads.h>
-#include <cairo.h>
 
-#include "config.h"
 #include "particle.h"
-#include "tag.h"
-#include "yml.h"
 
 struct bar;
 

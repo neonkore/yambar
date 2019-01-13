@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config.h"
 #include "config-verify.h"
 #include "module.h"
 #include "particle.h"

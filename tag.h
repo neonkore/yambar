@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stddef.h>
-
 #include <stdbool.h>
 
 enum tag_realtime_unit {

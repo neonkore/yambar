@@ -5,7 +5,6 @@
 #include "decoration.h"
 #include "font.h"
 #include "tag.h"
-#include "yml.h"
 
 struct bar;
 
