@@ -15,6 +15,7 @@
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
+#include "../config-verify.h"
 
 enum state { STATE_FULL, STATE_CHARGING, STATE_DISCHARGING };
 

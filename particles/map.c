@@ -5,6 +5,7 @@
 #define LOG_MODULE "map"
 #include "../log.h"
 #include "../config.h"
+#include "../config-verify.h"
 #include "../particle.h"
 
 struct particle_map {

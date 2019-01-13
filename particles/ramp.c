@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "../config.h"
+#include "../config-verify.h"
 #include "../particle.h"
 
 struct private {
