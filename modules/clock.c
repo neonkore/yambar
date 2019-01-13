@@ -51,9 +51,9 @@ content(struct module *mod)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    const struct bar *bar = ctx->module->bar;
+    const struct bar *bar = mod->bar;
     bar->refresh(bar);
 
     while (true) {
@@ -65,7 +65,7 @@ run(struct module_run_context *ctx)
         time_t timeout = next_min - now;
         assert(timeout >= 0 && timeout <= 60);
 
-        struct pollfd fds[] = {{.fd = ctx->abort_fd, .events = POLLIN}};
+        struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
         poll(fds, 1, timeout * 1000);
 
         if (fds[0].revents & POLLIN)

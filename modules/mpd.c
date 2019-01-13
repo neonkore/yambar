@@ -258,9 +258,8 @@ update_status(struct module *mod)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    struct module *mod = ctx->module;
     const struct bar *bar = mod->bar;
     struct private *m = mod->private;
 
@@ -289,7 +288,7 @@ run(struct module_run_context *ctx)
             if (m->conn != NULL)
                 break;
 
-            struct pollfd fds[] = {{.fd = ctx->abort_fd, .events = POLLIN}};
+            struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
             int res = poll(fds, 1, 10 * 1000);
 
             if (res == 1) {
@@ -311,7 +310,7 @@ run(struct module_run_context *ctx)
         /* Monitor for events from MPD */
         while (true) {
             struct pollfd fds[] = {
-                {.fd = ctx->abort_fd, .events = POLLIN},
+                {.fd = mod->abort_fd, .events = POLLIN},
                 {.fd = mpd_connection_get_fd(m->conn), .events = POLLIN},
             };
 

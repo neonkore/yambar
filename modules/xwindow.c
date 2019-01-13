@@ -181,9 +181,8 @@ update_title(struct module *mod)
  }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    struct module *mod = ctx->module;
     struct private *m = mod->private;
 
     m->conn = xcb_connect(NULL, NULL);
@@ -221,7 +220,7 @@ run(struct module_run_context *ctx)
 
     int xcb_fd = xcb_get_file_descriptor(m->conn);
     while (true) {
-        struct pollfd fds[] = {{.fd = ctx->abort_fd, .events = POLLIN},
+        struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN},
                                {.fd = xcb_fd, .events = POLLIN}};
         poll(fds, 2, -1);
 

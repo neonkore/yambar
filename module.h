@@ -22,18 +22,15 @@ struct module_info {
     {NULL, false, NULL}
 };
 
-struct module_run_context {
-    struct module *module;
-    int abort_fd;
-};
-
 struct module {
     const struct bar *bar;
+
+    int abort_fd;
     mtx_t lock;
 
     void *private;
 
-    int (*run)(struct module_run_context *ctx);
+    int (*run)(struct module *mod);
     void (*destroy)(struct module *module);
 
     /*

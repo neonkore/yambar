@@ -27,7 +27,7 @@ content(struct module *mod)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
     return 0;
 }

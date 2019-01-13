@@ -138,10 +138,10 @@ initialize(struct private *m)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    const struct bar *bar = ctx->module->bar;
-    struct private *m = ctx->module->private;
+    const struct bar *bar = mod->bar;
+    struct private *m = mod->private;
 
     int current_fd = initialize(m);
     if (current_fd == -1)
@@ -167,7 +167,7 @@ run(struct module_run_context *ctx)
 
     while (true) {
         struct pollfd fds[] = {
-            {.fd = ctx->abort_fd, .events = POLLIN},
+            {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
         };
         poll(fds, 2, -1);
@@ -184,9 +184,9 @@ run(struct module_run_context *ctx)
         if (!is_us)
             continue;
 
-        mtx_lock(&ctx->module->lock);
+        mtx_lock(&mod->lock);
         m->current_brightness = readint_from_fd(current_fd);
-        mtx_unlock(&ctx->module->lock);
+        mtx_unlock(&mod->lock);
         bar->refresh(bar);
     }
 

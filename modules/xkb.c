@@ -285,12 +285,10 @@ register_for_events(xcb_connection_t *conn)
 }
 
 static bool
-event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
-           int xkb_event_base)
+event_loop(struct module *mod, xcb_connection_t *conn, int xkb_event_base)
 {
-    struct module *mod = ctx->module;
+    const struct bar *bar = mod->bar;
     struct private *m = mod->private;
-    const struct bar *bar = ctx->module->bar;
 
     bool ret = false;
     bool has_error = false;
@@ -300,7 +298,7 @@ event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
 
     while (!has_error) {
         struct pollfd pfds[] = {
-            {.fd = ctx->abort_fd, .events = POLLIN },
+            {.fd = mod->abort_fd, .events = POLLIN },
             {.fd = xcb_fd, .events = POLLIN | POLLHUP }
         };
 
@@ -400,9 +398,9 @@ event_loop(struct module_run_context *ctx, xcb_connection_t *conn,
 }
 
 static bool
-talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
+talk_to_xkb(struct module *mod, xcb_connection_t *conn)
 {
-    struct private *m = ctx->module->private;
+    struct private *m = mod->private;
 
     if (!xkb_enable(conn))
         return false;
@@ -428,17 +426,17 @@ talk_to_xkb(struct module_run_context *ctx, xcb_connection_t *conn)
         return false;
     }
 
-    mtx_lock(&ctx->module->lock);
+    mtx_lock(&mod->lock);
     m->layouts = layouts;
     m->current = current;
-    mtx_unlock(&ctx->module->lock);
-    ctx->module->bar->refresh(ctx->module->bar);
+    mtx_unlock(&mod->lock);
+    mod->bar->refresh(mod->bar);
 
-    return event_loop(ctx, conn, xkb_event_base);
+    return event_loop(mod, conn, xkb_event_base);
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
     if (conn == NULL) {
@@ -446,7 +444,7 @@ run(struct module_run_context *ctx)
         return EXIT_FAILURE;
     }
 
-    int ret = talk_to_xkb(ctx, conn) ? EXIT_SUCCESS : EXIT_FAILURE;
+    int ret = talk_to_xkb(mod, conn) ? EXIT_SUCCESS : EXIT_FAILURE;
 
     xcb_disconnect(conn);
     return ret;

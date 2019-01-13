@@ -367,9 +367,9 @@ handle_workspace_event(struct private *m, const struct json_object *json)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    struct private *m = ctx->module->private;
+    struct private *m = mod->private;
 
     struct sockaddr_un addr = {.sun_family = AF_UNIX};
     {
@@ -410,7 +410,7 @@ run(struct module_run_context *ctx)
 
     while (true) {
         struct pollfd fds[] = {
-            {.fd = ctx->abort_fd, .events = POLLIN},
+            {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = sock, .events = POLLIN}
         };
 
@@ -469,7 +469,7 @@ run(struct module_run_context *ctx)
                 break;
             }
 
-            mtx_lock(&ctx->module->lock);
+            mtx_lock(&mod->lock);
 
             switch (hdr->type) {
             case I3_IPC_REPLY_TYPE_VERSION:
@@ -482,12 +482,12 @@ run(struct module_run_context *ctx)
 
             case I3_IPC_REPLY_TYPE_WORKSPACES:
                 handle_get_workspaces_reply(m, json);
-                ctx->module->bar->refresh(ctx->module->bar);
+                mod->bar->refresh(mod->bar);
                 break;
 
             case I3_IPC_EVENT_WORKSPACE:
                 handle_workspace_event(m, json);
-                ctx->module->bar->refresh(ctx->module->bar);
+                mod->bar->refresh(mod->bar);
                 break;
 
             case I3_IPC_EVENT_OUTPUT:
@@ -502,7 +502,7 @@ run(struct module_run_context *ctx)
             default: assert(false);
             }
 
-            mtx_unlock(&ctx->module->lock);
+            mtx_unlock(&mod->lock);
 
             json_object_put(json);
             json_tokener_free(tokener);

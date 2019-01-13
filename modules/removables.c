@@ -445,9 +445,8 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    struct module *mod = ctx->module;
     struct private *m = mod->private;
 
     struct udev *udev = udev_new();
@@ -503,7 +502,7 @@ run(struct module_run_context *ctx)
 
     while (true) {
         struct pollfd fds[] = {
-            {.fd = ctx->abort_fd, .events = POLLIN},
+            {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = udev_monitor_get_fd(dev_mon), .events = POLLIN},
             {.fd = mount_info_fd, .events = POLLPRI},
         };

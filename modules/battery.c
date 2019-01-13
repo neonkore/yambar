@@ -242,10 +242,10 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    const struct bar *bar = ctx->module->bar;
-    struct private *m = ctx->module->private;
+    const struct bar *bar = mod->bar;
+    struct private *m = mod->private;
 
     int base_dir_fd = initialize(m);
     if (base_dir_fd == -1)
@@ -273,12 +273,12 @@ run(struct module_run_context *ctx)
     udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
     udev_monitor_enable_receiving(mon);
 
-    update_status(ctx->module, capacity_fd, energy_fd, power_fd, status_fd);
+    update_status(mod, capacity_fd, energy_fd, power_fd, status_fd);
     bar->refresh(bar);
 
     while (true) {
         struct pollfd fds[] = {
-            {.fd = ctx->abort_fd, .events = POLLIN},
+            {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
         };
         poll(fds, 2, m->poll_interval * 1000);
@@ -299,7 +299,7 @@ run(struct module_run_context *ctx)
                 continue;
         }
 
-        update_status(ctx->module, capacity_fd, energy_fd, power_fd, status_fd);
+        update_status(mod, capacity_fd, energy_fd, power_fd, status_fd);
         bar->refresh(bar);
     }
 

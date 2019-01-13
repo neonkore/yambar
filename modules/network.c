@@ -454,9 +454,8 @@ parse_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    struct module *mod = ctx->module;
     struct private *m = mod->private;
 
     m->nl_sock = netlink_connect();
@@ -472,7 +471,7 @@ run(struct module_run_context *ctx)
     /* Main loop */
     while (true) {
         struct pollfd fds[] = {
-            {.fd = ctx->abort_fd, .events = POLLIN},
+            {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = m->nl_sock, .events = POLLIN}
         };
 

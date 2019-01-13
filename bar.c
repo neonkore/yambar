@@ -533,33 +533,23 @@ run(struct bar_run_context *run_ctx)
     thrd_t thrd_center[bar->center.count];
     thrd_t thrd_right[bar->right.count];
 
-    struct module_run_context run_ctx_left[bar->left.count];
-    struct module_run_context run_ctx_center[bar->center.count];
-    struct module_run_context run_ctx_right[bar->right.count];
-
     for (size_t i = 0; i < bar->left.count; i++) {
-        struct module_run_context *ctx = &run_ctx_left[i];
+        struct module *mod = bar->left.mods[i];
 
-        ctx->module = bar->left.mods[i];
-        ctx->abort_fd = run_ctx->abort_fd;
-
-        thrd_create(&thrd_left[i], (int (*)(void *))bar->left.mods[i]->run, ctx);
+        mod->abort_fd = run_ctx->abort_fd;
+        thrd_create(&thrd_left[i], (int (*)(void *))bar->left.mods[i]->run, mod);
     }
     for (size_t i = 0; i < bar->center.count; i++) {
-        struct module_run_context *ctx = &run_ctx_center[i];
+        struct module *mod = bar->center.mods[i];
 
-        ctx->module = bar->center.mods[i];
-        ctx->abort_fd = run_ctx->abort_fd;
-
-        thrd_create(&thrd_center[i], (int (*)(void *))bar->center.mods[i]->run, ctx);
+        mod->abort_fd = run_ctx->abort_fd;
+        thrd_create(&thrd_center[i], (int (*)(void *))bar->center.mods[i]->run, mod);
     }
     for (size_t i = 0; i < bar->right.count; i++) {
-        struct module_run_context *ctx = &run_ctx_right[i];
+        struct module *mod = bar->right.mods[i];
 
-        ctx->module = bar->right.mods[i];
-        ctx->abort_fd = run_ctx->abort_fd;
-
-        thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, ctx);
+        mod->abort_fd = run_ctx->abort_fd;
+        thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, mod);
     }
 
     LOG_DBG("all modules started");

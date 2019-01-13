@@ -174,9 +174,8 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
 }
 
 static int
-run(struct module_run_context *ctx)
+run(struct module *mod)
 {
-    struct module *mod = ctx->module;
     struct private *m = mod->private;
 
     snd_mixer_t *handle;
@@ -225,7 +224,7 @@ run(struct module_run_context *ctx)
 
         struct pollfd fds[1 + fd_count];
 
-        fds[0] = (struct pollfd){.fd = ctx->abort_fd, .events = POLLIN};
+        fds[0] = (struct pollfd){.fd = mod->abort_fd, .events = POLLIN};
         snd_mixer_poll_descriptors(handle, &fds[1], fd_count);
 
         poll(fds, fd_count + 1, -1);
