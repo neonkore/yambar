@@ -43,7 +43,7 @@ underline_new(int size, struct rgba color)
 }
 
 struct deco *
-from_conf(const struct yml_node *node)
+underline_from_conf(const struct yml_node *node)
 {
     const struct yml_node *size = yml_get_value(node, "size");
     const struct yml_node *color = yml_get_value(node, "color");
@@ -51,7 +51,7 @@ from_conf(const struct yml_node *node)
 }
 
 bool
-verify_conf(keychain_t *chain, const struct yml_node *node)
+underline_verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"size", true, &conf_verify_int},
@@ -61,3 +61,12 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
+
+#if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
+
+bool verify_conf(keychain_t *chain, const struct yml_node *node)
+    __attribute__((weak, alias("underline_verify_conf")));
+struct deco *from_conf(const struct yml_node *node)
+    __attribute__((weak, alias("underline_from_conf")));
+
+#endif

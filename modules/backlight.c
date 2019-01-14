@@ -220,7 +220,7 @@ backlight_new(const char *device, struct particle *label)
 }
 
 struct module *
-from_conf(const struct yml_node *node, struct conf_inherit inherited)
+backlight_from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *c = yml_get_value(node, "content");
@@ -230,7 +230,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
 }
 
 bool
-verify_conf(keychain_t *chain, const struct yml_node *node)
+backlight_verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"name", true, &conf_verify_string},
@@ -241,3 +241,12 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
+
+#if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
+
+bool verify_conf(keychain_t *chain, const struct yml_node *node)
+    __attribute__((weak, alias("backlight_verify_conf")));
+struct deco *from_conf(const struct yml_node *node, struct conf_inherit inherited)
+    __attribute__((weak, alias("backlight_from_conf")));
+
+#endif

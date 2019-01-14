@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 project(f00bar C)
 
+set(CORE_PLUGINS_AS_SHARED_LIBRARIES 0 CACHE BOOL
+  "Compiles modules, particles and decorations as shared libraries, which are loaded on-demand")
+
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 11)
@@ -9,6 +12,11 @@ set_property(DIRECTORY . APPEND PROPERTY COMPILE_DEFINITIONS
   $<$<CONFIG:Debug>:_DEBUG>
   _GNU_SOURCE
   )
+
+if (CORE_PLUGINS_AS_SHARED_LIBRARIES)
+  set_property(DIRECTORY . APPEND PROPERTY COMPILE_DEFINITIONS
+    CORE_PLUGINS_AS_SHARED_LIBRARIES)
+endif ()
 
 set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
 
@@ -72,3 +80,10 @@ install(TARGETS f00bar DESTINATION bin)
 add_subdirectory(modules)
 add_subdirectory(particles)
 add_subdirectory(decorations)
+
+if (NOT CORE_PLUGINS_AS_SHARED_LIBRARIES)
+  target_link_libraries(f00bar background stack underline)
+  target_link_libraries(f00bar dynlist empty list map progress-bar ramp string)
+  target_link_libraries(f00bar alsa backlight battery clock i3 label mpd network
+    removables xkb xwindow)
+endif ()
