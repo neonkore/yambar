@@ -48,7 +48,7 @@ stack_new(struct deco *decos[], size_t count)
     return deco;
 }
 struct deco *
-from_conf(const struct yml_node *node)
+stack_from_conf(const struct yml_node *node)
 {
     size_t count = yml_list_length(node);
 
@@ -66,7 +66,7 @@ from_conf(const struct yml_node *node)
 }
 
 bool
-verify_conf(keychain_t *chain, const struct yml_node *node)
+stack_verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     if (!yml_is_list(node)) {
         LOG_ERR("%s: must be a list of decorations", conf_err_prefix(chain, node));
@@ -83,3 +83,12 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return true;
 }
+
+#if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
+
+bool verify_conf(keychain_t *chain, const struct yml_node *node)
+    __attribute__((weak, alias("stack_verify_conf")));
+struct deco *from_conf(const struct yml_node *node)
+    __attribute__((weak, alias("stack_from_conf")));
+
+#endif

@@ -641,7 +641,7 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
 }
 
 struct module *
-from_conf(const struct yml_node *node, struct conf_inherit inherited)
+i3_from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *spacing = yml_get_value(node, "spacing");
@@ -698,7 +698,7 @@ verify_content(keychain_t *chain, const struct yml_node *node)
 }
 
 bool
-verify_conf(keychain_t *chain, const struct yml_node *node)
+i3_verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"spacing", false, &conf_verify_int},
@@ -711,3 +711,12 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
+
+#if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
+
+bool verify_conf(keychain_t *chain, const struct yml_node *node)
+    __attribute__((weak, alias("i3_verify_conf")));
+struct deco *from_conf(const struct yml_node *node, struct conf_inherit inherited)
+    __attribute__((weak, alias("i3_from_conf")));
+
+#endif

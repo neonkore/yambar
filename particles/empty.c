@@ -40,13 +40,13 @@ empty_new(struct particle *common)
 }
 
 struct particle *
-from_conf(const struct yml_node *node, struct particle *common)
+empty_from_conf(const struct yml_node *node, struct particle *common)
 {
     return empty_new(common);
 }
 
 bool
-verify_conf(keychain_t *chain, const struct yml_node *node)
+empty_verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         PARTICLE_COMMON_ATTRS,
@@ -54,3 +54,12 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
+
+#if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
+
+bool verify_conf(keychain_t *chain, const struct yml_node *node)
+    __attribute__((weak, alias("empty_verify_conf")));
+struct deco *from_conf(const struct yml_node *node, struct particle *common)
+    __attribute__((weak, alias("empty_from_conf")));
+
+#endif

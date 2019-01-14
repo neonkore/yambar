@@ -48,14 +48,14 @@ label_new(struct particle *label)
 }
 
 struct module *
-from_conf(const struct yml_node *node, struct conf_inherit inherited)
+label_from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     return label_new(conf_to_particle(c, inherited));
 }
 
 bool
-verify_conf(keychain_t *chain, const struct yml_node *node)
+label_verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"content", true, &conf_verify_particle},
@@ -65,3 +65,12 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
+
+#if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
+
+bool verify_conf(keychain_t *chain, const struct yml_node *node)
+    __attribute__((weak, alias("label_verify_conf")));
+struct deco *from_conf(const struct yml_node *node, struct conf_inherit inherited)
+    __attribute__((weak, alias("label_from_conf")));
+
+#endif

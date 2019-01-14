@@ -154,7 +154,7 @@ ramp_new(struct particle *common, const char *tag,
 }
 
 struct particle *
-from_conf(const struct yml_node *node, struct particle *common)
+ramp_from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *items = yml_get_value(node, "items");
@@ -175,7 +175,7 @@ from_conf(const struct yml_node *node, struct particle *common)
 }
 
 bool
-verify_conf(keychain_t *chain, const struct yml_node *node)
+ramp_verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"tag", true, &conf_verify_string},
@@ -185,3 +185,12 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 
     return conf_verify_dict(chain, node, attrs);
 }
+
+#if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
+
+bool verify_conf(keychain_t *chain, const struct yml_node *node)
+    __attribute__((weak, alias("ramp_verify_conf")));
+struct deco *from_conf(const struct yml_node *node, struct particle *common)
+    __attribute__((weak, alias("ramp_from_conf")));
+
+#endif
