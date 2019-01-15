@@ -99,7 +99,10 @@ update_application(struct module *mod)
     }
 
     uint32_t pid;
-    assert(xcb_get_property_value_length(r) == sizeof(pid));
+    if (xcb_get_property_value_length(r) != sizeof(pid)) {
+        free(r);
+        return;
+    }
 
     memcpy(&pid, xcb_get_property_value(r), sizeof(pid));
     free(r);
