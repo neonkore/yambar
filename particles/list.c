@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #define LOG_MODULE "list"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../config.h"
 #include "../config-verify.h"
