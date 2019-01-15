@@ -9,6 +9,7 @@
 #include <xcb/render.h>
 
 #define LOG_MODULE "xcb"
+#define LOG_ENABLE_DBG 0
 #include "log.h"
 
 xcb_atom_t UTF8_STRING;
@@ -132,11 +133,25 @@ get_atom(xcb_connection_t *conn, const char *name)
     xcb_generic_error_t *e;
     xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(
         conn,
-        xcb_intern_atom(conn, 1, strlen(name), name),
+        xcb_intern_atom(conn, 0, strlen(name), name),
         &e);
-    assert(e == NULL);
+
+    if (e != NULL) {
+        LOG_ERR("failed to get atom for %s", name);
+        free(e);
+        free(reply);
+
+        return (xcb_atom_t){0};
+    }
 
     xcb_atom_t ret = reply->atom;
+    LOG_DBG("atom %s = 0x%08x", name, ret);
+
+    if (ret == XCB_ATOM_NONE)
+        LOG_ERR("%s: no such atom", name);
+
+    assert(ret != XCB_ATOM_NONE);
+
     free(reply);
     return ret;
 }
@@ -147,12 +162,20 @@ get_atom_name(xcb_connection_t *conn, xcb_atom_t atom)
     xcb_generic_error_t *e;
     xcb_get_atom_name_reply_t *reply = xcb_get_atom_name_reply(
         conn, xcb_get_atom_name(conn, atom), &e);
-    assert(e == NULL);
+
+    if (e != NULL) {
+        LOG_ERR("failed to get atom name");
+        free(e);
+        free(reply);
+        return NULL;
+    }
 
     int len = xcb_get_atom_name_name_length(reply);
     char *name = malloc(len + 1);
     memcpy(name, xcb_get_atom_name_name(reply), len);
     name[len] = '\0';
+
+    LOG_DBG("atom name: %s", name);
 
     free(reply);
     return name;
