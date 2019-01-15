@@ -15,6 +15,7 @@
 struct font {
     char *name;
     cairo_scaled_font_t *scaled_font;
+    int ref_counter;
 };
 
 static tll(const struct font *) cache = tll_init();
@@ -113,26 +114,28 @@ font_new(const char *name)
     struct font *font = malloc(sizeof(*font));
     font->name = strdup(name);
     font->scaled_font = scaled_font;
+    font->ref_counter = 1;
 
     tll_push_back(cache, font);
     return font;
 }
 
 struct font *
-font_clone(const struct font *font)
+font_clone(const struct font *_font)
 {
-    struct font *clone = malloc(sizeof(*font));
-    clone->name = strdup(font->name);
-    clone->scaled_font = font->scaled_font;
-
-    cairo_scaled_font_reference(clone->scaled_font);
-    return clone;
+    struct font *font = (struct font *)_font;
+    font->ref_counter++;
+    return font;
 }
 
 void
 font_destroy(struct font *font)
 {
     if (font == NULL)
+        return;
+
+    assert(font->ref_counter > 0);
+    if (--font->ref_counter > 0)
         return;
 
     tll_foreach(cache, it) {
