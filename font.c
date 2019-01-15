@@ -10,11 +10,14 @@
 #define LOG_MODULE "font"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
+#include "tllist.h"
 
 struct font {
     char *name;
     cairo_scaled_font_t *scaled_font;
 };
+
+static tll(const struct font *) cache = tll_init();
 
 static void __attribute__((constructor))
 init(void)
@@ -37,11 +40,18 @@ static void __attribute__((destructor))
 fini(void)
 {
     FcFini();
+    assert(tll_length(cache) == 0);
 }
 
 struct font *
 font_new(const char *name)
 {
+    /* Check if font have already been loaded */
+    tll_foreach(cache, it) {
+        if (strcmp(name, it->item->name) == 0)
+            return font_clone(it->item);
+    }
+
     FcPattern *pattern = FcNameParse((const unsigned char *)name);
     if (pattern == NULL) {
         LOG_ERR("%s: failed to lookup font", name);
@@ -104,6 +114,7 @@ font_new(const char *name)
     font->name = strdup(name);
     font->scaled_font = scaled_font;
 
+    tll_push_back(cache, font);
     return font;
 }
 
@@ -123,6 +134,13 @@ font_destroy(struct font *font)
 {
     if (font == NULL)
         return;
+
+    tll_foreach(cache, it) {
+        if (it->item == font) {
+            tll_remove(cache, it);
+            break;
+        }
+    }
 
     cairo_scaled_font_destroy(font->scaled_font);
     free(font->name);
