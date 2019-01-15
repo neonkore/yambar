@@ -18,6 +18,7 @@
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_ewmh.h>
+#include <xcb/xcb_errors.h>
 
 #include <cairo.h>
 #include <cairo-xcb.h>
@@ -554,6 +555,9 @@ run(struct bar_run_context *run_ctx)
 
     LOG_DBG("all modules started");
 
+    xcb_errors_context_t *err_context;
+    xcb_errors_context_new(bar->conn, &err_context);
+
     int fd = xcb_get_file_descriptor(bar->conn);
 
     while (true) {
@@ -578,6 +582,24 @@ run(struct bar_run_context *run_ctx)
              e = xcb_poll_for_event(bar->conn))
         {
             switch (XCB_EVENT_RESPONSE_TYPE(e)) {
+            case 0: {
+                const xcb_value_error_t *error = (void *)e;
+                const char *major = xcb_errors_get_name_for_major_code(
+                    err_context, error->major_opcode);
+                const char *minor = xcb_errors_get_name_for_minor_code(
+                    err_context, error->major_opcode, error->minor_opcode);
+
+                const char *extension;
+                const char *name = xcb_errors_get_name_for_error(
+                    err_context, error->error_code, &extension);
+
+                LOG_ERR("XCB error: %s (%s), code %s (%s), sequence %u, value %u",
+                        major, minor != NULL ? minor : "no minor",
+                        name, extension != NULL ? extension : "no extension",
+                        error->sequence, error->bad_value);
+                break;
+                }
+
             case XCB_EXPOSE:
                 expose(_bar);
                 break;
@@ -683,6 +705,7 @@ run(struct bar_run_context *run_ctx)
         bar->cursor_name = NULL;
     }
 
+    xcb_errors_context_free(err_context);
     xcb_free_gc(bar->conn, bar->gc);
     xcb_free_pixmap(bar->conn, bar->pixmap);
     xcb_destroy_window(bar->conn, bar->win);

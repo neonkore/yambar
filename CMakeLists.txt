@@ -23,7 +23,7 @@ set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render xcb-cursor)
+pkg_check_modules(XCB REQUIRED xcb xcb-errors xcb-randr xcb-render xcb-cursor)
 pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
 pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)
 pkg_check_modules(YAML REQUIRED yaml-0.1)
