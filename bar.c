@@ -430,7 +430,7 @@ run(struct bar_run_context *run_ctx)
             bar->colormap}
         );
 
-    const char *title = "hello world";
+    const char *title = "f00bar";
     xcb_change_property(
         bar->conn,
         XCB_PROP_MODE_REPLACE, bar->win,
