@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #define LOG_MODULE "string"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../config.h"
 #include "../config-verify.h"
