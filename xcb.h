@@ -8,6 +8,8 @@ bool xcb_init(void);
 xcb_atom_t get_atom(xcb_connection_t *conn, const char *name);
 char *get_atom_name(xcb_connection_t *conn, xcb_atom_t atom);
 
+const char *xcb_error(const xcb_generic_error_t *error);
+
 /* Cached atoms */
 xcb_atom_t UTF8_STRING;
 xcb_atom_t _NET_WM_PID;

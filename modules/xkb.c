@@ -133,7 +133,7 @@ get_layouts(xcb_connection_t *conn)
         conn, cookie, &err);
 
     if (err != NULL) {
-        LOG_ERR("failed to get group names and symbols (%d)", err->error_code);
+        LOG_ERR("failed to get group names and symbols: %s", xcb_error(err));
         free(err);
         return (struct layouts){.count = -1};
     }
@@ -162,7 +162,7 @@ get_layouts(xcb_connection_t *conn)
     xcb_get_atom_name_reply_t *atom_name = xcb_get_atom_name_reply(
         conn, symbols_name_cookie, &err);
     if (err != NULL) {
-        LOG_ERR("failed to get atom name (%d)", err->error_code);
+        LOG_ERR("failed to get atom name: %s", xcb_error(err));
         free(err);
         goto err;
     }
@@ -175,7 +175,7 @@ get_layouts(xcb_connection_t *conn)
     for (ssize_t i = 0; i < ret.count; i++) {
         atom_name = xcb_get_atom_name_reply(conn, group_name_cookies[i], &err);
         if (err != NULL) {
-            LOG_ERR("failed to get atom name (%d)", err->error_code);
+            LOG_ERR("failed to get atom name: %s", xcb_error(err));
             free(err);
             goto err;
         }
@@ -245,7 +245,7 @@ get_current_layout(xcb_connection_t *conn)
         conn, cookie, &err);
 
     if (err != NULL) {
-        LOG_ERR("failed to get XKB state (%d)", err->error_code);
+        LOG_ERR("failed to get XKB state: %s", xcb_error(err));
         return -1;
     }
 
@@ -278,7 +278,7 @@ register_for_events(xcb_connection_t *conn)
 
     xcb_generic_error_t *err = xcb_request_check(conn, cookie);
     if (err != NULL) {
-        LOG_ERR("failed to register for events (%d)", err->error_code);
+        LOG_ERR("failed to register for events: %s", xcb_error(err));
         return false;
     }
 

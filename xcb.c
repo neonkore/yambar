@@ -1,5 +1,6 @@
 #include "xcb.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -7,6 +8,10 @@
 #include <xcb/xcb.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
+
+#if defined(HAVE_XCB_ERRORS)
+ #include <xcb/xcb_errors.h>
+#endif
 
 #define LOG_MODULE "xcb"
 #define LOG_ENABLE_DBG 0
@@ -27,6 +32,18 @@ xcb_atom_t _NET_CURRENT_DESKTOP;
 xcb_atom_t _NET_WM_VISIBLE_NAME;
 xcb_atom_t _NET_WM_NAME;
 
+#if defined(HAVE_XCB_ERRORS)
+static xcb_errors_context_t *err_context;
+#endif
+
+static void __attribute__((destructor))
+fini(void)
+{
+#if defined(HAVE_XCB_ERRORS)
+    xcb_errors_context_free(err_context);
+#endif
+}
+
 bool
 xcb_init(void)
 {
@@ -35,6 +52,10 @@ xcb_init(void)
         LOG_ERR("failed to connect to X");
         return false;
     }
+
+#if defined(HAVE_XCB_ERRORS)
+    xcb_errors_context_new(conn, &err_context);
+#endif
 
 #if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
     const xcb_setup_t *setup = xcb_get_setup(conn);
@@ -83,7 +104,7 @@ xcb_init(void)
     xcb_randr_query_version_reply_t *randr_version =
         xcb_randr_query_version_reply(conn, randr_cookie, &e);
     if (e != NULL) {
-        LOG_ERR("failed to query RANDR version: %d", e->error_code);
+        LOG_ERR("failed to query RANDR version: %s", xcb_error(e));
         free(e);
         xcb_disconnect(conn);
         return false;
@@ -92,7 +113,7 @@ xcb_init(void)
     xcb_render_query_version_reply_t *render_version =
         xcb_render_query_version_reply(conn, render_cookie, &e);
     if (e != NULL) {
-        LOG_ERR("failed to query RENDER version: %d", e->error_code);
+        LOG_ERR("failed to query RENDER version: %s", xcb_error(e));
         free(e);
         xcb_disconnect(conn);
         return false;
@@ -137,7 +158,7 @@ get_atom(xcb_connection_t *conn, const char *name)
         &e);
 
     if (e != NULL) {
-        LOG_ERR("failed to get atom for %s", name);
+        LOG_ERR("%s: failed to get atom for %s", name, xcb_error(e));
         free(e);
         free(reply);
 
@@ -164,7 +185,7 @@ get_atom_name(xcb_connection_t *conn, xcb_atom_t atom)
         conn, xcb_get_atom_name(conn, atom), &e);
 
     if (e != NULL) {
-        LOG_ERR("failed to get atom name");
+        LOG_ERR("failed to get atom name: %s", xcb_error(e));
         free(e);
         free(reply);
         return NULL;
@@ -179,4 +200,33 @@ get_atom_name(xcb_connection_t *conn, xcb_atom_t atom)
 
     free(reply);
     return name;
+}
+
+const char *
+xcb_error(const xcb_generic_error_t *error)
+{
+    static char msg[1024];
+
+#if defined(HAVE_XCB_ERRORS)
+    const char *major = xcb_errors_get_name_for_major_code(
+        err_context, error->major_code);
+    const char *minor = xcb_errors_get_name_for_minor_code(
+        err_context, error->major_code, error->minor_code);
+
+    const char *extension;
+    const char *name = xcb_errors_get_name_for_error(
+        err_context, error->error_code, &extension);
+
+    snprintf(msg, sizeof(msg),
+             "XCB: %s (%s), code %s (%s), sequence %u",
+             major, minor != NULL ? minor : "no minor",
+             name, extension != NULL ? extension : "no extension",
+             error->sequence);
+#else
+    snprintf(msg, sizeof(msg), "XCB: op %hhu:%hu, code %hhu, sequence %hu",
+             error->major_code, error->minor_code, error->error_code,
+             error->sequence);
+#endif
+
+    return msg;
 }

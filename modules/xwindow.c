@@ -88,6 +88,7 @@ update_application(struct module *mod)
     xcb_get_property_reply_t *r = xcb_get_property_reply(m->conn, c, &e);
 
     if (e != NULL) {
+        LOG_ERR("failed to get _NET_WM_PID");
         free(e);
         free(r);
         return;
@@ -236,6 +237,9 @@ run(struct module *mod)
              _e = xcb_poll_for_event(m->conn))
         {
             switch (XCB_EVENT_RESPONSE_TYPE(_e)) {
+            case 0:
+                LOG_ERR("%s", xcb_error((const xcb_generic_error_t *)_e));
+
             case XCB_PROPERTY_NOTIFY: {
                 xcb_property_notify_event_t *e = (xcb_property_notify_event_t *)_e;
                 if (e->atom == _NET_ACTIVE_WINDOW ||
@@ -256,8 +260,6 @@ run(struct module *mod)
                 }
                 break;
             }
-
-            case 0: break;  /* error */
             }
 
             free(_e);

@@ -19,10 +19,6 @@
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_ewmh.h>
 
-#if defined(HAVE_XCB_ERRORS)
- #include <xcb/xcb_errors.h>
-#endif
-
 #include <cairo.h>
 #include <cairo-xcb.h>
 
@@ -558,11 +554,6 @@ run(struct bar_run_context *run_ctx)
 
     LOG_DBG("all modules started");
 
-#if defined(HAVE_XCB_ERRORS)
-    xcb_errors_context_t *err_context;
-    xcb_errors_context_new(bar->conn, &err_context);
-#endif
-
     int fd = xcb_get_file_descriptor(bar->conn);
 
     while (true) {
@@ -587,27 +578,9 @@ run(struct bar_run_context *run_ctx)
              e = xcb_poll_for_event(bar->conn))
         {
             switch (XCB_EVENT_RESPONSE_TYPE(e)) {
-            case 0: {
-#if defined(HAVE_XCB_ERRORS)
-                const xcb_value_error_t *error = (void *)e;
-                const char *major = xcb_errors_get_name_for_major_code(
-                    err_context, error->major_opcode);
-                const char *minor = xcb_errors_get_name_for_minor_code(
-                    err_context, error->major_opcode, error->minor_opcode);
-
-                const char *extension;
-                const char *name = xcb_errors_get_name_for_error(
-                    err_context, error->error_code, &extension);
-
-                LOG_ERR("XCB error: %s (%s), code %s (%s), sequence %u, value %u",
-                        major, minor != NULL ? minor : "no minor",
-                        name, extension != NULL ? extension : "no extension",
-                        error->sequence, error->bad_value);
-#else
-                LOG_ERR(" XCB error: TODO");
-#endif
+            case 0:
+                LOG_ERR("%s", xcb_error((const xcb_generic_error_t *)e));
                 break;
-                }
 
             case XCB_EXPOSE:
                 expose(_bar);
@@ -713,10 +686,6 @@ run(struct bar_run_context *run_ctx)
         free(bar->cursor_name);
         bar->cursor_name = NULL;
     }
-
-#if defined(HAVE_XCB_ERRORS)
-    xcb_errors_context_free(err_context);
-#endif
 
     xcb_free_gc(bar->conn, bar->gc);
     xcb_free_pixmap(bar->conn, bar->pixmap);
