@@ -23,7 +23,8 @@ set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(XCB REQUIRED xcb xcb-errors xcb-randr xcb-render xcb-cursor)
+pkg_check_modules(XCB REQUIRED xcb xcb-randr xcb-render xcb-cursor)
+pkg_check_modules(XCB_ERRORS xcb-errors)
 pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
 pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)
 pkg_check_modules(YAML REQUIRED yaml-0.1)
@@ -47,8 +48,13 @@ add_executable(f00bar
 # Make global symbols in f00bar visible to dlopen:ed plugins
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 
+if (XCB_ERRORS_FOUND)
+  target_compile_definitions(f00bar PRIVATE HAVE_XCB_ERRORS)
+endif ()
+
 target_compile_options(f00bar PRIVATE
   ${XCB_CFLAGS_OTHER}
+  ${XCB_ERRORS_CFLAGS_OTHER}
   ${FONTCONFIG_CFLAGS_OTHER}
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
@@ -56,6 +62,7 @@ target_compile_options(f00bar PRIVATE
 
 target_include_directories(f00bar PRIVATE
   ${XCB_INCLUDE_DIRS}
+  ${XCB_ERRORS_INCLUDE_DIRS}
   ${FONTCONFIG_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
@@ -66,6 +73,7 @@ target_link_libraries(f00bar
   ${CMAKE_DL_LIBS}
 
   ${XCB_LIBRARIES}
+  ${XCB_ERRORS_LIBRARIES}
   ${FONTCONFIG_LIBRARIES}
   ${CAIRO_LIBRARIES}
   ${YAML_LIBRARIES}

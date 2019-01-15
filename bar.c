@@ -18,7 +18,10 @@
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_ewmh.h>
-#include <xcb/xcb_errors.h>
+
+#if defined(HAVE_XCB_ERRORS)
+ #include <xcb/xcb_errors.h>
+#endif
 
 #include <cairo.h>
 #include <cairo-xcb.h>
@@ -555,8 +558,10 @@ run(struct bar_run_context *run_ctx)
 
     LOG_DBG("all modules started");
 
+#if defined(HAVE_XCB_ERRORS)
     xcb_errors_context_t *err_context;
     xcb_errors_context_new(bar->conn, &err_context);
+#endif
 
     int fd = xcb_get_file_descriptor(bar->conn);
 
@@ -583,6 +588,7 @@ run(struct bar_run_context *run_ctx)
         {
             switch (XCB_EVENT_RESPONSE_TYPE(e)) {
             case 0: {
+#if defined(HAVE_XCB_ERRORS)
                 const xcb_value_error_t *error = (void *)e;
                 const char *major = xcb_errors_get_name_for_major_code(
                     err_context, error->major_opcode);
@@ -597,6 +603,9 @@ run(struct bar_run_context *run_ctx)
                         major, minor != NULL ? minor : "no minor",
                         name, extension != NULL ? extension : "no extension",
                         error->sequence, error->bad_value);
+#else
+                LOG_ERR(" XCB error: TODO");
+#endif
                 break;
                 }
 
@@ -705,7 +714,10 @@ run(struct bar_run_context *run_ctx)
         bar->cursor_name = NULL;
     }
 
+#if defined(HAVE_XCB_ERRORS)
     xcb_errors_context_free(err_context);
+#endif
+
     xcb_free_gc(bar->conn, bar->gc);
     xcb_free_pixmap(bar->conn, bar->pixmap);
     xcb_destroy_window(bar->conn, bar->win);
