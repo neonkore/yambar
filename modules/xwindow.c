@@ -12,7 +12,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 
-#define LOG_MODULE "xkb"
+#define LOG_MODULE "xwindow"
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
