@@ -51,25 +51,46 @@ get_config_path(void)
     return path;
 }
 
-static FILE *
-open_config(const char *path)
+static struct bar *
+load_bar(const char *config_path)
 {
-    FILE *ret = fopen(path, "r");
-    if (ret == NULL)
-        LOG_ERRNO("%s: failed to open", path);
+    FILE *conf_file = fopen(config_path, "r");
+    if (conf_file == NULL) {
+        LOG_ERRNO("%s: failed to open", config_path);
+        return NULL;
+    }
 
-    return ret;
+    struct bar *bar = NULL;
+    char *yml_error = NULL;
+
+    struct yml_node *conf = yml_load(conf_file, &yml_error);
+    if (conf == NULL) {
+        LOG_ERR("%s:%s", config_path, yml_error);
+        goto out;
+    }
+
+    const struct yml_node *bar_conf = yml_get_value(conf, "bar");
+    if (bar_conf == NULL) {
+        LOG_ERR("%s: missing required top level key 'bar'", config_path);
+        goto out;
+    }
+
+    bar = conf_to_bar(bar_conf);
+    if (bar == NULL) {
+        LOG_ERR("%s: failed to load configuration", config_path);
+        goto out;
+    }
+
+out:
+    free(yml_error);
+    yml_destroy(conf);
+    fclose(conf_file);
+    return bar;
 }
 
 int
 main(int argc, const char *const *argv)
 {
-    int abort_fd = eventfd(0, EFD_CLOEXEC);
-    if (abort_fd == -1) {
-        LOG_ERRNO("failed to create eventfd (for abort signalling)");
-        return 1;
-    }
-
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
@@ -82,41 +103,21 @@ main(int argc, const char *const *argv)
     sigaddset(&signal_mask, SIGTERM);
     pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
 
+    int abort_fd = eventfd(0, EFD_CLOEXEC);
+    if (abort_fd == -1) {
+        LOG_ERRNO("failed to create eventfd (for abort signalling)");
+        return 1;
+    }
+
     char *config_path = get_config_path();
-    FILE *conf_file = open_config(config_path);
 
-    if (conf_file == NULL) {
-        free(config_path);
-        return 1;
-    }
-
-    char *yml_error;
-    struct yml_node *conf = yml_load(conf_file, &yml_error);
-    fclose(conf_file);
-
-    if (conf == NULL) {
-        LOG_ERR("%s:%s", config_path, yml_error);
-        free(yml_error);
-        free(config_path);
-        return 1;
-    }
-
-    const struct yml_node *bar_conf = yml_get_value(conf, "bar");
-    if (bar_conf == NULL) {
-        LOG_ERR("%s: missing required top level key 'bar'", config_path);
-        free(config_path);
-        return 1;
-    }
-
-    struct bar *bar = conf_to_bar(bar_conf);
-    if (bar == NULL) {
-        LOG_ERR("%s: failed to load configuration", config_path);
-        free(config_path);
-        return 1;
-    }
-
+    struct bar *bar = load_bar(config_path);
     free(config_path);
 
+    if (bar == NULL) {
+        close(abort_fd);
+        return 1;
+    }
 
     xcb_init();
 
@@ -166,8 +167,6 @@ main(int argc, const char *const *argv)
         LOG_ERRNO_P("failed to join bar thread", r);
 
     bar->destroy(bar);
-    yml_destroy(conf);
-
     close(abort_fd);
     return res;
 }
