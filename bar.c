@@ -317,9 +317,8 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
 }
 
 static int
-run(struct bar_run_context *run_ctx)
+run(struct bar *_bar)
 {
-    struct bar *_bar = run_ctx->bar;
     struct private *bar = _bar->private;
 
     /* TODO: a lot of this (up to mapping the window) could be done in bar_new() */
@@ -536,19 +535,19 @@ run(struct bar_run_context *run_ctx)
     for (size_t i = 0; i < bar->left.count; i++) {
         struct module *mod = bar->left.mods[i];
 
-        mod->abort_fd = run_ctx->abort_fd;
+        mod->abort_fd = _bar->abort_fd;
         thrd_create(&thrd_left[i], (int (*)(void *))bar->left.mods[i]->run, mod);
     }
     for (size_t i = 0; i < bar->center.count; i++) {
         struct module *mod = bar->center.mods[i];
 
-        mod->abort_fd = run_ctx->abort_fd;
+        mod->abort_fd = _bar->abort_fd;
         thrd_create(&thrd_center[i], (int (*)(void *))bar->center.mods[i]->run, mod);
     }
     for (size_t i = 0; i < bar->right.count; i++) {
         struct module *mod = bar->right.mods[i];
 
-        mod->abort_fd = run_ctx->abort_fd;
+        mod->abort_fd = _bar->abort_fd;
         thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, mod);
     }
 
@@ -558,7 +557,7 @@ run(struct bar_run_context *run_ctx)
 
     while (true) {
         struct pollfd fds[] = {
-            {.fd = run_ctx->abort_fd, .events = POLLIN},
+            {.fd = _bar->abort_fd, .events = POLLIN},
             {.fd = fd, .events = POLLIN}
         };
 
@@ -569,7 +568,7 @@ run(struct bar_run_context *run_ctx)
 
         if (fds[1].revents & POLLHUP) {
             LOG_WARN("disconnected from XCB");
-            write(run_ctx->abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+            write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t));
             break;
         }
 

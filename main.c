@@ -120,13 +120,10 @@ main(int argc, const char *const *argv)
 
     xcb_init();
 
-    struct bar_run_context bar_ctx = {
-        .bar = bar,
-        .abort_fd = abort_fd,
-    };
+    bar->abort_fd = abort_fd;
 
     thrd_t bar_thread;
-    thrd_create(&bar_thread, (int (*)(void *))bar->run, &bar_ctx);
+    thrd_create(&bar_thread, (int (*)(void *))bar->run, bar);
 
     /* Now unblock. We should be only thread receiving SIGINT */
     pthread_sigmask(SIG_UNBLOCK, &signal_mask, NULL);

@@ -3,15 +3,11 @@
 #include "color.h"
 #include "module.h"
 
-struct bar;
-struct bar_run_context {
-    struct bar *bar;
-    int abort_fd;
-};
-
 struct bar {
+    int abort_fd;
+
     void *private;
-    int (*run)(struct bar_run_context *ctx);
+    int (*run)(struct bar *bar);
     void (*destroy)(struct bar *bar);
 
     void (*refresh)(const struct bar *bar);
