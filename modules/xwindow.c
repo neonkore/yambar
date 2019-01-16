@@ -57,6 +57,11 @@ update_active_window(struct private *m)
         return;
     }
 
+    if (xcb_get_property_value_length(r) != sizeof(m->active_win)) {
+        free(r);
+        return;
+    }
+
     assert(sizeof(m->active_win) == xcb_get_property_value_length(r));
     memcpy(&m->active_win, xcb_get_property_value(r), sizeof(m->active_win));
     free(r);
