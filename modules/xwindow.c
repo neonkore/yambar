@@ -52,6 +52,7 @@ update_active_window(struct private *m)
     xcb_get_property_reply_t *r = xcb_get_property_reply(m->conn, c, &e);
 
     if (e != NULL) {
+        LOG_ERR("failed to get active window ID: %s", xcb_error(e));
         free(e);
         free(r);
         return;
@@ -93,7 +94,7 @@ update_application(struct module *mod)
     xcb_get_property_reply_t *r = xcb_get_property_reply(m->conn, c, &e);
 
     if (e != NULL) {
-        LOG_ERR("failed to get _NET_WM_PID");
+        LOG_ERR("failed to get _NET_WM_PID: %s", xcb_error(e));
         free(e);
         free(r);
         return;
