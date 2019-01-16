@@ -10,7 +10,9 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <xcb/xcb.h>
 #include <i3/ipc.h>
+
 #include <json-c/json_tokener.h>
 #include <json-c/json_util.h>
 #include <json-c/linkhash.h>
@@ -21,8 +23,8 @@
 #include "../bar.h"
 #include "../config.h"
 #include "../config-verify.h"
-
 #include "../particles/dynlist.h"
+#include "../xcb.h"
 
 struct ws_content {
     char *name;
@@ -374,19 +376,44 @@ run(struct module *mod)
 
     struct sockaddr_un addr = {.sun_family = AF_UNIX};
     {
-        FILE *out = popen("i3 --get-socketpath", "r");
-        if (out == NULL) {
-            LOG_ERRNO("failed to execute 'i3 --get-socketpath'");
+        xcb_connection_t *conn = xcb_connect(NULL, NULL);
+
+        const xcb_setup_t *setup = xcb_get_setup(conn);
+        xcb_screen_t *screen = xcb_setup_roots_iterator(setup).data;
+
+        xcb_atom_t atom = get_atom(conn, "I3_SOCKET_PATH");
+        assert(atom != XCB_ATOM_NONE);
+
+        xcb_get_property_cookie_t cookie
+            = xcb_get_property_unchecked(
+                conn, false, screen->root, atom,
+                XCB_GET_PROPERTY_TYPE_ANY, 0, sizeof(addr.sun_path));
+
+        xcb_generic_error_t *err;
+        xcb_get_property_reply_t *reply =
+            xcb_get_property_reply(conn, cookie, &err);
+
+        if (err != NULL) {
+            LOG_ERR("failed to get i3 socket path: %s", xcb_error(err));
+            free(err);
+            free(reply);
             return 1;
         }
 
-        fgets(addr.sun_path, sizeof(addr.sun_path), out);
-        pclose(out);
+        const int len = xcb_get_property_value_length(reply);
+        assert(len < sizeof(addr.sun_path));
 
-        /* Strip newline */
-        ssize_t len = strlen(addr.sun_path);
-        if (addr.sun_path[len - 1] == '\n')
-            addr.sun_path[len - 1] = '\0';
+        if (len == 0) {
+            LOG_ERR("failed to get i3 socket path: empty reply");
+            free(reply);
+            return 1;
+        }
+
+        memcpy(addr.sun_path, xcb_get_property_value(reply), len);
+        addr.sun_path[len] = '\0';
+
+        free(reply);
+        xcb_disconnect(conn);
     }
 
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
