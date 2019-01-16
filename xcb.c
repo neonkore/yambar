@@ -218,10 +218,8 @@ xcb_error(const xcb_generic_error_t *error)
         err_context, error->error_code, &extension);
 
     snprintf(msg, sizeof(msg),
-             "%s (%s), code %s (%s), sequence %u",
-             major, minor != NULL ? minor : "no minor",
-             name, extension != NULL ? extension : "no extension",
-             error->sequence);
+             "major=%s, minor=%s), code=%s, extension=%s, sequence=%u",
+             major, minor, name, extension, error->sequence);
 #else
     snprintf(msg, sizeof(msg), "op %hhu:%hu, code %hhu, sequence %hu",
              error->major_code, error->minor_code, error->error_code,
