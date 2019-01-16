@@ -579,7 +579,7 @@ run(struct bar_run_context *run_ctx)
         {
             switch (XCB_EVENT_RESPONSE_TYPE(e)) {
             case 0:
-                LOG_ERR("%s", xcb_error((const xcb_generic_error_t *)e));
+                LOG_ERR("XCB: %s", xcb_error((const xcb_generic_error_t *)e));
                 break;
 
             case XCB_EXPOSE:
