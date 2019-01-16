@@ -64,6 +64,24 @@ open_config(const char *path)
 int
 main(int argc, const char *const *argv)
 {
+    int abort_fd = eventfd(0, EFD_CLOEXEC);
+    if (abort_fd == -1) {
+        LOG_ERRNO("failed to create eventfd (for abort signalling)");
+        return 1;
+    }
+
+    const struct sigaction sa = {.sa_handler = &signal_handler};
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+
+    /* Block SIGINT (this is under the assumption that threads inherit
+     * the signal mask */
+    sigset_t signal_mask;
+    sigemptyset(&signal_mask);
+    sigaddset(&signal_mask, SIGINT);
+    sigaddset(&signal_mask, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+
     char *config_path = get_config_path();
     FILE *conf_file = open_config(config_path);
 
@@ -90,19 +108,6 @@ main(int argc, const char *const *argv)
         return 1;
     }
 
-    xcb_init();
-
-    const struct sigaction sa = {.sa_handler = &signal_handler};
-    sigaction(SIGINT, &sa, NULL);
-    sigaction(SIGTERM, &sa, NULL);
-
-    int abort_fd = eventfd(0, EFD_CLOEXEC);
-    if (abort_fd == -1) {
-        LOG_ERRNO("failed to create eventfd (for abort signalling)");
-        free(config_path);
-        return 1;
-    }
-
     struct bar *bar = conf_to_bar(bar_conf);
     if (bar == NULL) {
         LOG_ERR("%s: failed to load configuration", config_path);
@@ -112,18 +117,13 @@ main(int argc, const char *const *argv)
 
     free(config_path);
 
+
+    xcb_init();
+
     struct bar_run_context bar_ctx = {
         .bar = bar,
         .abort_fd = abort_fd,
     };
-
-    /* Block SIGINT (this is under the assumption that threads inherit
-     * the signal mask */
-    sigset_t signal_mask;
-    sigemptyset(&signal_mask);
-    sigaddset(&signal_mask, SIGINT);
-    sigaddset(&signal_mask, SIGTERM);
-    pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
 
     thrd_t bar_thread;
     thrd_create(&bar_thread, (int (*)(void *))bar->run, &bar_ctx);
