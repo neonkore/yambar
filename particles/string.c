@@ -108,13 +108,25 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     memset(&e->extents, 0, sizeof(e->extents));
 
     if (p->max_len > 0) {
-        size_t len = strlen(e->text);
+        const size_t len = strlen(e->text);
         if (len > p->max_len) {
-            if (p->max_len >= 3) {
-                for (size_t i = 0; i < 3; i++)
-                    e->text[p->max_len - 3 + i] = '.';
+
+            size_t end = p->max_len;
+            if (end >= 3) {
+                /* "allocate" room for three dots at the end */
+                end -= 3;
             }
-            e->text[p->max_len] = '\0';
+
+            /* Mucho importante - don't cut in the middle of a utf8 multibyte */
+            while (end > 0 && e->text[end - 1] >> 7)
+                end--;
+
+            if (p->max_len > 3) {
+                for (size_t i = 0; i < 3; i++)
+                    e->text[end + i] = '.';
+                e->text[end + 3] = '\0';
+            } else
+                e->text[end] = '\0';
         }
     }
 
