@@ -34,11 +34,26 @@ begin_expose(struct exposable *exposable)
     struct eprivate *e = exposable->private;
 
     cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
-    cairo_scaled_font_text_extents(scaled, e->text, &e->extents);
 
-    exposable->width = (exposable->particle->left_margin +
-                        e->extents.x_advance +
-                        exposable->particle->right_margin);
+    cairo_glyph_t *glyphs = NULL;
+    int num_glyphs;
+    cairo_status_t status = cairo_scaled_font_text_to_glyphs(
+        scaled, 0, 0, e->text, -1, &glyphs, &num_glyphs, NULL, NULL, NULL);
+
+    if (status != CAIRO_STATUS_SUCCESS) {
+        LOG_WARN("failed to convert \"%s\" to glyphs: %s",
+                 e->text, cairo_status_to_string(status));
+
+        memset(&e->extents, 0, sizeof(e->extents));
+        exposable->width = 0;
+    } else {
+        cairo_scaled_font_glyph_extents(scaled, glyphs, num_glyphs, &e->extents);
+        cairo_glyph_free(glyphs);
+
+        exposable->width = (exposable->particle->left_margin +
+                            e->extents.x_advance +
+                            exposable->particle->right_margin);
+    }
 
     return exposable->width;
 }
@@ -57,27 +72,30 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     cairo_text_cluster_t *clusters = NULL;
     cairo_text_cluster_flags_t cluster_flags;
     int num_glyphs, num_clusters;
-    cairo_scaled_font_text_to_glyphs(
+
+    cairo_status_t status = cairo_scaled_font_text_to_glyphs(
         scaled,
         x + exposable->particle->left_margin,
         (double)y + ((double)height - e->extents.height) / 2 - e->extents.y_bearing,
         e->text, text_len, &glyphs, &num_glyphs,
         &clusters, &num_clusters, &cluster_flags);
 
-    cairo_set_scaled_font(cr, scaled);
-    cairo_set_source_rgba(cr,
-                          exposable->particle->foreground.red,
-                          exposable->particle->foreground.green,
-                          exposable->particle->foreground.blue,
-                          exposable->particle->foreground.alpha);
-    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+    if (status == CAIRO_STATUS_SUCCESS) {
+        cairo_set_scaled_font(cr, scaled);
+        cairo_set_source_rgba(cr,
+                              exposable->particle->foreground.red,
+                              exposable->particle->foreground.green,
+                              exposable->particle->foreground.blue,
+                              exposable->particle->foreground.alpha);
+        cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
-    cairo_show_text_glyphs(
-        cr, e->text, text_len, glyphs, num_glyphs,
-        clusters, num_clusters, cluster_flags);
+        cairo_show_text_glyphs(
+            cr, e->text, text_len, glyphs, num_glyphs,
+            clusters, num_clusters, cluster_flags);
 
-    cairo_glyph_free(glyphs);
-    cairo_text_cluster_free(clusters);
+        cairo_glyph_free(glyphs);
+        cairo_text_cluster_free(clusters);
+    }
 }
 
 static struct exposable *
