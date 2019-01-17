@@ -245,6 +245,7 @@ run(struct module *mod)
             switch (XCB_EVENT_RESPONSE_TYPE(_e)) {
             case 0:
                 LOG_ERR("XCB: %s", xcb_error((const xcb_generic_error_t *)_e));
+                break;
 
             case XCB_PROPERTY_NOTIFY: {
                 xcb_property_notify_event_t *e = (xcb_property_notify_event_t *)_e;
