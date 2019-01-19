@@ -10,7 +10,7 @@
 
 #include <libudev.h>
 
-#define LOG_MODULE "battery"
+#define LOG_MODULE "backlight"
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
