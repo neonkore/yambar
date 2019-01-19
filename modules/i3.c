@@ -11,6 +11,7 @@
 #include <sys/un.h>
 
 #include <xcb/xcb.h>
+#include <xcb/xcb_aux.h>
 #include <i3/ipc.h>
 
 #include <json-c/json_tokener.h>
@@ -384,8 +385,7 @@ run(struct module *mod)
             return 1;
         }
 
-        const xcb_setup_t *setup = xcb_get_setup(conn);
-        xcb_screen_t *screen = xcb_setup_roots_iterator(setup).data;
+        xcb_screen_t *screen = xcb_aux_get_screen(conn, default_screen);
 
         xcb_atom_t atom = get_atom(conn, "I3_SOCKET_PATH");
         assert(atom != XCB_ATOM_NONE);

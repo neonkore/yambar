@@ -10,6 +10,7 @@
 #include <poll.h>
 
 #include <xcb/xcb.h>
+#include <xcb/xcb_aux.h>
 #include <xcb/xcb_event.h>
 
 #define LOG_MODULE "xwindow"
@@ -204,8 +205,7 @@ run(struct module *mod)
         return 1;
     }
 
-    const xcb_setup_t *setup = xcb_get_setup(m->conn);
-    xcb_screen_t *screen = xcb_setup_roots_iterator(setup).data;
+    xcb_screen_t *screen = xcb_aux_get_screen(m->conn, default_screen);
     m->root_win = screen->root;
 
     /* Need a window(?) to be able to process events */

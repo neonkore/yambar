@@ -15,6 +15,7 @@
 #include <xcb/xcb.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
+#include <xcb/xcb_aux.h>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_ewmh.h>
@@ -332,9 +333,7 @@ run(struct bar *_bar)
         return 1;
     }
 
-    const xcb_setup_t *setup = xcb_get_setup(bar->conn);
-
-    xcb_screen_t *screen = xcb_setup_roots_iterator(setup).data;
+    xcb_screen_t *screen = xcb_aux_get_screen(bar->conn, default_screen);
 
     xcb_randr_get_monitors_reply_t *monitors = xcb_randr_get_monitors_reply(
         bar->conn,
@@ -371,43 +370,20 @@ run(struct bar *_bar)
     }
     free(monitors);
 
-    /* Find a 32-bit visual (TODO: fallback to 24-bit) */
-    const uint8_t wanted_depth = 32;
-    const uint8_t wanted_class = 0;
-
     uint8_t depth = 0;
-    xcb_visualtype_t *vis = NULL;
+    xcb_visualtype_t *vis = xcb_aux_find_visual_by_attrs(screen, -1, 32);
 
-    for (xcb_depth_iterator_t it = xcb_screen_allowed_depths_iterator(screen);
-         it.rem > 0;
-         xcb_depth_next(&it))
-    {
-        const xcb_depth_t *_depth = it.data;
-
-        if (!(wanted_depth == 0 || _depth->depth == wanted_depth))
-            continue;
-
-        for (xcb_visualtype_iterator_t vis_it =
-                 xcb_depth_visuals_iterator(_depth);
-             vis_it.rem > 0;
-             xcb_visualtype_next(&vis_it))
-        {
-            xcb_visualtype_t *_vis = vis_it.data;
-            if (!(wanted_class == 0 || _vis->_class == wanted_class))
-                continue;
-
-            vis = _vis;
-            break;
-        }
-
-        if (vis != NULL) {
-            depth = _depth->depth;
-            break;
-        }
+    if (vis != NULL)
+        depth = 32;
+    else {
+        vis = xcb_aux_find_visual_by_attrs(screen, -1, 24);
+        if (vis != NULL)
+            depth = 24;
     }
 
     assert(depth == 32 || depth == 24);
     assert(vis != NULL);
+    LOG_DBG("using a %hhu-bit visual", depth);
 
     bar->colormap = xcb_generate_id(bar->conn);
     xcb_create_colormap(bar->conn, 0, bar->colormap, screen->root, vis->visual_id);
