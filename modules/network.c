@@ -141,8 +141,6 @@ netlink_connect(void)
         .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
     };
 
-    LOG_WARN("nl_pid_value = 0x%08x", addr.nl_pid);
-
     if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
         LOG_ERRNO("failed to bind netlink socket");
         close(sock);
