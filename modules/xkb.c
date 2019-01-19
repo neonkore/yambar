@@ -9,6 +9,7 @@
 #include <xcb/xkb.h>
 
 #define LOG_MODULE "xkb"
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
