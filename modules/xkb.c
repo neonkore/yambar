@@ -590,12 +590,24 @@ talk_to_xkb(struct module *mod, xcb_connection_t *conn)
         LOG_DBG("%s: %s", name, enabled ? "enabled" : "disabled");
     }
 
-    LOG_INFO("layout: %s (%s), caps-lock:%s, num-lock:%s, scroll-lock:%s",
-             layouts.layouts[m->current].name,
-             layouts.layouts[m->current].symbol,
-             caps_lock ? "on" : "off",
-             num_lock ? "on" : "off",
-             scroll_lock ? "on" : "off");
+    {
+        char buf[512];
+        size_t idx = 0;
+
+        for (size_t i = 0; i < layouts.count; i++) {
+            idx += snprintf(&buf[idx], sizeof(buf) - idx, "%s%s (%s)%s",
+                            i == m->current ? "*" : "",
+                            layouts.layouts[i].name,
+                            layouts.layouts[i].symbol,
+                            i + 1 < layouts.count ? ", " : "");
+        }
+
+        LOG_INFO("layouts: %s, caps-lock:%s, num-lock:%s, scroll-lock:%s",
+                 buf,
+                 caps_lock ? "on" : "off",
+                 num_lock ? "on" : "off",
+                 scroll_lock ? "on" : "off");
+    }
 
     mtx_lock(&mod->lock);
     m->layouts = layouts;
