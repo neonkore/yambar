@@ -590,6 +590,13 @@ talk_to_xkb(struct module *mod, xcb_connection_t *conn)
         LOG_DBG("%s: %s", name, enabled ? "enabled" : "disabled");
     }
 
+    LOG_INFO("layout: %s (%s), caps-lock:%s, num-lock:%s, scroll-lock:%s",
+             layouts.layouts[m->current].name,
+             layouts.layouts[m->current].symbol,
+             caps_lock ? "on" : "off",
+             num_lock ? "on" : "off",
+             scroll_lock ? "on" : "off");
+
     mtx_lock(&mod->lock);
     m->layouts = layouts;
     m->current = current;
