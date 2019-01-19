@@ -178,18 +178,32 @@ static int
 run(struct module *mod)
 {
     struct private *m = mod->private;
+    int ret = 1;
 
     snd_mixer_t *handle;
-    snd_mixer_open(&handle, 0);
-    snd_mixer_attach(handle, m->card);
-    snd_mixer_selem_register(handle, NULL, NULL);
-    snd_mixer_load(handle);
+    if (snd_mixer_open(&handle, 0) != 0) {
+        LOG_ERR("failed to open handle");
+        return 1;
+    }
+
+    if (snd_mixer_attach(handle, m->card) != 0 ||
+        snd_mixer_selem_register(handle, NULL, NULL) != 0 ||
+        snd_mixer_load(handle) != 0)
+    {
+        LOG_ERR("failed to attach to card");
+        goto err;
+    }
 
     snd_mixer_selem_id_t *sid;
     snd_mixer_selem_id_alloca(&sid);
     snd_mixer_selem_id_set_index(sid, 0);
     snd_mixer_selem_id_set_name(sid, m->mixer);
+
     snd_mixer_elem_t* elem = snd_mixer_find_selem(handle, sid);
+    if (elem == NULL) {
+        LOG_ERR("failed to find mixer");
+        goto err;
+    }
 
     /* Get available channels */
     for (size_t i = 0; i < SND_MIXER_SCHN_LAST; i++) {
@@ -243,9 +257,12 @@ run(struct module *mod)
         update_state(mod, elem);
     }
 
+    ret = 0;
+
+err:
     snd_mixer_close(handle);
     snd_config_update_free_global();
-    return 0;
+    return ret;
 }
 
 static struct module *
