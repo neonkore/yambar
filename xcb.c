@@ -48,8 +48,9 @@ bool
 xcb_init(void)
 {
     xcb_connection_t *conn = xcb_connect(NULL, NULL);
-    if (conn == NULL) {
+    if (xcb_connection_has_error(conn) > 0) {
         LOG_ERR("failed to connect to X");
+        xcb_disconnect(conn);
         return false;
     }
 

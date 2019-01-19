@@ -119,6 +119,15 @@ main(int argc, const char *const *argv)
         return 1;
     }
 
+    /* Connect to XCB, to be able to detect a disconnect (allowing us
+     * to exit) */
+    xcb_connection_t *xcb = xcb_connect(NULL, NULL);
+    if (xcb_connection_has_error(xcb) > 0) {
+        LOG_ERR("failed to connect to X");
+        xcb_disconnect(xcb);
+        return 1;
+    }
+
     xcb_init();
 
     bar->abort_fd = abort_fd;
@@ -128,11 +137,6 @@ main(int argc, const char *const *argv)
 
     /* Now unblock. We should be only thread receiving SIGINT */
     pthread_sigmask(SIG_UNBLOCK, &signal_mask, NULL);
-
-    /* Connect to XCB, to be able to detect a disconnect (allowing us
-     * to exit) */
-    xcb_connection_t *xcb = xcb_connect(NULL, NULL);
-    assert(xcb != NULL);
 
     /* Wait for SIGINT, or XCB disconnect */
     while (!aborted) {

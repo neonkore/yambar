@@ -376,7 +376,13 @@ run(struct module *mod)
 
     struct sockaddr_un addr = {.sun_family = AF_UNIX};
     {
-        xcb_connection_t *conn = xcb_connect(NULL, NULL);
+        int default_screen;
+        xcb_connection_t *conn = xcb_connect(NULL, &default_screen);
+        if (xcb_connection_has_error(conn) > 0) {
+            LOG_ERR("failed to connect to X");
+            xcb_disconnect(conn);
+            return 1;
+        }
 
         const xcb_setup_t *setup = xcb_get_setup(conn);
         xcb_screen_t *screen = xcb_setup_roots_iterator(setup).data;

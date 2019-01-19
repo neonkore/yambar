@@ -324,8 +324,13 @@ run(struct bar *_bar)
     /* TODO: a lot of this (up to mapping the window) could be done in bar_new() */
     xcb_generic_error_t *e;
 
-    bar->conn = xcb_connect(NULL, NULL);
-    assert(bar->conn != NULL);
+    int default_screen;
+    bar->conn = xcb_connect(NULL, &default_screen);
+    if (xcb_connection_has_error(bar->conn) > 0) {
+        LOG_ERR("failed to connect to X");
+        xcb_disconnect(bar->conn);
+        return 1;
+    }
 
     const xcb_setup_t *setup = xcb_get_setup(bar->conn);
 

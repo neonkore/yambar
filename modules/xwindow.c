@@ -196,9 +196,11 @@ run(struct module *mod)
 {
     struct private *m = mod->private;
 
-    m->conn = xcb_connect(NULL, NULL);
-    if (m->conn == NULL) {
+    int default_screen;
+    m->conn = xcb_connect(NULL, &default_screen);
+    if (xcb_connection_has_error(m->conn) > 0) {
         LOG_ERR("failed to connect to X");
+        xcb_disconnect(m->conn);
         return 1;
     }
 
