@@ -6,14 +6,17 @@
 #include <threads.h>
 #include <unistd.h>
 #include <assert.h>
+
 #include <poll.h>
+#include <libgen.h>
 
 #include <sys/eventfd.h>
+#include <sys/inotify.h>
 
 #include <mpd/client.h>
 
 #define LOG_MODULE "mpd"
-#define LOG_ENABLE_DBG 0
+#define LOG_ENABLE_DBG 1
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
@@ -172,6 +175,68 @@ content(struct module *mod)
     return exposable;
 }
 
+/* Returns true if aborted, false otherwise (regardless of whether
+ * socket exists or not) */
+static bool
+wait_for_socket_create(const struct module *mod)
+{
+    const struct private *m = mod->private;
+    assert(m->port == 0);
+
+    char *copy = strdup(m->host);
+    const char *base = basename(copy);
+    const char *directory = dirname(copy);
+
+    LOG_DBG("monitoring %s for %s to be created", directory, base);
+
+    int fd = inotify_init();
+    if (fd == -1)
+        return false;
+
+    int wd = inotify_add_watch(fd, directory, IN_CREATE);
+    if (wd == -1) {
+        close(fd);
+        return false;
+    }
+
+    bool have_mpd_socket = false;
+
+    while (!have_mpd_socket) {
+        struct pollfd fds[] = {
+            {.fd = mod->abort_fd, .events = POLLIN},
+            {.fd = fd, .events = POLLIN}
+        };
+
+        poll(fds, 2, -1);
+
+        if (fds[0].revents & POLLIN)
+            return true;
+
+        assert(fds[1].revents & POLLIN);
+
+        char buf[1024];
+        ssize_t len = read(fd, buf, sizeof(buf));
+
+        for (const char *ptr = buf; ptr < buf + len; ) {
+            const struct inotify_event *e = (const struct inotify_event *)ptr;
+            LOG_DBG("CREATED: %.*s", e->len, e->name);
+
+            if (strncmp(base, e->name, e->len) == 0) {
+                LOG_DBG("MPD socket created");
+                have_mpd_socket = true;
+                break;
+            }
+
+             ptr += sizeof(*e) + e->len;
+        }
+    }
+
+    inotify_rm_watch(fd, wd);
+    close(fd);
+    free(copy);
+    return false;
+}
+
 static struct mpd_connection *
 connect_to_mpd(const struct module *mod)
 {
@@ -285,10 +350,24 @@ run(struct module *mod)
 
         /* Keep trying to connect, until we succeed */
         while (!aborted) {
+            if (m->port == 0) {
+                /* Use inotify to watch for socket creation */
+                aborted = wait_for_socket_create(mod);
+            }
+
+            if (aborted)
+                break;
+
             m->conn = connect_to_mpd(mod);
             if (m->conn != NULL)
                 break;
 
+            /*
+             * In case we can't use inotify to watch for socket
+             * creation (for example, we're connecting to a remote
+             * host), wait for a while until we try to re-connect
+             * again.
+             */
             struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
             int res = poll(fds, 1, 10 * 1000);
 
