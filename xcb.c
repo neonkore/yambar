@@ -191,10 +191,8 @@ get_atom_name(xcb_connection_t *conn, xcb_atom_t atom)
         return NULL;
     }
 
-    int len = xcb_get_atom_name_name_length(reply);
-    char *name = malloc(len + 1);
-    memcpy(name, xcb_get_atom_name_name(reply), len);
-    name[len] = '\0';
+    char *name = strndup(
+        xcb_get_atom_name_name(reply), xcb_get_atom_name_name_length(reply));
 
     LOG_DBG("atom name: %s", name);
 
