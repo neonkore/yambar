@@ -499,14 +499,17 @@ event_loop(struct module *mod, xcb_connection_t *conn, int xkb_event_base)
                     const char *name = m->indicators.names[i];
                     bool is_caps = strcasecmp(name, "caps lock") == 0;
                     bool is_num = strcasecmp(name, "num lock") == 0;
+                    bool is_scroll = strcasecmp(name, "scroll lock") == 0;
 
-                    if (is_caps || is_num) {
+                    if (is_caps || is_num || is_scroll) {
                         mtx_lock(&mod->lock);
 
                         if (is_caps)
                             m->caps_lock = enabled;
                         else if (is_num)
                             m->num_lock = enabled;
+                        else if (is_scroll)
+                            m->scroll_lock = enabled;
 
                         mtx_unlock(&mod->lock);
                         need_refresh = true;
