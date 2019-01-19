@@ -107,7 +107,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     size_t idx = 0;
     if (max - min > 0)
-        idx = p->count * value / (max - min);
+        idx = p->count * (value - min) / (max - min);
 
     if (idx == p->count)
         idx--;
