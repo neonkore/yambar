@@ -1,14 +1,14 @@
+#include <assert.h>
+#include <locale.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <assert.h>
-#include <unistd.h>
-#include <signal.h>
-
 #include <threads.h>
-#include <poll.h>
+#include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/eventfd.h>
@@ -91,6 +91,8 @@ out:
 int
 main(int argc, const char *const *argv)
 {
+    setlocale(LC_ALL, "");
+
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
