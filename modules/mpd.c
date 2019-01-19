@@ -6,17 +6,21 @@
 #include <threads.h>
 #include <unistd.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <poll.h>
 #include <libgen.h>
 
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/eventfd.h>
 #include <sys/inotify.h>
 
 #include <mpd/client.h>
 
 #define LOG_MODULE "mpd"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
 #include "../config.h"
@@ -201,6 +205,31 @@ wait_for_socket_create(const struct module *mod)
 
     bool have_mpd_socket = false;
 
+    /* Check if socket already exists *and* is connectable */
+    struct stat st;
+    if (stat(m->host, &st) == 0 && S_ISSOCK(st.st_mode)) {
+
+        int s = socket(AF_UNIX, SOCK_STREAM, 0);
+
+        struct sockaddr_un addr = {.sun_family = AF_UNIX};
+        strncpy(addr.sun_path, m->host, sizeof(addr.sun_path));
+
+        int r = connect(s, (const struct sockaddr *)&addr, sizeof(addr));
+
+        if (r == 0) {
+            LOG_DBG("%s: already exists, and is connectable", m->host);
+            have_mpd_socket = true;
+        } else {
+            LOG_DBG("%s: already exists, but isn't connectable: %s",
+                    m->host, strerror(errno));
+        }
+
+        close(s);
+    }
+
+    if (!have_mpd_socket)
+        LOG_WARN("MPD doesn't appear to be running");
+
     while (!have_mpd_socket) {
         struct pollfd fds[] = {
             {.fd = mod->abort_fd, .events = POLLIN},
@@ -219,7 +248,7 @@ wait_for_socket_create(const struct module *mod)
 
         for (const char *ptr = buf; ptr < buf + len; ) {
             const struct inotify_event *e = (const struct inotify_event *)ptr;
-            LOG_DBG("CREATED: %.*s", e->len, e->name);
+            LOG_DBG("inotify: CREATED: %s/%.*s", directory, e->len, e->name);
 
             if (strncmp(base, e->name, e->len) == 0) {
                 LOG_DBG("MPD socket created");
@@ -353,10 +382,9 @@ run(struct module *mod)
             if (m->port == 0) {
                 /* Use inotify to watch for socket creation */
                 aborted = wait_for_socket_create(mod);
+                if (aborted)
+                    break;
             }
-
-            if (aborted)
-                break;
 
             m->conn = connect_to_mpd(mod);
             if (m->conn != NULL)
