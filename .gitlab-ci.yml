@@ -4,9 +4,10 @@ stages:
   - build
 
 before_script:
-  
   - apt-get update
-  - apt-get -y install cmake libxcb-util0-dev libxcb-cursor-dev libjson-c-dev libmpdclient-dev libasound2-dev libcairo2-dev
+  - apt-get -y install cmake
+  - apt-get -y install libxcb-render0-dev libxcb-randr0-dev libxcb-util0-dev libxcb-cursor-dev libcairo2-dev libyaml-dev
+  - apt-get -y install libjson-c-dev libmpdclient-dev libasound2-dev libxcb-xkb-dev
 
 configure:
   stage: build
