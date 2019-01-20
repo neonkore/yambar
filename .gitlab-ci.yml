@@ -5,7 +5,7 @@ stages:
 
 before_script:
   - apk update
-  - apk add musl-dev cmake ninja gcc
+  - apk add musl-dev eudev-libs eudev-dev cmake ninja gcc
   - apk add libxcb-dev xcb-util-wm-dev xcb-util-cursor-dev cairo-dev yaml-dev
   - apk add json-c-dev libmpdclient-dev alsa-lib-dev i3wm
   # - apt-get update
