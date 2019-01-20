@@ -6,7 +6,7 @@ stages:
 before_script:
   - apt-get update
   - apt-get -y install cmake ninja-build
-  - apt-get -y install libxcb-render0-dev libxcb-randr0-dev libxcb-util0-dev libxcb-cursor-dev libcairo2-dev libyaml-dev
+  - apt-get -y install libxcb-render0-dev libxcb-randr0-dev libxcb-ewmh-dev libxcb-util0-dev libxcb-cursor-dev libcairo2-dev libyaml-dev
   - apt-get -y install libudev-dev libjson-c-dev libmpdclient-dev libasound2-dev libxcb-xkb-dev
 
 build:
