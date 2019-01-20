@@ -4,8 +4,9 @@ stages:
   - build
 
 before_script:
-    - apt-get update
-    - apt-get -y install cmake xcb alsa-lib json-c libmpdclient
+  
+  - apt-get update
+  - apt-get -y install cmake libxcb-util0-dev libxcb-cursor-dev libjson-c-dev libmpdclient-dev libasound2-dev libcairo2-dev
 
 configure:
   stage: build
