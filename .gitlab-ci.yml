@@ -1,4 +1,4 @@
-image: gcc
+image: ubuntu:18.10
 
 stages:
   - build
