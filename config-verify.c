@@ -156,12 +156,13 @@ conf_verify_color(keychain_t *chain, const struct yml_node *node)
 bool
 conf_verify_font(keychain_t *chain, const struct yml_node *node)
 {
-    static const struct attr_info attrs[] = {
-        {"family", true, &conf_verify_string},
-        {NULL, false, NULL},
-    };
+    if (!yml_is_scalar(node)) {
+        LOG_ERR("%s: font must be a fontconfig-formatted string",
+                conf_err_prefix(chain, node));
+        return false;
+    }
 
-    return conf_verify_dict(chain, node, attrs);
+    return true;
 }
 
 bool

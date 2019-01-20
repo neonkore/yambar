@@ -67,8 +67,7 @@ conf_to_color(const struct yml_node *node)
 struct font *
 conf_to_font(const struct yml_node *node)
 {
-    const struct yml_node *family = yml_get_value(node, "family");
-    return font_new(family != NULL ? yml_value_as_string(family) : "monospace");
+    return font_new(yml_value_as_string(node));
 }
 
 struct deco *
