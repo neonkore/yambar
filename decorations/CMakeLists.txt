@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.7)
 
 add_library(decoration-sdk INTERFACE)
 target_compile_options(decoration-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
