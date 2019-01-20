@@ -124,7 +124,7 @@ content(struct module *mod)
     if (m->state == STATE_PLAY) {
         elapsed += timespec_diff_milli_seconds(&now, &m->elapsed.when);
         if (elapsed > m->duration) {
-            LOG_WARN(
+            LOG_DBG(
                 "dynamic update of elapsed overflowed: "
                 "elapsed=%"PRIu64", duration=%"PRIu64, elapsed, m->duration);
             elapsed = m->duration;
