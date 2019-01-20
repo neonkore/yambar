@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.7)
 
 add_library(particle-sdk INTERFACE)
 target_compile_options(particle-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
