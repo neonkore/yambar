@@ -1,15 +1,20 @@
+image: gcc
+
 stages:
   - build
+
+before_script:
+    - apt-get update && apt-get -y install cmake
 
 configure:
   stage: build
   script:
     - mkdir -p bld/debug
     - cd bld/debug
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../../
+    - cmake -DCMAKE_BUILD_TYPE=Debug ../../
 
 build:
   stage: build
   script:
     - cd bld/debug
-    - ninja
+    - make
