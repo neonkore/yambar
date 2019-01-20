@@ -39,9 +39,17 @@ static void
 update_active_window(struct private *m)
 {
     if (m->active_win != 0) {
-        xcb_change_window_attributes(
+        xcb_void_cookie_t c = xcb_change_window_attributes_checked(
             m->conn, m->active_win, XCB_CW_EVENT_MASK,
             (const uint32_t []){XCB_EVENT_MASK_NO_EVENT});
+
+        xcb_generic_error_t *e = xcb_request_check(m->conn, c);
+        if (e != NULL) {
+            LOG_DBG(
+                "failed to de-register events on previous active window: %s",
+                xcb_error(e));
+            free(e);
+        }
 
         m->active_win = 0;
     }
