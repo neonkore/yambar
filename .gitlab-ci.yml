@@ -8,16 +8,19 @@ before_script:
   - apk add musl-dev eudev-libs eudev-dev linux-headers cmake ninja gcc
   - apk add libxcb-dev xcb-util-wm-dev xcb-util-cursor-dev cairo-dev yaml-dev
   - apk add json-c-dev libmpdclient-dev alsa-lib-dev i3wm
-  # - apt-get update
-  # - apt-get -y install cmake ninja-build
-  # - apt-get -y install libxcb-render0-dev libxcb-randr0-dev libxcb-ewmh-dev libxcb-util0-dev libxcb-cursor-dev libcairo2-dev libyaml-dev
-  # - apt-get -y install libudev-dev libjson-c-dev libmpdclient-dev libasound2-dev libxcb-xkb-dev i3-wm
 
-  
-build:
+debug:
   stage: build
   script:
     - mkdir -p bld/debug
     - cd bld/debug
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../../
+    - ninja
+
+release:
+  stage: build
+  script:
+    - mkdir -p bld/release
+    - cd bld/release
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ../../
     - ninja
