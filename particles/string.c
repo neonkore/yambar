@@ -31,7 +31,13 @@ static void
 exposable_destroy(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
+
     free(e->text);
+    if (e->glyphs != NULL)
+        cairo_glyph_free(e->glyphs);
+    if (e->clusters != NULL)
+        cairo_text_cluster_free(e->clusters);
+
     free(e);
     exposable_default_destroy(exposable);
 }
@@ -95,9 +101,6 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     cairo_show_text_glyphs(
         cr, e->text, -1, e->glyphs, e->num_glyphs,
         e->clusters, e->num_clusters, e->cluster_flags);
-
-    cairo_glyph_free(e->glyphs);
-    cairo_text_cluster_free(e->clusters);
 }
 
 static struct exposable *
