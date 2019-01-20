@@ -4,7 +4,8 @@ stages:
   - build
 
 before_script:
-    - apt-get update && apt-get -y install cmake
+    - apt-get update
+    - apt-get -y install cmake xcb alsa-lib json-c libmpdclient
 
 configure:
   stage: build
