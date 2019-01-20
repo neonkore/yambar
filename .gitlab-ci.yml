@@ -1,6 +1,7 @@
 image: gcc
 
 stages:
+  - configure
   - build
 
 before_script:
@@ -10,7 +11,7 @@ before_script:
   - apt-get -y install libudev-dev libjson-c-dev libmpdclient-dev libasound2-dev libxcb-xkb-dev
 
 configure:
-  stage: build
+  stage: configure
   script:
     - mkdir -p bld/debug
     - cd bld/debug
