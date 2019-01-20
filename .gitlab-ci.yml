@@ -1,14 +1,19 @@
-image: ubuntu:19.04
+image: alpine:latest
 
 stages:
   - build
 
 before_script:
-  - apt-get update
-  - apt-get -y install cmake ninja-build
-  - apt-get -y install libxcb-render0-dev libxcb-randr0-dev libxcb-ewmh-dev libxcb-util0-dev libxcb-cursor-dev libcairo2-dev libyaml-dev
-  - apt-get -y install libudev-dev libjson-c-dev libmpdclient-dev libasound2-dev libxcb-xkb-dev i3-wm
+  - apk update
+  - apk add cmake ninja gcc
+  - apk add libxcb-dev cairo-dev yaml-dev
+  - apk add json-c-dev libmpdclient-dev alsa-lib-dev i3wm
+  # - apt-get update
+  # - apt-get -y install cmake ninja-build
+  # - apt-get -y install libxcb-render0-dev libxcb-randr0-dev libxcb-ewmh-dev libxcb-util0-dev libxcb-cursor-dev libcairo2-dev libyaml-dev
+  # - apt-get -y install libudev-dev libjson-c-dev libmpdclient-dev libasound2-dev libxcb-xkb-dev i3-wm
 
+  
 build:
   stage: build
   script:
