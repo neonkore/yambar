@@ -42,7 +42,7 @@
 **f00bar** is a light-weight and configurable status panel (_bar_, for
 short) for X.
 
-It has a number of _modules_ that provides information in the form of
+It has a number of _modules_ that provide information in the form of
 _tags_. For example, the _clock_ module has a _date_ tag that contains
 the current date.
 
@@ -161,6 +161,8 @@ There are a couple types used that are specific to f00bar.
   be self-explanatory.
 - `background` (_color_, **required**): background color, in
   _rgba_. Thus, in the example above, the background is set to _black_
+- `monitor` (_string_): monitor to place the bar. If not specified,
+  the primary monitor will be used.
 - `left-spacing` (_int_): space, in pixels, added **before** each module
 - `right-spacing` (_int_): space, in pixels, added **after** each module
 - `spacing` (_int_): short-hand for setting both `left-spacing` and

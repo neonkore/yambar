@@ -30,6 +30,7 @@
 
 struct private {
     /* From bar_config */
+    char *monitor;
     enum bar_location location;
     int height;
     int left_spacing, right_spacing;
@@ -339,11 +340,18 @@ run(struct bar *_bar)
         bar->conn,
         xcb_randr_get_monitors(bar->conn, screen->root, 0),
         &e);
-    assert(e == NULL);
+
+    if (e != NULL) {
+        LOG_ERR("failed to get monitor list: %s", xcb_error(e));
+        free(e);
+        /* TODO: cleanup (disconnect) */
+        return 1;
+    }
 
     bar->height_with_border = bar->height + 2 * bar->border.width;
 
     /* Find monitor coordinates and width/height */
+    bool found_monitor = false;
     for (xcb_randr_monitor_info_iterator_t it =
              xcb_randr_get_monitors_monitors_iterator(monitors);
          it.rem > 0;
@@ -356,19 +364,30 @@ run(struct bar *_bar)
                mon->width, mon->height, mon->x, mon->y,
                mon->width_in_millimeters, mon->height_in_millimeters);
 
-        free(name);
-
-        if (!mon->primary)
+        if (!((bar->monitor == NULL && mon->primary) ||
+              (bar->monitor != NULL && strcmp(bar->monitor, name) == 0)))
+        {
+            free(name);
             continue;
+        }
+
+        free(name);
 
         bar->x = mon->x;
         bar->y = mon->y;
         bar->width = mon->width;
         bar->y += bar->location == BAR_TOP ? 0
             : screen->height_in_pixels - bar->height_with_border;
+        found_monitor = true;
         break;
     }
     free(monitors);
+
+    if (!found_monitor) {
+        LOG_ERR("no matching monitor");
+        /* TODO: cleanup */
+        return 1;
+    }
 
     uint8_t depth = 0;
     xcb_visualtype_t *vis = xcb_aux_find_visual_by_attrs(screen, -1, 32);
@@ -690,6 +709,7 @@ destroy(struct bar *bar)
     free(b->center.exps);
     free(b->right.mods);
     free(b->right.exps);
+    free(b->monitor);
 
     free(bar->private);
     free(bar);
@@ -699,6 +719,7 @@ struct bar *
 bar_new(const struct bar_config *config)
 {
     struct private *priv = malloc(sizeof(*priv));
+    priv->monitor = config->monitor != NULL ? strdup(config->monitor) : NULL;
     priv->location = config->location;
     priv->height = config->height;
     priv->background = config->background;

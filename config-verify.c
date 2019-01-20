@@ -359,6 +359,8 @@ conf_verify_bar(const struct yml_node *bar)
         {"location", true, &verify_bar_location},
         {"background", true, &conf_verify_color},
 
+        {"monitor", false, &conf_verify_string},
+
         {"spacing", false, &conf_verify_int},
         {"left-spacing", false, &conf_verify_int},
         {"right-spacing", false, &conf_verify_int},

@@ -17,6 +17,7 @@ struct bar {
 enum bar_location { BAR_TOP, BAR_BOTTOM };
 
 struct bar_config {
+    const char *monitor;
     enum bar_location location;
     int height;
     int left_spacing, right_spacing;

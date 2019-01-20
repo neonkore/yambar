@@ -194,6 +194,10 @@ conf_to_bar(const struct yml_node *bar)
      * Optional attributes
      */
 
+    const struct yml_node *monitor = yml_get_value(bar, "monitor");
+    if (monitor != NULL)
+        conf.monitor = yml_value_as_string(monitor);
+
     const struct yml_node *spacing = yml_get_value(bar, "spacing");
     if (spacing != NULL)
         conf.left_spacing = conf.right_spacing = yml_value_as_int(spacing);
