@@ -6,6 +6,10 @@
 ## Index
 
 1. [Introduction](#introduction)
+1. [Configuration](#configuration)
+    1. [Overview](#overview)
+    1. [Types](#types)
+    1. [Bar](#bar)
 1. [Modules](#modules)
     1. [Alsa](#alsa)
     1. [backlight](#backlight)
@@ -29,10 +33,6 @@
     1. [background](#background)
     1. [stack](#stack)
     1. [underline](#underline)
-1. [Configuration](#configuration)
-    1. [Overview](#overview)
-    1. [Types](#types)
-    1. [Bar](#bar)
 
 
 ## Introduction
@@ -64,6 +64,62 @@ To summarize: a _bar_ displays information provided by _modules_,
 using _particles_ and _decorations_. **How** is configured by you.
 
 
+## Configuration
+
+### Overview
+
+F00bar is configured using YAML, in `~/.config/f00bar/config.yml`. It
+must define a top-level dictionary named **bar**:
+
+    bar:
+      height: 26
+      location: top
+      background: 000000ff
+
+
+
+### Types
+
+There are a couple types used that are specific to f00bar.
+
+- **font**: this is a string in _fontconfig_ format. Example of valid values:
+  + Font Awesome 5 Brands
+  + Font Awesome 5 Free:style=solid
+  + Dina:pixelsize=10:slant=italic
+  + Dina:pixelsize=10:weight=bold
+- **color**: an rgba hexstring; RRGGBBAA. Examples:
+  + ffffffff: white, no transparancy
+  + 000000ff: black, no transparancy
+  + 00ff00ff: green, no transparancy
+  + ff000099: red, semi-transparent
+
+
+## Bar
+
+| Name          | Type   | Req. | Description
+|-----------    |------  |------|-------------
+| height        | int    | yes  | The height of the bar, in pixels
+| location      | enum   | yes  | One of `top` or `bottom`
+| background    | color  | yes  | Background color.
+| monitor       | string | no   | Monitor to place the bar. If not specified, the primary monitor will be used
+| left-spacing  | int    | no   | Space, in pixels, added **before** each module
+| right-spacing | int    | no   | Space, in pixels, added **after** each module
+| spacing       | int    | no   | Short-hand for setting both `left-spacing` and `right-spacing`
+| left-margin   | int    | no   | Left-side margin, in pixels
+| right-margin  | int    | no   | Right-side margin, in pixels
+| margin        | int    | no   | Short-hand for setting both `left-margin` and `right-margin`
+| border        | dict   | no   | Configures a border around the status bar
+| border.width  | int    | yes  | Width, in pixels, of the border
+| border.color  | color  | yes  | The color of the border
+| font          | font   | no   | Default font to use in modules and particles
+| foreground    | color  | no   | Default foreground (text) color to use
+| left          | list   | no   | Left-aligned modules
+| center        | list   | no   | Center-aligned modules
+| right         | list   | no   | Right-aligned modules
+
+The value of each item in the `left`, `center` and `right` lists is a _module_.
+
+
 ## Modules
 
 - [alsa](#alsa)
@@ -79,7 +135,7 @@ using _particles_ and _decorations_. **How** is configured by you.
 - [xwindow](#xwindow)
 
 
-### Alsa
+### Alsae
 ### Backlight
 ### Battery
 ### Clock
@@ -122,63 +178,3 @@ using _particles_ and _decorations_. **How** is configured by you.
 ### Underline
 
 
-## Configuration
-
-### Overview
-
-F00bar is configured using YAML, in `~/.config/f00bar/config.yml`. It
-must define a top-level dictionary named **bar**:
-
-    bar:
-      height: 26
-      location: top
-      background: 000000ff
-
-
-
-### Types
-
-There are a couple types used that are specific to f00bar.
-
-- **font**: this is a string in _fontconfig_ format. Example of valid values:
-  + Font Awesome 5 Brands
-  + Font Awesome 5 Free:style=solid
-  + Dina:pixelsize=10:slant=italic
-  + Dina:pixelsize=10:weight=bold
-- **color**: an rgba hexstring; RRGGBBAA. Examples:
-  + ffffffff: white, no transparancy
-  + 000000ff: black, no transparancy
-  + 00ff00ff: green, no transparancy
-  + ff000099: red, semi-transparent
-
-
-### Bar
-
-- `height` (_int_, **required**): the height of the bar, in
-  pixels. Note that the bar will _always_ occupy the entire width of
-  the monitor.
-- `location` (_enum_, **required**): one of `top` or `bottom`. Should
-  be self-explanatory.
-- `background` (_color_, **required**): background color, in
-  _rgba_. Thus, in the example above, the background is set to _black_
-- `monitor` (_string_): monitor to place the bar. If not specified,
-  the primary monitor will be used.
-- `left-spacing` (_int_): space, in pixels, added **before** each module
-- `right-spacing` (_int_): space, in pixels, added **after** each module
-- `spacing` (_int_): short-hand for setting both `left-spacing` and
-  `right-spacing`
-- `left-margin` (_int_): left-side margin, in pixels
-- `right-margin` (_int_): right-side margin, in pixels
-- `margin` (_int_): short-hand for setting both `left-margin` and
-  `right-margin`
-- `border` (_dictionary_): configures a border around the status bar
-- `font` (_font_): default font to use
-- `foreground` (_color_): default foreground (text) color to use
-- `left` (_list_): left-aligned modules
-- `center` (_list_): center-aligned modules
-- `right` (_list_): right-aligned modules
-
-The `border` dictionary has the following attributes:
-
-- `width` (_int_, **required**): with, in pixels, of the border
-- `color` (_color_, **required**): the color of the border
