@@ -1,5 +1,5 @@
 pkgname=f00bar
-pkgver=0.9.r1.g383e031
+pkgver=0.9.r32.gf26892d
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X"
 arch=('x86_64')
@@ -10,7 +10,7 @@ depends=(
   'freetype2' 'fontconfig' 'cairo'
   'libyaml'
   'alsa-lib'
-  'libsystemd'
+  'libudev.so'
   'json-c'
   'libmpdclient')
 optdepends=('xcb-util-errors: better X error messages')
