@@ -167,10 +167,10 @@ Monitors an alsa soundcard for volume and mute/unmute changes.
 
 #### Example
 
-alsa:
-  card: hw:PCH
-  mixer: Master
-  content: {string: {text: "{volume}"}}
+    alsa:
+      card: hw:PCH
+      mixer: Master
+      content: {string: {text: "{volume}"}}
 
 
 ### Backlight
