@@ -97,11 +97,11 @@ There are a couple types used that are specific to f00bar.
 ## Bar
 
 | Name          | Type   | Req. | Description
-|-----------    |------  |------|-------------
+|---------------|--------|------|------------
 | height        | int    | yes  | The height of the bar, in pixels
 | location      | enum   | yes  | One of `top` or `bottom`
-| background    | color  | yes  | Background color.
-| monitor       | string | no   | Monitor to place the bar. If not specified, the primary monitor will be used
+| background    | color  | yes  | Background color
+| monitor       | string | no   | Monitor to place the bar. If not specified, the primary monitor will be used.
 | left-spacing  | int    | no   | Space, in pixels, added **before** each module
 | right-spacing | int    | no   | Space, in pixels, added **after** each module
 | spacing       | int    | no   | Short-hand for setting both `left-spacing` and `right-spacing`
