@@ -145,6 +145,32 @@ The value of each item in the `left`, `center` and `right` lists is a _module_.
 | anchors | dict     | Free-to-use dictionary, where you can put yaml anchor definitions
 
 
+### Tags
+
+Modules expose information through _tags_. Each tag has name, type and
+a value. The name and type is fixed, while the value will typically
+change over time.
+
+The tags are rendered by _particles_. Each particle type has it's own
+way of representing tag values. The simplest one is the `string`
+particle, which renders a text representation of the tag value.
+
+    string:
+      text: "The current volume is {volume}"
+
+
+The following tag types exist:
+
+| Type   | Description
+|--------|------------
+| string | Value is a string. Rendered as-is by the `string` particle.
+| int    | Value is an integer. Rendered in base 10 by the `string` particle.
+| bool   | Value is true or false. Rendered as "true" or "false" by the `string` particle.
+| float  | Value is a float. Rendered in base 10, with two decimal digits by the `string` particle.
+| range  | Value is an integer, with a minimum and maximum value. By default, `string` renders the value. The `:min` or `:max` suffixes may be added to instead render the min/max values (`"{tag_name:min}").
+| realtime | Value is an integer that changes in a predictable manner (in "realtime"). This allows the particle to update itself periodically. Could for example be used to represent a playing song's position. Only supported by the `progress-bar` particle. However, the `string` particle does recognize the `:unit` suffix. This will be translated to "s" for a tag with "seconds" resolution, or "ms" for one with "milliseconds" resolution.
+
+
 ### Alsa
 
 Monitors an alsa soundcard for volume and mute/unmute changes.
