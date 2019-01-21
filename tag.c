@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define LOG_MODULE "tag"
+#define LOG_ENABLE_DBG 1
+#include "log.h"
 #include "module.h"
 
 struct private {
