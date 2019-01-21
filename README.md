@@ -136,6 +136,16 @@ The value of each item in the `left`, `center` and `right` lists is a _module_.
 
 
 ### Alsae
+### Generic Configuration
+
+**All** modules support the following attributes:
+
+| Name    | Type     | Description
+|---------|----------|------------
+| content | particle | A particle describing how the module's information is to be rendered
+| anchors | dict     | Free-to-use dictionary, where you can put yaml anchor definitions
+
+
 ### Backlight
 ### Battery
 ### Clock
