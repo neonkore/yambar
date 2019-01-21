@@ -12,7 +12,8 @@ depends=(
   'alsa-lib'
   'libudev.so'
   'json-c'
-  'libmpdclient')
+  'libmpdclient'
+  'i3-wm')
 optdepends=('xcb-util-errors: better X error messages')
 source=()
 
