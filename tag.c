@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define LOG_MODULE "tag"
+#define LOG_ENABLE_DBG 1
+#include "log.h"
 #include "module.h"
 
 struct private {
@@ -420,10 +423,19 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             continue;
         }
 
-        /* Extract tag name */
-        char tag_name[end - begin];
-        strncpy(tag_name, begin + 1, end - begin - 1);
-        tag_name[end - begin - 1] = '\0';
+        /* Extract tag name + argument*/
+        char tag_name_and_arg[end - begin];
+        strncpy(tag_name_and_arg, begin + 1, end - begin - 1);
+        tag_name_and_arg[end - begin - 1] = '\0';
+
+        const char *tag_name = NULL;
+        const char *tag_arg = NULL;
+
+        {
+            char *saveptr;
+            tag_name = strtok_r(tag_name_and_arg, ":", &saveptr);
+            tag_arg = strtok_r(NULL, ":", &saveptr);
+        }
 
         /* Lookup tag */
         const struct tag *tag = tag_for_name(tags, tag_name);
@@ -438,8 +450,27 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         sbuf_append_at_most(&formatted, template, begin - template);
 
         /* Copy tag value */
-        const char *value = tag->as_string(tag);
-        sbuf_append(&formatted, value);
+        if (tag_arg == NULL) {
+            const char *value = tag->as_string(tag);
+            sbuf_append(&formatted, value);
+        } else if (strcmp(tag_arg, "min") == 0 ||
+                   strcmp(tag_arg, "max") == 0)
+        {
+            long value = strcmp(tag_arg, "min") == 0 ? tag->min(tag) : tag->max(tag);
+            char str[24];
+            snprintf(str, sizeof(str), "%ld", value);
+            sbuf_append(&formatted, str);
+        } else if (strcmp(tag_arg, "unit") == 0) {
+            const char *value = NULL;
+
+            switch (tag->realtime(tag)) {
+            case TAG_REALTIME_NONE:  value = ""; break;
+            case TAG_REALTIME_SECS:  value = "s"; break;
+            case TAG_REALTIME_MSECS: value = "ms"; break;
+            }
+
+            sbuf_append(&formatted, value);
+        }
 
         /* Skip past tag name + closing '}' */
         template = end + 1;
