@@ -147,9 +147,9 @@ The value of each item in the `left`, `center` and `right` lists is a _module_.
 
 ### Tags
 
-Modules expose information through _tags_. Each tag has name, type and
-a value. The name and type is fixed, while the value will typically
-change over time.
+Modules expose information through _tags_. Each tag has _name_, _type_
+and a _value_. The name and type is fixed, while the value will
+typically change over time.
 
 The tags are rendered by _particles_. Each particle type has it's own
 way of representing tag values. The simplest one is the `string`
