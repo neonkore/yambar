@@ -423,10 +423,19 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             continue;
         }
 
-        /* Extract tag name */
-        char tag_name[end - begin];
-        strncpy(tag_name, begin + 1, end - begin - 1);
-        tag_name[end - begin - 1] = '\0';
+        /* Extract tag name + argument*/
+        char tag_name_and_arg[end - begin];
+        strncpy(tag_name_and_arg, begin + 1, end - begin - 1);
+        tag_name_and_arg[end - begin - 1] = '\0';
+
+        const char *tag_name = NULL;
+        const char *tag_arg = NULL;
+
+        {
+            char *saveptr;
+            tag_name = strtok_r(tag_name_and_arg, ":", &saveptr);
+            tag_arg = strtok_r(NULL, ":", &saveptr);
+        }
 
         /* Lookup tag */
         const struct tag *tag = tag_for_name(tags, tag_name);
