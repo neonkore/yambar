@@ -135,7 +135,6 @@ The value of each item in the `left`, `center` and `right` lists is a _module_.
 - [xwindow](#xwindow)
 
 
-### Alsae
 ### Generic Configuration
 
 **All** modules support the following attributes:
@@ -144,6 +143,34 @@ The value of each item in the `left`, `center` and `right` lists is a _module_.
 |---------|----------|------------
 | content | particle | A particle describing how the module's information is to be rendered
 | anchors | dict     | Free-to-use dictionary, where you can put yaml anchor definitions
+
+
+### Alsa
+
+Monitors an alsa soundcard for volume and mute/unmute changes.
+
+#### Tags
+
+| Name   | Type  | Description
+|--------|-------|------------
+| volume | range | Volume level, with min and max as start and end range values
+| muted  | bool  | True if muted
+
+
+#### Configuration
+
+| Name          | Type   | Req. | Description
+|---------------|--------|------|------------
+| card          | string | yes  | The soundcard name. _Default_ might work.
+| mixer         | String | yes  | Mixer channel to watch. _Master_ might work.
+
+
+#### Example
+
+alsa:
+  card: hw:PCH
+  mixer: Master
+  content: {string: {text: "{volume}"}}
 
 
 ### Backlight
