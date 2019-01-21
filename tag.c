@@ -428,13 +428,21 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         strncpy(tag_name_and_arg, begin + 1, end - begin - 1);
         tag_name_and_arg[end - begin - 1] = '\0';
 
+        static const size_t MAX_TAG_ARGS = 3;
         const char *tag_name = NULL;
-        const char *tag_arg = NULL;
+        const char *tag_args[MAX_TAG_ARGS];
+        memset(tag_args, 0, sizeof(tag_args));
 
         {
             char *saveptr;
             tag_name = strtok_r(tag_name_and_arg, ":", &saveptr);
-            tag_arg = strtok_r(NULL, ":", &saveptr);
+
+            for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
+                const char *arg = strtok_r(NULL, ":", &saveptr);
+                if (arg == NULL)
+                    break;
+                tag_args[i] = arg;
+            }
         }
 
         /* Lookup tag */
@@ -449,18 +457,62 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         /* Copy characters preceeding the tag (name) */
         sbuf_append_at_most(&formatted, template, begin - template);
 
+        /* Parse arguments */
+        enum { FMT_DEFAULT, FMT_HEX, FMT_OCT } format = FMT_DEFAULT;
+        enum { VALUE_VALUE, VALUE_MIN, VALUE_MAX, VALUE_UNIT } kind = VALUE_VALUE;
+
+        for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
+            if (tag_args[i] == NULL)
+                break;
+            else if (strcmp(tag_args[i], "hex") == 0)
+                format = FMT_HEX;
+            else if (strcmp(tag_args[i], "oct") == 0)
+                format = FMT_OCT;
+            else if (strcmp(tag_args[i], "min") == 0)
+                kind = VALUE_MIN;
+            else if (strcmp(tag_args[i], "max") == 0)
+                kind = VALUE_MAX;
+            else if (strcmp(tag_args[i], "unit") == 0)
+                kind = VALUE_UNIT;
+        }
+
         /* Copy tag value */
-        if (tag_arg == NULL) {
-            const char *value = tag->as_string(tag);
-            sbuf_append(&formatted, value);
-        } else if (strcmp(tag_arg, "min") == 0 ||
-                   strcmp(tag_arg, "max") == 0)
-        {
-            long value = strcmp(tag_arg, "min") == 0 ? tag->min(tag) : tag->max(tag);
+        switch (kind) {
+        case VALUE_VALUE:
+            switch (format) {
+            case FMT_DEFAULT:
+                sbuf_append(&formatted, tag->as_string(tag));
+                break;
+
+            case FMT_HEX:
+            case FMT_OCT: {
+                char str[24];
+                snprintf(str, sizeof(str), format == FMT_HEX ? "%lx" : "%lo",
+                         tag->as_int(tag));
+                sbuf_append(&formatted, str);
+                break;
+            }
+            }
+            break;
+
+        case VALUE_MIN:
+        case VALUE_MAX: {
+            const long value = kind == VALUE_MIN ? tag->min(tag) : tag->max(tag);
+
+            const char *fmt;
+            switch (format) {
+            case FMT_DEFAULT: fmt = "%ld"; break;
+            case FMT_HEX:     fmt = "%lx"; break;
+            case FMT_OCT:     fmt = "%lo"; break;
+            }
+
             char str[24];
-            snprintf(str, sizeof(str), "%ld", value);
+            snprintf(str, sizeof(str), fmt, value);
             sbuf_append(&formatted, str);
-        } else if (strcmp(tag_arg, "unit") == 0) {
+            break;
+        }
+
+        case VALUE_UNIT: {
             const char *value = NULL;
 
             switch (tag->realtime(tag)) {
@@ -470,6 +522,8 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             }
 
             sbuf_append(&formatted, value);
+            break;
+        }
         }
 
         /* Skip past tag name + closing '}' */
