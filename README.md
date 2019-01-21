@@ -168,7 +168,7 @@ The following tag types exist:
 | bool   | Value is true or false. Rendered as "true" or "false" by the `string` particle.
 | float  | Value is a float. Rendered in base 10, with two decimal digits by the `string` particle.
 | range  | Value is an integer, with a minimum and maximum value. By default, `string` renders the value. The `:min` or `:max` suffixes may be added to instead render the min/max values (`"{tag_name:min}").
-| realtime | Value is an integer that changes in a predictable manner (in "realtime"). This allows the particle to update itself periodically. Could for example be used to represent a playing song's position. Only supported by the `progress-bar` particle. However, the `string` particle does recognize the `:unit` suffix. This will be translated to "s" for a tag with "seconds" resolution, or "ms" for one with "milliseconds" resolution.
+| realtime | Value is an integer that changes in a predictable manner (in "realtime"). This allows the particle to update itself periodically. It could for example be used to represent a playing song's position. Only supported by the `progress-bar` particle. However, the `string` particle does recognize the `:unit` suffix. This will be translated to "s" for a tag with "seconds" resolution, or "ms" for one with "milliseconds" resolution.
 
 
 ### Alsa
