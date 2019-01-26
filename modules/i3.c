@@ -439,7 +439,9 @@ run(struct module *mod)
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\"]");
 
-    char buf[1 * 1024 * 1024];  /* Some replies are *big*. TODO: grow dynamically */
+    /* Some replies are *big*. TODO: grow dynamically */
+    static const size_t reply_buf_size = 1 * 1024 * 1024;
+    char *buf = malloc(reply_buf_size);
     size_t buf_idx = 0;
 
     while (true) {
@@ -458,9 +460,9 @@ run(struct module *mod)
             break;
 
         assert(fds[1].revents & POLLIN);
-        assert(sizeof(buf) > buf_idx);
+        assert(reply_buf_size > buf_idx);
 
-        ssize_t bytes = read(sock, &buf[buf_idx], sizeof(buf) - buf_idx);
+        ssize_t bytes = read(sock, &buf[buf_idx], reply_buf_size - buf_idx);
         if (bytes < 0) {
             LOG_ERRNO("failed to read from i3's socket");
             break;
@@ -550,6 +552,7 @@ run(struct module *mod)
             break;
     }
 
+    free(buf);
     close(sock);
     return 0;
 }
