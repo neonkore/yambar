@@ -7,12 +7,16 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include <syslog.h>
+
+static bool colorize = false;
 
 static void __attribute__((constructor))
 init(void)
 {
+    colorize = isatty(STDOUT_FILENO);
     openlog(NULL, /*LOG_PID*/0, LOG_USER);
     setlogmask(LOG_UPTO(LOG_WARNING));
 }
@@ -27,8 +31,6 @@ static void
 _log(enum log_class log_class, const char *module, const char *file, int lineno,
      const char *fmt, int sys_errno, va_list va)
 {
-    bool colorize = true;
-
     const char *class = "abcd";
     int class_clr = 0;
     switch (log_class) {
