@@ -35,7 +35,6 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
     if (colorize)
         printf("\e[0m");
 
-    //printf("%%s\n", buf);
     vprintf(fmt, va);
 
     if (sys_errno != 0)
