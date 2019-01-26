@@ -25,6 +25,7 @@
 #include "../bar.h"
 #include "../config.h"
 #include "../config-verify.h"
+#include "../plugin.h"
 
 enum state {
     STATE_OFFLINE = 1000,
@@ -583,8 +584,8 @@ mpd_new(const char *host, uint16_t port, struct particle *label)
     return mod;
 }
 
-struct module *
-mpd_from_conf(const struct yml_node *node, struct conf_inherit inherited)
+static struct module *
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *host = yml_get_value(node, "host");
     const struct yml_node *port = yml_get_value(node, "port");
@@ -596,8 +597,8 @@ mpd_from_conf(const struct yml_node *node, struct conf_inherit inherited)
         conf_to_particle(c, inherited));
 }
 
-bool
-mpd_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"host", true, &conf_verify_string},
@@ -610,11 +611,11 @@ mpd_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct module_iface module_mpd_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("mpd_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct conf_inherit inherited)
-    __attribute__((weak, alias("mpd_from_conf")));
-
+extern const struct module_iface iface __attribute__((weak, alias("module_mpd_iface")));
 #endif

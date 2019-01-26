@@ -7,6 +7,7 @@
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particle.h"
+#include "../plugin.h"
 
 struct private {
     char *tag;
@@ -153,8 +154,8 @@ ramp_new(struct particle *common, const char *tag,
     return common;
 }
 
-struct particle *
-ramp_from_conf(const struct yml_node *node, struct particle *common)
+static struct particle *
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *items = yml_get_value(node, "items");
@@ -174,8 +175,8 @@ ramp_from_conf(const struct yml_node *node, struct particle *common)
     return ramp_new(common, yml_value_as_string(tag), parts, count);
 }
 
-bool
-ramp_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"tag", true, &conf_verify_string},
@@ -186,11 +187,11 @@ ramp_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct particle_iface particle_ramp_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("ramp_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct particle *common)
-    __attribute__((weak, alias("ramp_from_conf")));
-
+extern const struct particle_iface iface __attribute__((weak, alias("particle_ramp_iface")));
 #endif

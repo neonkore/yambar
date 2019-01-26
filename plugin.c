@@ -12,18 +12,21 @@
 #if !defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
 
 #define EXTERN_MODULE(plug_name)                                        \
+    extern const struct module_iface module_##plug_name##_iface;        \
     extern bool plug_name##_verify_conf(                                \
         keychain_t *chain, const struct yml_node *node);                \
     extern struct module *plug_name##_from_conf(                        \
         const struct yml_node *node, struct conf_inherit inherited);
 
-#define EXTERN_PARTICLE(plug_name)                              \
-    extern bool plug_name##_verify_conf(                        \
-        keychain_t *chain, const struct yml_node *node);        \
-    extern struct particle *plug_name##_from_conf(              \
+#define EXTERN_PARTICLE(plug_name)                                      \
+    extern const struct particle_iface particle_##plug_name##_iface;    \
+    extern bool plug_name##_verify_conf(                                \
+        keychain_t *chain, const struct yml_node *node);                \
+    extern struct particle *plug_name##_from_conf(                      \
         const struct yml_node *node, struct particle *common);
 
 #define EXTERN_DECORATION(plug_name)                                    \
+    extern const struct deco_iface deco_##plug_name##_iface;            \
     extern bool plug_name##_verify_conf(                                \
         keychain_t *chain, const struct yml_node *node);                \
     extern struct deco *plug_name##_from_conf(const struct yml_node *node);
@@ -84,19 +87,21 @@ init(void)
                 .name = strdup(#plug_name),                       \
                 .type = (plug_type),                              \
                 .lib = NULL,                                      \
-                .dummy = {                                        \
-                    .sym1 = &func_prefix##_verify_conf,           \
-                    .sym2 = &func_prefix##_from_conf,             \
-                }                                                 \
             }));                                                  \
     } while (0)
 
-#define REGISTER_CORE_MODULE(plug_name, func_prefix)                \
-    REGISTER_CORE_PLUGIN(plug_name, func_prefix, PLUGIN_MODULE)
-#define REGISTER_CORE_PARTICLE(plug_name, func_prefix)              \
-    REGISTER_CORE_PLUGIN(plug_name, func_prefix, PLUGIN_PARTICLE)
-#define REGISTER_CORE_DECORATION(plug_name, func_prefix)            \
-    REGISTER_CORE_PLUGIN(plug_name, func_prefix, PLUGIN_DECORATION)
+#define REGISTER_CORE_MODULE(plug_name, func_prefix)  do {              \
+        REGISTER_CORE_PLUGIN(plug_name, func_prefix, PLUGIN_MODULE);    \
+        tll_back(plugins).module = &module_##func_prefix##_iface;       \
+    } while (0)
+#define REGISTER_CORE_PARTICLE(plug_name, func_prefix) do {             \
+        REGISTER_CORE_PLUGIN(plug_name, func_prefix, PLUGIN_PARTICLE);  \
+        tll_back(plugins).particle = &particle_##func_prefix##_iface;   \
+    } while (0)
+#define REGISTER_CORE_DECORATION(plug_name, func_prefix) do {           \
+        REGISTER_CORE_PLUGIN(plug_name, func_prefix, PLUGIN_DECORATION); \
+        tll_back(plugins).decoration = &deco_##func_prefix##_iface;     \
+    } while (0)
 
     REGISTER_CORE_MODULE(alsa, alsa);
     REGISTER_CORE_MODULE(backlight, backlight);
@@ -155,8 +160,7 @@ plugin_load(const char *name, enum plugin_type type)
     tll_foreach(plugins, plug) {
         if (plug->item.type == type && strcmp(plug->item.name, name) == 0) {
             LOG_DBG("%s: %s already loaded: %p", type2str(type), name, plug->item.lib);
-            assert(plug->item.dummy.sym1 != NULL);
-            assert(plug->item.dummy.sym2 != NULL);
+            assert(plug->item.dummy != NULL);
             return &plug->item;
         }
     }
@@ -174,20 +178,13 @@ plugin_load(const char *name, enum plugin_type type)
         return NULL;
     }
 
-    tll_push_back(plugins, ((struct plugin){strdup(name), type, lib, {{NULL}}}));
+    tll_push_back(plugins, ((struct plugin){strdup(name), type, lib, {NULL}}));
     struct plugin *plug = &tll_back(plugins);
 
     dlerror(); /* Clear previous error */
-    const char *dl_error = NULL;
+    plug->dummy = dlsym(lib, "iface");
 
-    plug->dummy.sym1 = dlsym(lib, "verify_conf");
-    dl_error = dlerror();
-
-    if (dl_error == NULL) {
-        plug->dummy.sym2 = dlsym(lib, "from_conf");
-        dl_error = dlerror();
-    }
-
+    const char *dl_error = dlerror();
     if (dl_error != NULL) {
         LOG_ERR("%s: %s: dlsym: %s", type2str(type), name, dl_error);
         return NULL;
@@ -200,19 +197,19 @@ const struct module_iface *
 plugin_load_module(const char *name)
 {
     const struct plugin *plug = plugin_load(name, PLUGIN_MODULE);
-    return plug != NULL ? &plug->module : NULL;
+    return plug != NULL ? plug->module : NULL;
 }
 
 const struct particle_iface *
 plugin_load_particle(const char *name)
 {
     const struct plugin *plug = plugin_load(name, PLUGIN_PARTICLE);
-    return plug != NULL ? &plug->particle : NULL;
+    return plug != NULL ? plug->particle : NULL;
 }
 
 const struct deco_iface *
 plugin_load_deco(const char *name)
 {
     const struct plugin *plug = plugin_load(name, PLUGIN_DECORATION);
-    return plug != NULL ? &plug->decoration : NULL;
+    return plug != NULL ? plug->decoration : NULL;
 }

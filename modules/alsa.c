@@ -7,8 +7,9 @@
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar.h"
-#include "../config.h"
 #include "../config-verify.h"
+#include "../config.h"
+#include "../plugin.h"
 #include "../tllist.h"
 
 struct private {
@@ -284,8 +285,8 @@ alsa_new(const char *card, const char *mixer, struct particle *label)
     return mod;
 }
 
-struct module *
-alsa_from_conf(const struct yml_node *node, struct conf_inherit inherited)
+static struct module *
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *card = yml_get_value(node, "card");
     const struct yml_node *mixer = yml_get_value(node, "mixer");
@@ -297,8 +298,8 @@ alsa_from_conf(const struct yml_node *node, struct conf_inherit inherited)
         conf_to_particle(content, inherited));
 }
 
-bool
-alsa_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"card", true, &conf_verify_string},
@@ -311,11 +312,11 @@ alsa_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct module_iface module_alsa_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("alsa_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct conf_inherit inherited)
-    __attribute__((weak, alias("alsa_from_conf")));
-
+extern const struct module_iface iface __attribute__((weak, alias("module_alsa_iface")));
 #endif

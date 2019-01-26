@@ -8,6 +8,7 @@
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particle.h"
+#include "../plugin.h"
 
 struct private {
     char *tag;
@@ -228,8 +229,8 @@ progress_bar_new(struct particle *common, const char *tag, int width,
     return common;
 }
 
-struct particle *
-progress_bar_from_conf(const struct yml_node *node, struct particle *common)
+static struct particle *
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *length = yml_get_value(node, "length");
@@ -255,8 +256,8 @@ progress_bar_from_conf(const struct yml_node *node, struct particle *common)
         conf_to_particle(indicator, inherited));
 }
 
-bool
-progress_bar_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"tag", true, &conf_verify_string},
@@ -273,11 +274,11 @@ progress_bar_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct particle_iface particle_progress_bar_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("progress_bar_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct particle *common)
-    __attribute__((weak, alias("progress_bar_from_conf")));
-
+extern const struct particle_iface iface __attribute__((weak, alias("particle_progress_bar_iface")));
 #endif

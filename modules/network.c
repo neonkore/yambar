@@ -20,6 +20,7 @@
 #include "../config.h"
 #include "../config-verify.h"
 #include "../module.h"
+#include "../plugin.h"
 #include "../tllist.h"
 
 struct af_addr {
@@ -530,8 +531,8 @@ network_new(const char *iface, struct particle *label)
     return mod;
 }
 
-struct module *
-network_from_conf(const struct yml_node *node, struct conf_inherit inherited)
+static struct module *
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *content = yml_get_value(node, "content");
@@ -540,8 +541,8 @@ network_from_conf(const struct yml_node *node, struct conf_inherit inherited)
         yml_value_as_string(name), conf_to_particle(content, inherited));
 }
 
-bool
-network_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"name", true, &conf_verify_string},
@@ -553,11 +554,11 @@ network_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct module_iface module_network_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("network_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct conf_inherit inherited)
-    __attribute__((weak, alias("network_from_conf")));
-
+extern const struct module_iface iface __attribute__((weak, alias("module_network_iface")));
 #endif

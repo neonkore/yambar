@@ -36,6 +36,12 @@ struct plugin {
 
     void *lib;
     union {
+        const struct module_iface *module;
+        const struct particle_iface *particle;
+        const struct deco_iface *decoration;
+        const void *dummy;
+
+#if 0
         struct {
             void *sym1;
             void *sym2;
@@ -44,6 +50,7 @@ struct plugin {
         struct module_iface module;
         struct particle_iface particle;
         struct deco_iface decoration;
+#endif
     };
 };
 

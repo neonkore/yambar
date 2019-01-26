@@ -3,6 +3,7 @@
 #include "../config.h"
 #include "../config-verify.h"
 #include "../decoration.h"
+#include "../plugin.h"
 
 struct private {
     struct rgba color;
@@ -40,15 +41,15 @@ background_new(struct rgba color)
     return deco;
 }
 
-struct deco *
-background_from_conf(const struct yml_node *node)
+static struct deco *
+from_conf(const struct yml_node *node)
 {
     const struct yml_node *color = yml_get_value(node, "color");
     return background_new(conf_to_color(color));
 }
 
-bool
-background_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"color", true, &conf_verify_color},
@@ -58,11 +59,11 @@ background_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct deco_iface deco_background_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("background_verify_conf")));
-struct deco *from_conf(const struct yml_node *node)
-    __attribute__((weak, alias("background_from_conf")));
-
+extern const struct deco_iface iface __attribute__((weak, alias("deco_background_iface")));
 #endif

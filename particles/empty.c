@@ -3,6 +3,7 @@
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particle.h"
+#include "../plugin.h"
 
 static int
 begin_expose(struct exposable *exposable)
@@ -39,14 +40,14 @@ empty_new(struct particle *common)
     return common;
 }
 
-struct particle *
-empty_from_conf(const struct yml_node *node, struct particle *common)
+static struct particle *
+from_conf(const struct yml_node *node, struct particle *common)
 {
     return empty_new(common);
 }
 
-bool
-empty_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         PARTICLE_COMMON_ATTRS,
@@ -55,11 +56,11 @@ empty_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct particle_iface particle_empty_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("empty_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct particle *common)
-    __attribute__((weak, alias("empty_from_conf")));
-
+extern const struct particle_iface iface __attribute__((weak, alias("particle_empty_iface")));
 #endif

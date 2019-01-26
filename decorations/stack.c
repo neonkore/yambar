@@ -5,6 +5,7 @@
 #include "../config.h"
 #include "../config-verify.h"
 #include "../decoration.h"
+#include "../plugin.h"
 
 struct private {
     struct deco **decos;
@@ -47,8 +48,9 @@ stack_new(struct deco *decos[], size_t count)
 
     return deco;
 }
-struct deco *
-stack_from_conf(const struct yml_node *node)
+
+static struct deco *
+from_conf(const struct yml_node *node)
 {
     size_t count = yml_list_length(node);
 
@@ -65,8 +67,8 @@ stack_from_conf(const struct yml_node *node)
     return stack_new(decos, count);
 }
 
-bool
-stack_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     if (!yml_is_list(node)) {
         LOG_ERR("%s: must be a list of decorations", conf_err_prefix(chain, node));
@@ -84,11 +86,11 @@ stack_verify_conf(keychain_t *chain, const struct yml_node *node)
     return true;
 }
 
+const struct deco_iface deco_stack_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("stack_verify_conf")));
-struct deco *from_conf(const struct yml_node *node)
-    __attribute__((weak, alias("stack_from_conf")));
-
+extern const struct deco_iface iface __attribute__((weak, alias("deco_stack_iface")));
 #endif

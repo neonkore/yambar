@@ -8,6 +8,7 @@
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particle.h"
+#include "../plugin.h"
 
 struct private {
     char *text;
@@ -173,8 +174,8 @@ string_new(struct particle *common, const char *text, size_t max_len)
     return common;
 }
 
-struct particle *
-string_from_conf(const struct yml_node *node, struct particle *common)
+static struct particle *
+from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *text = yml_get_value(node, "text");
     const struct yml_node *max = yml_get_value(node, "max");
@@ -185,8 +186,8 @@ string_from_conf(const struct yml_node *node, struct particle *common)
         max != NULL ? yml_value_as_int(max) : 0);
 }
 
-bool
-string_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"text", true, &conf_verify_string},
@@ -197,11 +198,11 @@ string_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct particle_iface particle_string_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("string_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct particle *common)
-    __attribute__((weak, alias("string_from_conf")));
-
+extern const struct particle_iface iface __attribute__((weak, alias("particle_string_iface")));
 #endif

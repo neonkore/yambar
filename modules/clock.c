@@ -8,6 +8,7 @@
 #include "../bar.h"
 #include "../config.h"
 #include "../config-verify.h"
+#include "../plugin.h"
 
 struct private {
     struct particle *label;
@@ -94,8 +95,8 @@ clock_new(struct particle *label, const char *date_format, const char *time_form
     return mod;
 }
 
-struct module *
-clock_from_conf(const struct yml_node *node, struct conf_inherit inherited)
+static struct module *
+from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *date_format = yml_get_value(node, "date-format");
@@ -107,8 +108,8 @@ clock_from_conf(const struct yml_node *node, struct conf_inherit inherited)
         time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
 }
 
-bool
-clock_verify_conf(keychain_t *chain, const struct yml_node *node)
+static bool
+verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"date-format", false, &conf_verify_string},
@@ -121,11 +122,11 @@ clock_verify_conf(keychain_t *chain, const struct yml_node *node)
     return conf_verify_dict(chain, node, attrs);
 }
 
+const struct module_iface module_clock_iface = {
+    .verify_conf = &verify_conf,
+    .from_conf = &from_conf,
+};
+
 #if defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
-
-bool verify_conf(keychain_t *chain, const struct yml_node *node)
-    __attribute__((weak, alias("clock_verify_conf")));
-struct deco *from_conf(const struct yml_node *node, struct conf_inherit inherited)
-    __attribute__((weak, alias("clock_from_conf")));
-
+extern const struct module_iface iface __attribute__((weak, alias("module_clock_iface")));
 #endif
