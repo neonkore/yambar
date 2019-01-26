@@ -6,6 +6,20 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#include <syslog.h>
+
+static void __attribute__((constructor))
+init(void)
+{
+    openlog(NULL, /*LOG_PID*/0, LOG_USER);
+}
+
+static void __attribute__((destructor))
+fini(void)
+{
+    closelog();
+}
+
 static void
 _log(enum log_class log_class, const char *module, const char *file, int lineno,
      const char *fmt, int sys_errno, va_list va)
