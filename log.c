@@ -14,6 +14,7 @@ static void __attribute__((constructor))
 init(void)
 {
     openlog(NULL, /*LOG_PID*/0, LOG_USER);
+    setlogmask(LOG_UPTO(LOG_WARNING));
 }
 
 static void __attribute__((destructor))
