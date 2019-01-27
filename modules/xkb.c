@@ -647,6 +647,8 @@ xkb_new(struct particle *label)
     m->current = 0;
     m->layouts.count = 0;
     m->layouts.layouts = NULL;
+    m->indicators.count = 0;
+    m->indicators.names = NULL;
     m->caps_lock = false;
     m->num_lock = false;
     m->scroll_lock = false;
