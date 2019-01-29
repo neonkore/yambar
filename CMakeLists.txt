@@ -30,6 +30,22 @@ pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
 pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)
 pkg_check_modules(YAML REQUIRED yaml-0.1)
 
+add_library(bar-xcb STATIC xcb.c xcb.h bar/xcb.c bar/xcb.h)
+
+target_compile_options(bar-xcb PRIVATE
+  ${XCB_CFLAGS_OTHER}
+  ${XCB_ERRORS_CFLAGS_OTHER}
+  ${CAIRO_CFLAGS_OTHER}
+  )
+
+target_include_directories(bar-xcb PRIVATE
+  ${XCB_INCLUDE_DIRS}
+  ${XCB_ERRORS_INCLUDE_DIRS}
+  ${CAIRO_INCLUDE_DIRS}
+  )
+
+target_link_libraries(bar-xcb ${XCB_LIBRARIES} ${XCB_ERRORS_LIBRARIES})
+
 add_executable(f00bar
   config.c config.h
   config-verify.c config-verify.h
@@ -41,13 +57,13 @@ add_executable(f00bar
   particle.c particle.h
   plugin.c plugin.h
   tag.c tag.h
-  xcb.c xcb.h
   yml.c yml.h
 
   bar.h
   bar/bar.c bar/private.h bar/backend.h
-  bar/xcb.c bar/xcb.h
   )
+
+target_link_libraries(f00bar bar-xcb)
 
 # Make global symbols in f00bar visible to dlopen:ed plugins
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
@@ -57,16 +73,12 @@ if (XCB_ERRORS_FOUND)
 endif ()
 
 target_compile_options(f00bar PRIVATE
-  ${XCB_CFLAGS_OTHER}
-  ${XCB_ERRORS_CFLAGS_OTHER}
   ${FONTCONFIG_CFLAGS_OTHER}
   ${CAIRO_CFLAGS_OTHER}
   ${YAML_CFLAGS_OTHER}
   )
 
 target_include_directories(f00bar PRIVATE
-  ${XCB_INCLUDE_DIRS}
-  ${XCB_ERRORS_INCLUDE_DIRS}
   ${FONTCONFIG_INCLUDE_DIRS}
   ${CAIRO_INCLUDE_DIRS}
   ${YAML_INCLUDE_DIRS}
@@ -76,8 +88,6 @@ target_link_libraries(f00bar
   ${CMAKE_THREAD_LIBS_INIT}
   ${CMAKE_DL_LIBS}
 
-  ${XCB_LIBRARIES}
-  ${XCB_ERRORS_LIBRARIES}
   ${FONTCONFIG_LIBRARIES}
   ${CAIRO_LIBRARIES}
   ${YAML_LIBRARIES}
