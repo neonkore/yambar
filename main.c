@@ -130,7 +130,7 @@ main(int argc, const char *const *argv)
 
     while (!aborted) {
         struct pollfd fds[] = {{.fd = abort_fd, .events = POLLIN}};
-        int r = poll(fds, 1, -1);
+        int r __attribute__((unused)) = poll(fds, 1, -1);
 
         /*
          * Either the bar aborted (triggering the abort_fd), or user
