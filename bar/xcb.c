@@ -392,19 +392,13 @@ set_cursor(struct bar *_bar, const char *cursor)
     struct private *bar = _bar->private;
     struct xcb_backend *backend = bar->backend.data;
 
-    if (bar->cursor_name != NULL && strcmp(bar->cursor_name, cursor) == 0)
-        return;
-
     if (backend->cursor_ctx == NULL)
         return;
 
     if (backend->cursor != 0) {
         xcb_free_cursor(backend->conn, backend->cursor);
-        free(bar->cursor_name);
-        bar->cursor_name = NULL;
     }
 
-    bar->cursor_name = strdup(cursor);
     backend->cursor = xcb_cursor_load_cursor(backend->cursor_ctx, cursor);
     xcb_change_window_attributes(
         backend->conn, backend->win, XCB_CW_CURSOR, &backend->cursor);
