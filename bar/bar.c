@@ -17,7 +17,6 @@
 #define LOG_MODULE "bar"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
-#include "../xcb.h"
 
 #include "xcb.h"
 
