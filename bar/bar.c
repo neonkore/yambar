@@ -7,10 +7,6 @@
 #include <stdbool.h>
 #include <threads.h>
 #include <assert.h>
-#include <unistd.h>
-
-#include <poll.h>
-#include <signal.h>
 
 #include <sys/eventfd.h>
 
