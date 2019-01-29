@@ -195,12 +195,15 @@ wait_for_socket_create(const struct module *mod)
     LOG_DBG("monitoring %s for %s to be created", directory, base);
 
     int fd = inotify_init();
-    if (fd == -1)
+    if (fd == -1) {
+        free(copy);
         return false;
+    }
 
     int wd = inotify_add_watch(fd, directory, IN_CREATE);
     if (wd == -1) {
         close(fd);
+        free(copy);
         return false;
     }
 
@@ -231,6 +234,7 @@ wait_for_socket_create(const struct module *mod)
     if (!have_mpd_socket)
         LOG_WARN("MPD doesn't appear to be running");
 
+    bool ret = false;
     while (!have_mpd_socket) {
         struct pollfd fds[] = {
             {.fd = mod->abort_fd, .events = POLLIN},
@@ -239,8 +243,10 @@ wait_for_socket_create(const struct module *mod)
 
         poll(fds, 2, -1);
 
-        if (fds[0].revents & POLLIN)
-            return true;
+        if (fds[0].revents & POLLIN) {
+            ret = true;
+            break;
+        }
 
         assert(fds[1].revents & POLLIN);
 
@@ -264,7 +270,7 @@ wait_for_socket_create(const struct module *mod)
     inotify_rm_watch(fd, wd);
     close(fd);
     free(copy);
-    return false;
+    return ret;
 }
 
 static struct mpd_connection *
