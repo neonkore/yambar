@@ -1,15 +1,10 @@
 #pragma once
 
-#include <xcb/xcb.h>
-#include <xcb/randr.h>
-#include <xcb/render.h>
-#include <xcb/xcb_aux.h>
-#include <xcb/xcb_cursor.h>
-#include <xcb/xcb_event.h>
-#include <xcb/xcb_ewmh.h>
-
 #include <cairo.h>
 #include <cairo-xcb.h>
+
+#include "../bar.h"
+#include "backend.h"
 
 struct private {
     /* From bar_config */
@@ -53,6 +48,11 @@ struct private {
     cairo_t *cairo;
     cairo_surface_t *cairo_surface;
 
+    struct {
+        void *data;
+        const struct backend *iface;
+    } backend;
+#if 0
     /* Backend specifics */
     xcb_connection_t *conn;
 
@@ -62,4 +62,5 @@ struct private {
     xcb_gc_t gc;
     xcb_cursor_context_t *cursor_ctx;
     xcb_cursor_t cursor;
+#endif
 };
