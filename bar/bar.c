@@ -1,4 +1,4 @@
-#include "bar.h"
+#include "../bar.h"
 
 #include <string.h>
 #include <stdint.h>
@@ -25,8 +25,8 @@
 
 #define LOG_MODULE "bar"
 #define LOG_ENABLE_DBG 0
-#include "log.h"
-#include "xcb.h"
+#include "../log.h"
+#include "../xcb.h"
 
 struct private {
     /* From bar_config */

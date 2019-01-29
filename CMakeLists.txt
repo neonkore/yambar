@@ -31,7 +31,6 @@ pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)
 pkg_check_modules(YAML REQUIRED yaml-0.1)
 
 add_executable(f00bar
-  bar.c bar.h
   config.c config.h
   config-verify.c config-verify.h
   decoration.h
@@ -44,6 +43,8 @@ add_executable(f00bar
   tag.c tag.h
   xcb.c xcb.h
   yml.c yml.h
+
+  bar/bar.c bar.h
   )
 
 # Make global symbols in f00bar visible to dlopen:ed plugins
