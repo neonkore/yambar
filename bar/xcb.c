@@ -68,8 +68,6 @@ setup(struct bar *_bar)
         return false;
     }
 
-    bar->height_with_border = bar->height + 2 * bar->border.width;
-
     /* Find monitor coordinates and width/height */
     bool found_monitor = false;
     for (xcb_randr_monitor_info_iterator_t it =

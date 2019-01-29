@@ -230,6 +230,8 @@ run(struct bar *_bar)
 {
     struct private *bar = _bar->private;
 
+    bar->height_with_border = bar->height + 2 * bar->border.width;
+
     if (!bar->backend.iface->setup(_bar))
         return 1;
 
