@@ -123,7 +123,8 @@ setup(struct bar *_bar)
     LOG_DBG("using a %hhu-bit visual", depth);
 
     backend->colormap = xcb_generate_id(backend->conn);
-    xcb_create_colormap(backend->conn, 0, backend->colormap, screen->root, vis->visual_id);
+    xcb_create_colormap(
+        backend->conn, 0, backend->colormap, screen->root, vis->visual_id);
 
     backend->win = xcb_generate_id(backend->conn);
     xcb_create_window(
