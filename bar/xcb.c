@@ -395,9 +395,8 @@ set_cursor(struct bar *_bar, const char *cursor)
     if (backend->cursor_ctx == NULL)
         return;
 
-    if (backend->cursor != 0) {
+    if (backend->cursor != 0)
         xcb_free_cursor(backend->conn, backend->cursor);
-    }
 
     backend->cursor = xcb_cursor_load_cursor(backend->cursor_ctx, cursor);
     xcb_change_window_attributes(
