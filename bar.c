@@ -64,7 +64,13 @@ struct private {
     int width;
     int height_with_border;
 
-    /* Resources */
+    /* Name of currently active cursor */
+    char *cursor_name;
+
+    cairo_t *cairo;
+    cairo_surface_t *cairo_surface;
+
+    /* Backend specifics */
     xcb_connection_t *conn;
 
     xcb_window_t win;
@@ -73,10 +79,6 @@ struct private {
     xcb_gc_t gc;
     xcb_cursor_context_t *cursor_ctx;
     xcb_cursor_t cursor;
-    char *cursor_name;
-
-    cairo_t *cairo;
-    cairo_surface_t *cairo_surface;
 };
 
 /*
@@ -112,6 +114,15 @@ calculate_widths(const struct private *b, int *left, int *center, int *right)
     *left -= b->left_spacing + b->right_spacing;
     *center -= b->left_spacing + b->right_spacing;
     *right -= b->left_spacing + b->right_spacing;
+}
+
+static void
+backend_commit_surface(const struct bar *_bar)
+{
+    const struct private *bar = _bar->private;
+    xcb_copy_area(bar->conn, bar->pixmap, bar->win, bar->gc,
+                  0, 0, 0, 0, bar->width, bar->height_with_border);
+    xcb_flush(bar->conn);
 }
 
 static void
@@ -204,14 +215,12 @@ expose(const struct bar *_bar)
     }
 
     cairo_surface_flush(bar->cairo_surface);
-    xcb_copy_area(bar->conn, bar->pixmap, bar->win, bar->gc,
-                  0, 0, 0, 0, bar->width, bar->height_with_border);
-    xcb_flush(bar->conn);
+    backend_commit_surface(_bar);
 }
 
 
 static void
-refresh(const struct bar *bar)
+backend_refresh(const struct bar *bar)
 {
     const struct private *b = bar->private;
 
@@ -237,7 +246,13 @@ refresh(const struct bar *bar)
 }
 
 static void
-set_cursor(struct bar *bar, const char *cursor)
+refresh(const struct bar *bar)
+{
+    backend_refresh(bar);
+}
+
+static void
+backend_set_cursor(struct bar *bar, const char *cursor)
 {
     struct private *b = bar->private;
 
@@ -259,6 +274,12 @@ set_cursor(struct bar *bar, const char *cursor)
 }
 
 static void
+set_cursor(struct bar *bar, const char *cursor)
+{
+    backend_set_cursor(bar, cursor);
+}
+
+static void
 on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
 {
     struct private *b = bar->private;
@@ -266,7 +287,7 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
     if ((y < b->border.width || y >= (b->height_with_border - b->border.width)) ||
         (x < b->border.width || x >= (b->width - b->border.width)))
     {
-        set_cursor(bar, "left_ptr");
+        backend_set_cursor(bar, "left_ptr");
         return;
     }
 
@@ -315,11 +336,11 @@ on_mouse(struct bar *bar, enum mouse_event event, int x, int y)
         mx += e->width + b->right_spacing;
     }
 
-    set_cursor(bar, "left_ptr");
+    backend_set_cursor(bar, "left_ptr");
 }
 
-static int
-run(struct bar *_bar)
+static bool
+backend_setup(struct bar *_bar)
 {
     struct private *bar = _bar->private;
 
@@ -331,7 +352,7 @@ run(struct bar *_bar)
     if (xcb_connection_has_error(bar->conn) > 0) {
         LOG_ERR("failed to connect to X");
         xcb_disconnect(bar->conn);
-        return 1;
+        return false;
     }
 
     xcb_screen_t *screen = xcb_aux_get_screen(bar->conn, default_screen);
@@ -345,7 +366,7 @@ run(struct bar *_bar)
         LOG_ERR("failed to get monitor list: %s", xcb_error(e));
         free(e);
         /* TODO: cleanup (disconnect) */
-        return 1;
+        return false;
     }
 
     bar->height_with_border = bar->height + 2 * bar->border.width;
@@ -386,7 +407,7 @@ run(struct bar *_bar)
     if (!found_monitor) {
         LOG_ERR("no matching monitor");
         /* TODO: cleanup */
-        return 1;
+        return false;
     }
 
     uint8_t depth = 0;
@@ -522,38 +543,16 @@ run(struct bar *_bar)
 
     if (xcb_cursor_context_new(bar->conn, screen, &bar->cursor_ctx) < 0)
         LOG_WARN("failed to create XCB cursor context");
-    else
-        set_cursor(_bar, "left_ptr");
 
     xcb_flush(bar->conn);
+    return true;
+}
 
-    /* Start modules */
-    thrd_t thrd_left[bar->left.count];
-    thrd_t thrd_center[bar->center.count];
-    thrd_t thrd_right[bar->right.count];
-
-    for (size_t i = 0; i < bar->left.count; i++) {
-        struct module *mod = bar->left.mods[i];
-
-        mod->abort_fd = _bar->abort_fd;
-        thrd_create(&thrd_left[i], (int (*)(void *))bar->left.mods[i]->run, mod);
-    }
-    for (size_t i = 0; i < bar->center.count; i++) {
-        struct module *mod = bar->center.mods[i];
-
-        mod->abort_fd = _bar->abort_fd;
-        thrd_create(&thrd_center[i], (int (*)(void *))bar->center.mods[i]->run, mod);
-    }
-    for (size_t i = 0; i < bar->right.count; i++) {
-        struct module *mod = bar->right.mods[i];
-
-        mod->abort_fd = _bar->abort_fd;
-        thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, mod);
-    }
-
-    LOG_DBG("all modules started");
-
-    int fd = xcb_get_file_descriptor(bar->conn);
+static void
+backend_loop(struct bar *_bar)
+{
+    struct private *bar = _bar->private;
+    const int fd = xcb_get_file_descriptor(bar->conn);
 
     while (true) {
         struct pollfd fds[] = {
@@ -620,6 +619,67 @@ run(struct bar *_bar)
             xcb_flush(bar->conn);
         }
     }
+}
+
+static void
+backend_cleanup(struct bar *_bar)
+{
+    struct private *bar = _bar->private;
+
+    if (bar->cursor_ctx != NULL) {
+        xcb_free_cursor(bar->conn, bar->cursor);
+        xcb_cursor_context_free(bar->cursor_ctx);
+
+        free(bar->cursor_name);
+        bar->cursor_name = NULL;
+    }
+
+    xcb_free_gc(bar->conn, bar->gc);
+    xcb_free_pixmap(bar->conn, bar->pixmap);
+    xcb_destroy_window(bar->conn, bar->win);
+    xcb_free_colormap(bar->conn, bar->colormap);
+    xcb_flush(bar->conn);
+
+    xcb_disconnect(bar->conn);
+}
+
+static int
+run(struct bar *_bar)
+{
+    struct private *bar = _bar->private;
+
+    if (!backend_setup(_bar))
+        return 1;
+
+    backend_set_cursor(_bar, "left_ptr");
+
+    /* Start modules */
+    thrd_t thrd_left[bar->left.count];
+    thrd_t thrd_center[bar->center.count];
+    thrd_t thrd_right[bar->right.count];
+
+    for (size_t i = 0; i < bar->left.count; i++) {
+        struct module *mod = bar->left.mods[i];
+
+        mod->abort_fd = _bar->abort_fd;
+        thrd_create(&thrd_left[i], (int (*)(void *))bar->left.mods[i]->run, mod);
+    }
+    for (size_t i = 0; i < bar->center.count; i++) {
+        struct module *mod = bar->center.mods[i];
+
+        mod->abort_fd = _bar->abort_fd;
+        thrd_create(&thrd_center[i], (int (*)(void *))bar->center.mods[i]->run, mod);
+    }
+    for (size_t i = 0; i < bar->right.count; i++) {
+        struct module *mod = bar->right.mods[i];
+
+        mod->abort_fd = _bar->abort_fd;
+        thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, mod);
+    }
+
+    LOG_DBG("all modules started");
+
+    backend_loop(_bar);
 
     LOG_DBG("shutting down");
 
@@ -678,21 +738,7 @@ run(struct bar *_bar)
     cairo_surface_destroy(bar->cairo_surface);
     cairo_debug_reset_static_data();
 
-    if (bar->cursor_ctx != NULL) {
-        xcb_free_cursor(bar->conn, bar->cursor);
-        xcb_cursor_context_free(bar->cursor_ctx);
-
-        free(bar->cursor_name);
-        bar->cursor_name = NULL;
-    }
-
-    xcb_free_gc(bar->conn, bar->gc);
-    xcb_free_pixmap(bar->conn, bar->pixmap);
-    xcb_destroy_window(bar->conn, bar->win);
-    xcb_free_colormap(bar->conn, bar->colormap);
-    xcb_flush(bar->conn);
-
-    xcb_disconnect(bar->conn);
+    backend_cleanup(_bar);
 
     LOG_DBG("bar exiting");
     return ret;
