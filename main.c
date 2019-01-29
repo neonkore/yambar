@@ -17,7 +17,6 @@
 #include "bar.h"
 #include "config.h"
 #include "yml.h"
-#include "xcb.h"
 
 #define LOG_MODULE "main"
 #include "log.h"
@@ -120,8 +119,6 @@ main(int argc, const char *const *argv)
         close(abort_fd);
         return 1;
     }
-
-    xcb_init();
 
     bar->abort_fd = abort_fd;
 

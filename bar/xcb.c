@@ -34,6 +34,7 @@ struct xcb_backend {
 void *
 bar_backend_xcb_new(void)
 {
+    xcb_init();
     return calloc(1, sizeof(struct xcb_backend));
 }
 
