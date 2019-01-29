@@ -44,7 +44,7 @@ add_executable(f00bar
   xcb.c xcb.h
   yml.c yml.h
 
-  bar/bar.c bar.h
+  bar/bar.c bar/private.h bar.h
   )
 
 # Make global symbols in f00bar visible to dlopen:ed plugins
