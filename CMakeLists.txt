@@ -26,7 +26,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(XCB REQUIRED xcb xcb-aux xcb-cursor xcb-event xcb-ewmh
   xcb-randr xcb-render)
 pkg_check_modules(XCB_ERRORS xcb-errors)
-pkg_check_modules(WAYLAND REQUIRED wayland-client wlroots)
+pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-cursor wlroots)
 pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
 pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)
 pkg_check_modules(YAML REQUIRED yaml-0.1)

@@ -12,6 +12,7 @@
 
 #include <cairo.h>
 #include <wayland-client.h>
+#include <wayland-cursor.h>
 
 #include <wlr-layer-shell-unstable-v1-client.h>
 
@@ -45,8 +46,14 @@ struct wayland_backend {
 
     struct {
         struct wl_pointer *pointer;
+        uint32_t serial;
+
         int x;
         int y;
+
+        struct wl_surface *surface;
+        struct wl_cursor_theme *theme;
+        struct wl_cursor *cursor;
     } pointer;
 
     /* TODO: set directly in bar instead */
@@ -80,10 +87,36 @@ static const struct wl_shm_listener shm_listener = {
 };
 
 static void
+update_cursor_surface(struct wayland_backend *backend)
+{
+    assert(backend->pointer.cursor != NULL);
+
+    struct wl_cursor_image *image = backend->pointer.cursor->images[0];
+
+    wl_surface_attach(
+        backend->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
+
+    wl_pointer_set_cursor(
+        backend->pointer.pointer, backend->pointer.serial,
+        backend->pointer.surface, image->hotspot_x, image->hotspot_y);
+
+    wl_surface_damage_buffer(
+        backend->pointer.surface, 0, 0, INT32_MAX, INT32_MAX);
+
+    wl_surface_commit(backend->pointer.surface);
+}
+
+static void
 wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                  uint32_t serial, struct wl_surface *surface,
                  wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
+    struct wayland_backend *backend = data;
+    backend->pointer.serial = serial;
+    backend->pointer.x = wl_fixed_to_int(surface_x);
+    backend->pointer.y = wl_fixed_to_int(surface_y);
+
+    update_cursor_surface(backend);
 }
 
 static void
@@ -100,6 +133,10 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
     //printf("MOTION: %dx%d\n", wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
     backend->pointer.x = wl_fixed_to_int(surface_x);
     backend->pointer.y = wl_fixed_to_int(surface_y);
+
+    write(backend->pipe_fds[1], &(uint8_t){3}, sizeof(uint8_t));
+    write(backend->pipe_fds[1], &backend->pointer.x, sizeof(backend->pointer.x));
+    write(backend->pipe_fds[1], &backend->pointer.y, sizeof(backend->pointer.y));
 }
 
 static void
@@ -324,10 +361,17 @@ setup(struct bar *_bar)
     wl_display_roundtrip(backend->display);
     assert(backend->compositor != NULL &&
            backend->layer_shell != NULL &&
-           backend->output != NULL);
+           backend->output != NULL &&
+           backend->shm != NULL);
 
     backend->surface = wl_compositor_create_surface(backend->compositor);
     assert(backend->surface != NULL);
+
+    backend->pointer.surface = wl_compositor_create_surface(backend->compositor);
+    assert(backend->pointer.surface != NULL);
+
+    backend->pointer.theme = wl_cursor_theme_load(NULL, 24, backend->shm);
+    assert(backend->pointer.theme != NULL);
 
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         backend->layer_shell, backend->surface, backend->output,
@@ -394,8 +438,12 @@ cleanup(struct bar *_bar)
 
     zwlr_layer_surface_v1_destroy(backend->layer_surface);
     zwlr_layer_shell_v1_destroy(backend->layer_shell);
-    wl_compositor_destroy(backend->compositor);
+    wl_cursor_theme_destroy(backend->pointer.theme);
+    wl_pointer_destroy(backend->pointer.pointer);
+    wl_surface_destroy(backend->pointer.surface);
     wl_surface_destroy(backend->surface);
+    wl_seat_destroy(backend->seat);
+    wl_compositor_destroy(backend->compositor);
     wl_shm_destroy(backend->shm);
     wl_output_destroy(backend->output);
     wl_registry_destroy(backend->registry);
@@ -472,6 +520,13 @@ loop(struct bar *_bar,
                 read(backend->pipe_fds[0], &x, sizeof(x));
                 read(backend->pipe_fds[0], &y, sizeof(y));
                 on_mouse(_bar, ON_MOUSE_CLICK, x, y);
+            }
+
+            if (command == 3) {
+                int x, y;
+                read(backend->pipe_fds[0], &x, sizeof(x));
+                read(backend->pipe_fds[0], &y, sizeof(y));
+                on_mouse(_bar, ON_MOUSE_MOTION, x, y);
             }
             continue;
         }
@@ -575,6 +630,13 @@ refresh(const struct bar *_bar)
 static void
 set_cursor(struct bar *_bar, const char *cursor)
 {
+    struct private *bar = _bar->private;
+    struct wayland_backend *backend = bar->backend.data;
+
+    backend->pointer.cursor = wl_cursor_theme_get_cursor(
+        backend->pointer.theme, cursor);
+
+    update_cursor_surface(backend);
 }
 
 const struct backend wayland_backend_iface = {
