@@ -67,11 +67,25 @@ add_custom_command(
   VERBATIM
   MAIN_DEPENDENCY /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
   )
+add_custom_command(
+  OUTPUT xdg-output-unstable-v1-client.h
+  COMMAND wayland-scanner client-header < /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1-client.h
+  VERBATIM
+  MAIN_DEPENDENCY /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml
+  )
+add_custom_command(
+  OUTPUT xdg-output-unstable-v1.c
+  COMMAND wayland-scanner private-code < /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1.c
+  VERBATIM
+  MAIN_DEPENDENCY /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml
+  )
 
 add_library(wayland-protocols STATIC EXCLUDE_FROM_ALL
   wlr-layer-shell-unstable-v1-client.h
   wlr-layer-shell-unstable-v1.c
   xdg-shell.c
+  xdg-output-unstable-v1-client.h
+  xdg-output-unstable-v1.c
   )
 target_include_directories(wayland-protocols PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 

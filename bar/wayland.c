@@ -14,6 +14,7 @@
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 
+#include <xdg-output-unstable-v1-client.h>
 #include <wlr-layer-shell-unstable-v1-client.h>
 
 #define LOG_MODULE "bar:wayland"
@@ -37,6 +38,7 @@ struct monitor {
     struct wayland_backend *backend;
 
     struct wl_output *output;
+    struct zxdg_output_v1 *xdg;
     char *name;
 
     int x;
@@ -55,7 +57,6 @@ struct wayland_backend {
     struct wl_display *display;
     struct wl_registry *registry;
     struct wl_compositor *compositor;
-    struct wl_output *output;
     struct wl_surface *surface;
     struct zwlr_layer_shell_v1 *layer_shell;
     struct zwlr_layer_surface_v1 *layer_surface;
@@ -76,6 +77,8 @@ struct wayland_backend {
 
     tll(struct monitor) monitors;
     const struct monitor *monitor;
+
+    struct zxdg_output_manager_v1 *xdg_output_manager;
 
     /* TODO: set directly in bar instead */
     int width, height;
@@ -236,7 +239,6 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
 static void
 seat_handle_name(void *data, struct wl_seat *wl_seat, const char *name)
 {
-    //printf("seat: name=%s\n", name);
 }
 
 static const struct wl_seat_listener seat_listener = {
@@ -250,21 +252,17 @@ output_geometry(void *data, struct wl_output *wl_output, int32_t x, int32_t y,
                 int32_t subpixel, const char *make, const char *model,
                 int32_t transform)
 {
-    //printf("output: %s (%s): %dx%dmm %dx%d\n",
-    //       make, model, physical_width, physical_height, x, y);
     struct monitor *mon = data;
     mon->x = x;
     mon->y = y;
     mon->width_mm = physical_width;
     mon->height_mm = physical_height;
-    mon->name = NULL;
 }
 
 static void
 output_mode(void *data, struct wl_output *wl_output, uint32_t flags,
             int32_t width, int32_t height, int32_t refresh)
 {
-    //printf("output: %dx%d\n", width, height);
     struct monitor *mon = data;
     mon->width_px = width;
     mon->height_px = height;
@@ -278,7 +276,6 @@ output_done(void *data, struct wl_output *wl_output)
 static void
 output_scale(void *data, struct wl_output *wl_output, int32_t factor)
 {
-    //printf("output: scale: %d\n", factor);
     struct monitor *mon = data;
     mon->scale = factor;
 }
@@ -289,6 +286,46 @@ static const struct wl_output_listener output_listener = {
     .mode = &output_mode,
     .done = &output_done,
     .scale = &output_scale,
+};
+
+static void
+xdg_output_handle_logical_position(void *data,
+                                   struct zxdg_output_v1 *xdg_output,
+                                   int32_t x, int32_t y)
+{
+}
+
+static void
+xdg_output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output,
+                               int32_t width, int32_t height)
+{
+}
+
+static void
+xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
+{
+}
+
+static void
+xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
+                       const char *name)
+{
+    struct monitor *mon = data;
+    mon->name = strdup(name);
+}
+
+static void
+xdg_output_handle_description(void *data, struct zxdg_output_v1 *xdg_output,
+                              const char *description)
+{
+}
+
+static struct zxdg_output_v1_listener xdg_output_listener = {
+    .logical_position = xdg_output_handle_logical_position,
+    .logical_size = xdg_output_handle_logical_size,
+    .done = xdg_output_handle_done,
+    .name = xdg_output_handle_name,
+    .description = xdg_output_handle_description,
 };
 
 static void
@@ -314,7 +351,15 @@ handle_global(void *data, struct wl_registry *registry,
         tll_push_back(backend->monitors, ((struct monitor){
                     .backend  = backend,
                     .output = output}));
-        wl_output_add_listener(output, &output_listener, &tll_back(backend->monitors));
+
+        struct monitor *mon = &tll_back(backend->monitors);
+        wl_output_add_listener(output, &output_listener, mon);
+
+        assert(backend->xdg_output_manager != NULL);
+        mon->xdg = zxdg_output_manager_v1_get_xdg_output(
+            backend->xdg_output_manager, mon->output);
+
+        zxdg_output_v1_add_listener(mon->xdg, &xdg_output_listener, mon);
         wl_display_roundtrip(backend->display);
     }
 
@@ -327,6 +372,11 @@ handle_global(void *data, struct wl_registry *registry,
         backend->seat = wl_registry_bind(registry, name, &wl_seat_interface, 3);
         wl_seat_add_listener(backend->seat, &seat_listener, backend);
         wl_display_roundtrip(backend->display);
+    }
+
+    else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
+        backend->xdg_output_manager = wl_registry_bind(
+            registry, name, &zxdg_output_manager_v1_interface, 2);
     }
 }
 
@@ -445,8 +495,11 @@ setup(struct bar *_bar)
                  mon->name, mon->width_px, mon->height_px,
                  mon->x, mon->y, mon->width_mm, mon->height_mm);
 
-        /* TODO */
-        backend->monitor = mon;
+        /* TODO: detect primary output when user hasn't specified a monitor */
+        if (bar->monitor == NULL)
+            backend->monitor = mon;
+        else if (strcmp(bar->monitor, mon->name) == 0)
+            backend->monitor = mon;
     }
 
     backend->surface = wl_compositor_create_surface(backend->compositor);
