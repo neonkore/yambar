@@ -72,7 +72,7 @@ bar_backend_wayland_new(void)
 static void
 shm_format(void *data, struct wl_shm *wl_shm, uint32_t format)
 {
-    printf("SHM format: 0x%08x\n", format);
+    //printf("SHM format: 0x%08x\n", format);
 }
 
 static const struct wl_shm_listener shm_listener = {
@@ -97,7 +97,7 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                   uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     struct wayland_backend *backend = data;
-    printf("MOTION: %dx%d\n", wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    //printf("MOTION: %dx%d\n", wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
     backend->pointer.x = wl_fixed_to_int(surface_x);
     backend->pointer.y = wl_fixed_to_int(surface_y);
 }
@@ -110,7 +110,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
         return;
 
     struct wayland_backend *backend = data;
-    printf("BUTTON: %dx%d\n", backend->pointer.x, backend->pointer.y);
+    //printf("BUTTON: %dx%d\n", backend->pointer.x, backend->pointer.y);
 
     write(backend->pipe_fds[1], &(uint8_t){2}, sizeof(uint8_t));
     write(backend->pipe_fds[1], &backend->pointer.x, sizeof(backend->pointer.x));
@@ -178,7 +178,7 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
 static void
 seat_handle_name(void *data, struct wl_seat *wl_seat, const char *name)
 {
-    printf("seat: name=%s\n", name);
+    //printf("seat: name=%s\n", name);
 }
 
 static const struct wl_seat_listener seat_listener = {
@@ -246,7 +246,7 @@ static const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
 static void
 buffer_release(void *data, struct wl_buffer *wl_buffer)
 {
-    printf("buffer release\n");
+    //printf("buffer release\n");
     struct buffer *buffer = data;
     assert(buffer->busy);
     buffer->busy = false;
@@ -261,13 +261,13 @@ get_buffer(struct wayland_backend *backend)
 {
     tll_foreach(backend->buffers, it) {
         if (!it->item.busy) {
-            printf("re-using non-busy buffer\n");
+            //printf("re-using non-busy buffer\n");
             it->item.busy = true;
             return &it->item;
         }
     }
 
-    printf("allocating a new buffer\n");
+    //printf("allocating a new buffer\n");
 
     struct buffer buffer;
 
@@ -417,7 +417,7 @@ loop(struct bar *_bar,
 
 #if 0
     while (wl_display_prepare_read(backend->display) != 0){
-        printf("initial wayland event\n");
+        //printf("initial wayland event\n");
         wl_display_dispatch_pending(backend->display);
     }
     wl_display_flush(backend->display);
@@ -435,7 +435,7 @@ loop(struct bar *_bar,
 
         wl_display_flush(backend->display);
 
-        printf("polling\n");
+        //printf("polling\n");
         poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
         if (fds[0].revents & POLLIN) {
             //wl_display_cancel_read(backend->display);
@@ -454,12 +454,12 @@ loop(struct bar *_bar,
             read(backend->pipe_fds[0], &command, sizeof(command));
 
             if (command == 1) {
-                printf("refresh\n");
+                //printf("refresh\n");
                 assert(command == 1);
                 expose(_bar);
 #if 0
                 while (wl_display_prepare_read(backend->display) != 0) {
-                    printf("queued wayland events\n");
+                    //printf("queued wayland events\n");
                     wl_display_dispatch_pending(backend->display);
                 }
                 wl_display_flush(backend->display);
@@ -467,7 +467,7 @@ loop(struct bar *_bar,
             }
 
             if (command == 2) {
-                printf("mouse\n");
+                //printf("mouse\n");
                 int x, y;
                 read(backend->pipe_fds[0], &x, sizeof(x));
                 read(backend->pipe_fds[0], &y, sizeof(y));
@@ -477,11 +477,11 @@ loop(struct bar *_bar,
         }
 
 #if 0
-        printf("wayland events\n");
+        //printf("wayland events\n");
         wl_display_read_events(backend->display);
         wl_display_dispatch_pending(backend->display);
 #endif
-        printf("wayland events\n");
+        //printf("wayland events\n");
         wl_display_dispatch(backend->display);
     }
 }
@@ -496,7 +496,7 @@ static const struct wl_callback_listener frame_listener = {
 static void
 frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_data)
 {
-    printf("frame callback\n");
+    //printf("frame callback\n");
     struct private *bar = data;
     struct wayland_backend *backend = bar->backend.data;
 
@@ -518,7 +518,7 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         backend->pending_buffer = NULL;
         backend->render_scheduled = true;
     } else
-        printf("nothing more to do\n");
+        ;//printf("nothing more to do\n");
 }
 
 static void
@@ -527,13 +527,13 @@ commit_surface(const struct bar *_bar)
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
 
-    printf("commit: %dxl%d\n", backend->width, backend->height);
+    //printf("commit: %dxl%d\n", backend->width, backend->height);
 
     assert(backend->next_buffer != NULL);
     assert(backend->next_buffer->busy);
 
     if (backend->render_scheduled) {
-        printf("already scheduled\n");
+        //printf("already scheduled\n");
 
         if (backend->pending_buffer != NULL)
             backend->pending_buffer->busy = false;
@@ -542,7 +542,7 @@ commit_surface(const struct bar *_bar)
         backend->next_buffer = NULL;
     } else {
 
-        printf("scheduling new frame callback\n");
+        //printf("scheduling new frame callback\n");
         struct buffer *buffer = backend->next_buffer;
         assert(buffer->busy);
 
