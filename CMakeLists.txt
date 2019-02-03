@@ -51,9 +51,9 @@ target_link_libraries(bar-xcb xcb-stuff ${XCB_LIBRARIES} ${XCB_ERRORS_LIBRARIES}
 
 add_custom_command(
   OUTPUT wlr-layer-shell-unstable-v1.c
-  COMMAND wayland-scanner private-code < /home/daniel/AUR/wlroots-git/src/wlroots-git/protocol/wlr-layer-shell-unstable-v1.xml > wlr-layer-shell-unstable-v1.c
+  COMMAND wayland-scanner private-code < ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml > wlr-layer-shell-unstable-v1.c
   VERBATIM
-  MAIN_DEPENDENCY /home/daniel/AUR/wlroots-git/src/wlroots-git/protocol/wlr-layer-shell-unstable-v1.xml
+  MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
   )
 add_custom_command(
   OUTPUT wlr-layer-shell-unstable-v1-client.h
