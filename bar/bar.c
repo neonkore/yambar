@@ -380,9 +380,8 @@ bar_new(const struct bar_config *config)
     priv->left.count = config->left.count;
     priv->center.count = config->center.count;
     priv->right.count = config->right.count;
-    //priv->cursor_ctx = NULL;
-    //priv->cursor = 0;
     priv->cursor_name = NULL;
+
 #if 0
     priv->backend.data = bar_backend_xcb_new();
     priv->backend.iface = &xcb_backend_iface;

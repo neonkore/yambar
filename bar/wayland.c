@@ -525,17 +525,20 @@ setup(struct bar *_bar)
     assert(backend->layer_surface != NULL);
 
     /* Aligned to top, maximum width */
+    enum zwlr_layer_surface_v1_anchor top_or_bottom = bar->location == BAR_TOP
+        ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP
+        : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+
     zwlr_layer_surface_v1_set_anchor(
         backend->layer_surface,
         ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
         ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
-        ((bar->location == BAR_TOP)
-         ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP
-         : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)
-        );
+        top_or_bottom);
 
-    zwlr_layer_surface_v1_set_size(backend->layer_surface, 0, bar->height_with_border);
-    zwlr_layer_surface_v1_set_exclusive_zone(backend->layer_surface, bar->height_with_border);
+    zwlr_layer_surface_v1_set_size(
+        backend->layer_surface, 0, bar->height_with_border);
+    zwlr_layer_surface_v1_set_exclusive_zone(
+        backend->layer_surface, bar->height_with_border);
 
     //zwlr_layer_surface_v1_set_margin(
     //   layer_surface, margin_top, margin_right, margin_bottom, margin_left);
@@ -545,7 +548,7 @@ setup(struct bar *_bar)
     zwlr_layer_surface_v1_add_listener(
         backend->layer_surface, &layer_surface_listener, backend);
 
-    /* Assign width/height */
+    /* Trigger a 'configure' event, after which we'll have the width */
     wl_surface_commit(backend->surface);
     wl_display_roundtrip(backend->display);
 
