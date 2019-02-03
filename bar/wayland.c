@@ -54,6 +54,8 @@ struct monitor {
 };
 
 struct wayland_backend {
+    struct bar *bar;
+
     struct wl_display *display;
     struct wl_registry *registry;
     struct wl_compositor *compositor;
@@ -92,6 +94,9 @@ struct wayland_backend {
     tll(struct buffer) buffers;     /* List of SHM buffers */
     struct buffer *next_buffer;     /* Bar is rendering to this one */
     struct buffer *pending_buffer;  /* Finished, but not yet rendered */
+
+    void (*bar_expose)(const struct bar *bar);
+    void (*bar_on_mouse)(struct bar *bar, enum mouse_event event, int x, int y);
 };
 
 void *
@@ -154,13 +159,12 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                   uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     struct wayland_backend *backend = data;
-    //printf("MOTION: %dx%d\n", wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+
     backend->pointer.x = wl_fixed_to_int(surface_x);
     backend->pointer.y = wl_fixed_to_int(surface_y);
 
-    write(backend->pipe_fds[1], &(uint8_t){3}, sizeof(uint8_t));
-    write(backend->pipe_fds[1], &backend->pointer.x, sizeof(backend->pointer.x));
-    write(backend->pipe_fds[1], &backend->pointer.y, sizeof(backend->pointer.y));
+    backend->bar_on_mouse(
+        backend->bar, ON_MOUSE_MOTION, backend->pointer.x, backend->pointer.y);
 }
 
 static void
@@ -171,11 +175,8 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
         return;
 
     struct wayland_backend *backend = data;
-    //printf("BUTTON: %dx%d\n", backend->pointer.x, backend->pointer.y);
-
-    write(backend->pipe_fds[1], &(uint8_t){2}, sizeof(uint8_t));
-    write(backend->pipe_fds[1], &backend->pointer.x, sizeof(backend->pointer.x));
-    write(backend->pipe_fds[1], &backend->pointer.y, sizeof(backend->pointer.y));
+    backend->bar_on_mouse(
+        backend->bar, ON_MOUSE_CLICK, backend->pointer.x, backend->pointer.y);
 }
 
 static void
@@ -481,6 +482,8 @@ setup(struct bar *_bar)
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
 
+    backend->bar = _bar;
+
     backend->display = wl_display_connect(NULL);
     assert(backend->display != NULL);
 
@@ -622,6 +625,9 @@ loop(struct bar *_bar,
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
 
+    backend->bar_expose = expose;
+    backend->bar_on_mouse = on_mouse;
+
 #if 0
     while (wl_display_prepare_read(backend->display) != 0){
         //printf("initial wayland event\n");
@@ -660,43 +666,27 @@ loop(struct bar *_bar,
             //wl_display_cancel_read(backend->display);
             read(backend->pipe_fds[0], &command, sizeof(command));
 
-            if (command == 1) {
-                //printf("refresh\n");
-                assert(command == 1);
-                expose(_bar);
+            assert(command == 1);
+            //printf("refresh\n");
+            expose(_bar);
 #if 0
-                while (wl_display_prepare_read(backend->display) != 0) {
-                    //printf("queued wayland events\n");
-                    wl_display_dispatch_pending(backend->display);
-                }
-                wl_display_flush(backend->display);
+            while (wl_display_prepare_read(backend->display) != 0) {
+                //printf("queued wayland events\n");
+                wl_display_dispatch_pending(backend->display);
+            }
+            wl_display_flush(backend->display);
 #endif
-            }
-
-            if (command == 2) {
-                //printf("mouse\n");
-                int x, y;
-                read(backend->pipe_fds[0], &x, sizeof(x));
-                read(backend->pipe_fds[0], &y, sizeof(y));
-                on_mouse(_bar, ON_MOUSE_CLICK, x, y);
-            }
-
-            if (command == 3) {
-                int x, y;
-                read(backend->pipe_fds[0], &x, sizeof(x));
-                read(backend->pipe_fds[0], &y, sizeof(y));
-                on_mouse(_bar, ON_MOUSE_MOTION, x, y);
-            }
-            continue;
         }
 
+        if (fds[1].revents & POLLIN) {
 #if 0
-        //printf("wayland events\n");
-        wl_display_read_events(backend->display);
-        wl_display_dispatch_pending(backend->display);
+            //printf("wayland events\n");
+            wl_display_read_events(backend->display);
+            wl_display_dispatch_pending(backend->display);
 #endif
-        //printf("wayland events\n");
-        wl_display_dispatch(backend->display);
+            //printf("wayland events\n");
+            wl_display_dispatch(backend->display);
+        }
     }
 }
 
