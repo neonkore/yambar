@@ -48,10 +48,11 @@ endif ()
 
 if (ENABLE_X11)
   add_library(xcb-stuff STATIC EXCLUDE_FROM_ALL xcb.c xcb.h)
+  target_link_libraries(xcb-stuff PkgConfig::xcb)
   if (XCB_ERRORS_FOUND)
     target_compile_definitions(xcb-stuff PRIVATE HAVE_XCB_ERRORS)
+    target_link_libraries(xcb-stuff PkgConfig::xcb-errors)
   endif ()
-  target_link_libraries(xcb-stuff PkgConfig::xcb PkgConfig::xcb-errors)
 
   add_library(bar-xcb STATIC EXCLUDE_FROM_ALL bar/xcb.c bar/xcb.h)
   target_link_libraries(bar-xcb
