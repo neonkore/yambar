@@ -15,7 +15,7 @@ debug:
   script:
     - mkdir -p bld/debug
     - cd bld/debug
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../../
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_WAYLAND=no ../../
     - ninja -k0
 
 release:
@@ -23,5 +23,5 @@ release:
   script:
     - mkdir -p bld/release
     - cd bld/release
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ../../
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DENABLE_WAYLAND=no ../../
     - ninja -k0
