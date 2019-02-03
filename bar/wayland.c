@@ -355,6 +355,12 @@ handle_global(void *data, struct wl_registry *registry,
         struct monitor *mon = &tll_back(backend->monitors);
         wl_output_add_listener(output, &output_listener, mon);
 
+        /*
+         * The "output" interface doesn't give us the monitors'
+         * identifiers (e.g. "LVDS-1"). Use the XDG output interface
+         * for that.
+         */
+
         assert(backend->xdg_output_manager != NULL);
         mon->xdg = zxdg_output_manager_v1_get_xdg_output(
             backend->xdg_output_manager, mon->output);
@@ -383,7 +389,6 @@ handle_global(void *data, struct wl_registry *registry,
 static void
 handle_global_remove(void *data, struct wl_registry *registry, uint32_t name)
 {
-    //struct wayland_backend *backend = data;
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -579,6 +584,15 @@ cleanup(struct bar *_bar)
         tll_remove(backend->buffers, it);
     }
 
+    tll_foreach(backend->monitors, it) {
+        struct monitor *mon = &it->item;
+        free(mon->name);
+        zxdg_output_v1_destroy(mon->xdg);
+        wl_output_destroy(mon->output);
+        tll_remove(backend->monitors, it);
+    }
+    zxdg_output_manager_v1_destroy(backend->xdg_output_manager);
+
     /* TODO: move to bar */
     free(bar->cursor_name);
 
@@ -591,12 +605,6 @@ cleanup(struct bar *_bar)
     wl_seat_destroy(backend->seat);
     wl_compositor_destroy(backend->compositor);
     wl_shm_destroy(backend->shm);
-    tll_foreach(backend->monitors, it) {
-        struct monitor *mon = &it->item;
-        free(mon->name);
-        wl_output_destroy(mon->output);
-        tll_remove(backend->monitors, it);
-    }
     wl_registry_destroy(backend->registry);
     wl_display_disconnect(backend->display);
 
