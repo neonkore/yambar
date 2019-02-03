@@ -33,6 +33,24 @@ struct buffer {
     cairo_t *cairo;
 };
 
+struct monitor {
+    struct wayland_backend *backend;
+
+    struct wl_output *output;
+    char *name;
+
+    int x;
+    int y;
+
+    int width_mm;
+    int height_mm;
+
+    int width_px;
+    int height_px;
+
+    int scale;
+};
+
 struct wayland_backend {
     struct wl_display *display;
     struct wl_registry *registry;
@@ -55,6 +73,9 @@ struct wayland_backend {
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
     } pointer;
+
+    tll(struct monitor) monitors;
+    const struct monitor *monitor;
 
     /* TODO: set directly in bar instead */
     int width, height;
@@ -224,6 +245,53 @@ static const struct wl_seat_listener seat_listener = {
 };
 
 static void
+output_geometry(void *data, struct wl_output *wl_output, int32_t x, int32_t y,
+                int32_t physical_width, int32_t physical_height,
+                int32_t subpixel, const char *make, const char *model,
+                int32_t transform)
+{
+    //printf("output: %s (%s): %dx%dmm %dx%d\n",
+    //       make, model, physical_width, physical_height, x, y);
+    struct monitor *mon = data;
+    mon->x = x;
+    mon->y = y;
+    mon->width_mm = physical_width;
+    mon->height_mm = physical_height;
+    mon->name = NULL;
+}
+
+static void
+output_mode(void *data, struct wl_output *wl_output, uint32_t flags,
+            int32_t width, int32_t height, int32_t refresh)
+{
+    //printf("output: %dx%d\n", width, height);
+    struct monitor *mon = data;
+    mon->width_px = width;
+    mon->height_px = height;
+}
+
+static void
+output_done(void *data, struct wl_output *wl_output)
+{
+}
+
+static void
+output_scale(void *data, struct wl_output *wl_output, int32_t factor)
+{
+    //printf("output: scale: %d\n", factor);
+    struct monitor *mon = data;
+    mon->scale = factor;
+}
+
+
+static const struct wl_output_listener output_listener = {
+    .geometry = &output_geometry,
+    .mode = &output_mode,
+    .done = &output_done,
+    .scale = &output_scale,
+};
+
+static void
 handle_global(void *data, struct wl_registry *registry,
               uint32_t name, const char *interface, uint32_t version)
 {
@@ -236,11 +304,18 @@ handle_global(void *data, struct wl_registry *registry,
     else if (strcmp(interface, wl_shm_interface.name) == 0) {
         backend->shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
         wl_shm_add_listener(backend->shm, &shm_listener, backend);
+        wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, wl_output_interface.name) == 0) {
-        backend->output = wl_registry_bind(registry, name, &wl_output_interface, 3);
-        //output_add_listener(backend->output, &output_listener, backend);
+        struct wl_output *output = wl_registry_bind(
+            registry, name, &wl_output_interface, 3);
+
+        tll_push_back(backend->monitors, ((struct monitor){
+                    .backend  = backend,
+                    .output = output}));
+        wl_output_add_listener(output, &output_listener, &tll_back(backend->monitors));
+        wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
@@ -251,6 +326,7 @@ handle_global(void *data, struct wl_registry *registry,
     else if (strcmp(interface, wl_seat_interface.name) == 0) {
         backend->seat = wl_registry_bind(registry, name, &wl_seat_interface, 3);
         wl_seat_add_listener(backend->seat, &seat_listener, backend);
+        wl_display_roundtrip(backend->display);
     }
 }
 
@@ -361,8 +437,17 @@ setup(struct bar *_bar)
     wl_display_roundtrip(backend->display);
     assert(backend->compositor != NULL &&
            backend->layer_shell != NULL &&
-           backend->output != NULL &&
            backend->shm != NULL);
+
+    tll_foreach(backend->monitors, it) {
+        const struct monitor *mon = &it->item;
+        LOG_INFO("monitor: %s: %dx%d+%d+%d (%dx%dmm)",
+                 mon->name, mon->width_px, mon->height_px,
+                 mon->x, mon->y, mon->width_mm, mon->height_mm);
+
+        /* TODO */
+        backend->monitor = mon;
+    }
 
     backend->surface = wl_compositor_create_surface(backend->compositor);
     assert(backend->surface != NULL);
@@ -374,7 +459,7 @@ setup(struct bar *_bar)
     assert(backend->pointer.theme != NULL);
 
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
-        backend->layer_shell, backend->surface, backend->output,
+        backend->layer_shell, backend->surface, backend->monitor->output,
         ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "f00bar");
     assert(backend->layer_surface != NULL);
 
@@ -383,7 +468,10 @@ setup(struct bar *_bar)
         backend->layer_surface,
         ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
         ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
-        ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP);
+        ((bar->location == BAR_TOP)
+         ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP
+         : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)
+        );
 
     zwlr_layer_surface_v1_set_size(backend->layer_surface, 0, bar->height_with_border);
     zwlr_layer_surface_v1_set_exclusive_zone(backend->layer_surface, bar->height_with_border);
@@ -402,6 +490,11 @@ setup(struct bar *_bar)
 
     assert(backend->width != -1 && backend->height == bar->height_with_border);
     bar->width = backend->width;
+    bar->x = backend->monitor->x;
+    bar->y = backend->monitor->y;
+    bar->y += bar->location == BAR_TOP
+        ? 0
+        : backend->monitor->height_px - bar->height_with_border;
 
     pipe(backend->pipe_fds);
     backend->render_scheduled = false;
@@ -445,7 +538,12 @@ cleanup(struct bar *_bar)
     wl_seat_destroy(backend->seat);
     wl_compositor_destroy(backend->compositor);
     wl_shm_destroy(backend->shm);
-    wl_output_destroy(backend->output);
+    tll_foreach(backend->monitors, it) {
+        struct monitor *mon = &it->item;
+        free(mon->name);
+        wl_output_destroy(mon->output);
+        tll_remove(backend->monitors, it);
+    }
     wl_registry_destroy(backend->registry);
     wl_display_disconnect(backend->display);
 
