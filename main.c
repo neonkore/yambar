@@ -46,7 +46,7 @@ get_config_path(void)
         path_max = 1024;
 
     char *path = malloc(path_max + 1);
-    snprintf(path, path_max + 1, "%s/.config/f00bar/config.yml", home_dir);
+    snprintf(path, path_max + 1, "%s/.config/f00bar/config-wayland.yml", home_dir);
     return path;
 }
 

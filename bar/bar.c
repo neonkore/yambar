@@ -15,6 +15,7 @@
 #include "../log.h"
 
 #include "xcb.h"
+#include "wayland.h"
 
 /*
  * Calculate total width of left/center/rigth groups.
@@ -323,13 +324,16 @@ run(struct bar *_bar)
         m->destroy(m);
     }
 
-    cairo_destroy(bar->cairo);
-    cairo_device_finish(cairo_surface_get_device(bar->cairo_surface));
-    cairo_surface_finish(bar->cairo_surface);
-    cairo_surface_destroy(bar->cairo_surface);
-    cairo_debug_reset_static_data();
-
     bar->backend.iface->cleanup(_bar);
+
+    if (bar->cairo)
+        cairo_destroy(bar->cairo);
+    if (bar->cairo_surface) {
+        cairo_device_finish(cairo_surface_get_device(bar->cairo_surface));
+        cairo_surface_finish(bar->cairo_surface);
+        cairo_surface_destroy(bar->cairo_surface);
+    }
+    cairo_debug_reset_static_data();
 
     LOG_DBG("bar exiting");
     return ret;
@@ -379,8 +383,13 @@ bar_new(const struct bar_config *config)
     //priv->cursor_ctx = NULL;
     //priv->cursor = 0;
     priv->cursor_name = NULL;
+#if 0
     priv->backend.data = bar_backend_xcb_new();
     priv->backend.iface = &xcb_backend_iface;
+#else
+    priv->backend.data = bar_backend_wayland_new();
+    priv->backend.iface = &wayland_backend_iface;
+#endif
 
     for (size_t i = 0; i < priv->left.count; i++) {
         priv->left.mods[i] = config->left.mods[i];
