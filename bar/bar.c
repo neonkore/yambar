@@ -14,8 +14,13 @@
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
 
-#include "xcb.h"
-#include "wayland.h"
+#if defined(ENABLE_X11)
+ #include "xcb.h"
+#endif
+
+#if defined(ENABLE_WAYLAND)
+ #include "wayland.h"
+#endif
 
 /*
  * Calculate total width of left/center/rigth groups.
@@ -382,12 +387,22 @@ bar_new(const struct bar_config *config)
     priv->right.count = config->right.count;
     priv->cursor_name = NULL;
 
-#if 0
+#if defined(ENABLE_X11) && !defined(ENABLE_WAYLAND)
     priv->backend.data = bar_backend_xcb_new();
     priv->backend.iface = &xcb_backend_iface;
 #else
+#if !defined(ENABLE_X11) && defined(ENABLE_WAYLAND)
     priv->backend.data = bar_backend_wayland_new();
     priv->backend.iface = &wayland_backend_iface;
+#else
+    if (getenv("WAYLAND_DISPLAY") != NULL) {
+        priv->backend.data = bar_backend_wayland_new();
+        priv->backend.iface = &wayland_backend_iface;
+    } else {
+        priv->backend.data = bar_backend_xcb_new();
+        priv->backend.iface = &xcb_backend_iface;
+    }
+#endif
 #endif
 
     for (size_t i = 0; i < priv->left.count; i++) {

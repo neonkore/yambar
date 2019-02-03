@@ -10,8 +10,11 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include <xcb/xcb.h>
-#include <xcb/xcb_aux.h>
+#if defined(ENABLE_X11)
+ #include <xcb/xcb.h>
+ #include <xcb/xcb_aux.h>
+#endif
+
 #include <i3/ipc.h>
 
 #include <json-c/json_tokener.h>
@@ -26,7 +29,10 @@
 #include "../config-verify.h"
 #include "../particles/dynlist.h"
 #include "../plugin.h"
-#include "../xcb.h"
+
+#if defined(ENABLE_X11)
+ #include "../xcb.h"
+#endif
 
 struct ws_content {
     char *name;
@@ -371,6 +377,7 @@ handle_workspace_event(struct private *m, const struct json_object *json)
     return true;
 }
 
+#if defined(ENABLE_X11)
 static bool
 get_socket_address_x11(struct sockaddr_un *addr)
 {
@@ -419,6 +426,7 @@ get_socket_address_x11(struct sockaddr_un *addr)
     xcb_disconnect(conn);
     return true;
 }
+#endif
 
 static bool
 get_socket_address(struct sockaddr_un *addr)
@@ -426,8 +434,13 @@ get_socket_address(struct sockaddr_un *addr)
     *addr = (struct sockaddr_un){.sun_family = AF_UNIX};
 
     const char *sway_sock = getenv("SWAYSOCK");
-    if (sway_sock == NULL)
+    if (sway_sock == NULL) {
+#if defined(ENABLE_X11)
         return get_socket_address_x11(addr);
+#else
+        return false;
+#endif
+    }
 
     strncpy(addr->sun_path, sway_sock, sizeof(addr->sun_path));
     return true;

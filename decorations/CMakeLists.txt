@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 add_library(decoration-sdk INTERFACE)
-target_compile_options(decoration-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
-target_include_directories(decoration-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
+target_link_libraries(decoration-sdk INTERFACE PkgConfig::cairo)
 
 set(CMAKE_SHARED_MODULE_PREFIX decoration_)
 
@@ -22,3 +21,5 @@ endforeach ()
 if (CORE_PLUGINS_AS_SHARED_LIBRARIES)
   install(TARGETS ${decorations} DESTINATION lib/f00bar)
 endif ()
+
+set(enabled_decorations ${decorations} PARENT_SCOPE)
