@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
 
 add_library(module-sdk INTERFACE)
-target_compile_options(module-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
-target_include_directories(module-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
-target_link_libraries(module-sdk INTERFACE ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(
+  module-sdk INTERFACE PkgConfig::cairo ${CMAKE_THREAD_LIBS_INIT})
 
 if (CORE_PLUGINS_AS_SHARED_LIBRARIES)
   set(lib_type MODULE)
@@ -13,58 +12,44 @@ endif ()
 
 set(CMAKE_SHARED_${lib_type}_PREFIX module_)
 
-pkg_check_modules(ALSA REQUIRED alsa)
+pkg_check_modules(alsa REQUIRED IMPORTED_TARGET alsa)
 add_library(alsa ${lib_type} alsa.c)
-target_compile_options(alsa PRIVATE ${ALSA_CFLAGS_OTHER})
-target_include_directories(alsa PRIVATE ${ALSA_INCLUDE_DIRS})
-target_link_libraries(alsa module-sdk ${ALSA_LIBRARIES})
+target_link_libraries(alsa module-sdk PkgConfig::alsa)
 
-pkg_check_modules(UDEV REQUIRED libudev)
+pkg_check_modules(udev REQUIRED IMPORTED_TARGET libudev)
 add_library(backlight ${lib_type} backlight.c)
-target_compile_options(backlight PRIVATE ${UDEV_CFLAGS_OTHER})
-target_include_directories(backlight PRIVATE ${UDEV_INCLUDE_DIRS})
-target_link_libraries(backlight module-sdk ${UDEV_LIBRARIES})
+target_link_libraries(backlight module-sdk PkgConfig::udev)
 
 add_library(battery ${lib_type} battery.c)
-target_compile_options(battery PRIVATE ${UDEV_CFLAGS_OTHER})
-target_include_directories(battery PRIVATE ${UDEV_INCLUDE_DIRS})
-target_link_libraries(battery module-sdk ${UDEV_LIBRARIES})
+target_link_libraries(battery module-sdk PkgConfig::udev)
 
 add_library(clock ${lib_type} clock.c)
 target_link_libraries(clock module-sdk)
 
-pkg_check_modules(JSON REQUIRED json-c)
+pkg_check_modules(json REQUIRED IMPORTED_TARGET json-c)
 find_file(I3_IPC_H i3/ipc.h)
 if (NOT I3_IPC_H)
   message(FATAL_ERROR "cannot find header file: i3/ipc.h")
 endif ()
 add_library(i3 ${lib_type} i3.c)
-target_compile_options(i3 PRIVATE ${JSON_CFLAGS_OTHER})
-target_include_directories(i3 PRIVATE ${JSON_INCLUDE_DIRS})
-target_link_libraries(i3 module-sdk dynlist ${JSON_LIBRARIES})
+target_link_libraries(i3 module-sdk dynlist PkgConfig::json)
 
 add_library(label ${lib_type} label.c)
 target_link_libraries(label module-sdk)
 
-pkg_check_modules(MPD REQUIRED libmpdclient)
+pkg_check_modules(mpd REQUIRED IMPORTED_TARGET libmpdclient)
 add_library(mpd ${lib_type} mpd.c)
-target_compile_options(mpd PRIVATE ${MPD_CFLAGS_OTHER})
-target_include_directories(mpd PRIVATE ${MPD_INCLUDE_DIRS})
-target_link_libraries(mpd module-sdk ${MPD_LIBRARIES})
+target_link_libraries(mpd module-sdk PkgConfig::mpd)
 
 add_library(network ${lib_type} network.c)
 target_link_libraries(network module-sdk)
 
 add_library(removables ${lib_type} removables.c)
-target_compile_options(removables PRIVATE ${UDEV_CFLAGS_OTHER})
-target_include_directories(removables PRIVATE ${UDEV_INCLUDE_DIRS})
-target_link_libraries(removables module-sdk dynlist ${UDEV_LIBRARIES})
+target_link_libraries(removables module-sdk dynlist PkgConfig::udev)
 
-pkg_check_modules(XCB_XKB REQUIRED xcb-xkb)
+pkg_check_modules(xkb REQUIRED IMPORTED_TARGET xcb-xkb)
 add_library(xkb ${lib_type} xkb.c)
-target_compile_options(xkb PRIVATE ${XCB_XKB_CFLAGS_OTHER})
-target_include_directories(xkb PRIVATE ${XCB_XKB_INCLUDE_DIRS})
-target_link_libraries(xkb module-sdk ${XCB_XKB_LIBRARIES})
+target_link_libraries(xkb module-sdk PkgConfig::xkb)
 
 add_library(xwindow ${lib_type} xwindow.c)
 target_link_libraries(xwindow module-sdk)
