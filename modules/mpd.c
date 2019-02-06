@@ -216,7 +216,7 @@ wait_for_socket_create(const struct module *mod)
         int s = socket(AF_UNIX, SOCK_STREAM, 0);
 
         struct sockaddr_un addr = {.sun_family = AF_UNIX};
-        strncpy(addr.sun_path, m->host, sizeof(addr.sun_path));
+        strncpy(addr.sun_path, m->host, sizeof(addr.sun_path) - 1);
 
         int r = connect(s, (const struct sockaddr *)&addr, sizeof(addr));
 

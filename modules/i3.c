@@ -442,7 +442,7 @@ get_socket_address(struct sockaddr_un *addr)
 #endif
     }
 
-    strncpy(addr->sun_path, sway_sock, sizeof(addr->sun_path));
+    strncpy(addr->sun_path, sway_sock, sizeof(addr->sun_path) - 1);
     return true;
 }
 
