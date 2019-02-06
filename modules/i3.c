@@ -504,6 +504,8 @@ run(struct module *mod)
         buf_idx += bytes;
 
         bool err = false;
+        bool need_bar_refresh = false;
+
         while (!err && buf_idx >= sizeof(i3_ipc_header_t)) {
             const i3_ipc_header_t *hdr = (const i3_ipc_header_t *)buf;
             if (strncmp(hdr->magic, I3_IPC_MAGIC, sizeof(hdr->magic)) != 0) {
@@ -551,12 +553,12 @@ run(struct module *mod)
 
             case I3_IPC_REPLY_TYPE_WORKSPACES:
                 handle_get_workspaces_reply(m, json);
-                mod->bar->refresh(mod->bar);
+                need_bar_refresh = true;
                 break;
 
             case I3_IPC_EVENT_WORKSPACE:
                 handle_workspace_event(m, json);
-                mod->bar->refresh(mod->bar);
+                need_bar_refresh = true;
                 break;
 
             case I3_IPC_EVENT_OUTPUT:
@@ -583,6 +585,9 @@ run(struct module *mod)
 
         if (err)
             break;
+
+        if (need_bar_refresh)
+            mod->bar->refresh(mod->bar);
     }
 
     free(buf);
