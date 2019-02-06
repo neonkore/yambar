@@ -60,49 +60,46 @@ if (ENABLE_X11)
 endif ()
 
 if (ENABLE_WAYLAND)
-  add_custom_command(
-    OUTPUT wlr-layer-shell-unstable-v1.c
-    COMMAND wayland-scanner private-code < ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml > wlr-layer-shell-unstable-v1.c
-    VERBATIM
-    MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
-    )
-  add_custom_command(
-    OUTPUT wlr-layer-shell-unstable-v1-client.h
-    COMMAND wayland-scanner client-header < ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml > wlr-layer-shell-unstable-v1-client.h
-    VERBATIM
-    MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
-    )
+  function (wayland_protocol _deps)
+    set(deps "")
+    foreach (xml_file ${ARGN})
+      get_filename_component(base ${xml_file} NAME_WE)
+      set(out_c ${base}.c)
+      set(out_h ${base}.h)
+
+      add_custom_command(
+        OUTPUT ${out_h}
+        COMMAND wayland-scanner client-header < ${xml_file} > ${out_h}
+        VERBATIM
+        MAIN_DEPENDENCY ${xml_file}
+        )
+      add_custom_command(
+        OUTPUT ${out_c}
+        COMMAND wayland-scanner private-code < ${xml_file} > ${out_c}
+        VERBATIM
+        MAIN_DEPENDENCY ${xml_file}
+        )
+
+      list(APPEND deps ${out_h})
+      list(APPEND deps ${out_c})
+    endforeach ()
+
+    set(${_deps} ${deps} PARENT_SCOPE)
+  endfunction ()
 
   execute_process(
     COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=pkgdatadir wayland-protocols
     OUTPUT_VARIABLE WAYLAND_PROTOCOLS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-  add_custom_command(
-    OUTPUT xdg-shell.c
-    COMMAND wayland-scanner private-code < ${WAYLAND_PROTOCOLS}/stable/xdg-shell/xdg-shell.xml > xdg-shell.c
-    VERBATIM
-    MAIN_DEPENDENCY ${WAYLAND_PROTOCOLS}/stable/xdg-shell/xdg-shell.xml
-    )
-  add_custom_command(
-    OUTPUT xdg-output-unstable-v1-client.h
-    COMMAND wayland-scanner client-header < ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1-client.h
-    VERBATIM
-    MAIN_DEPENDENCY ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml
-    )
-  add_custom_command(
-    OUTPUT xdg-output-unstable-v1.c
-    COMMAND wayland-scanner private-code < ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1.c
-    VERBATIM
-    MAIN_DEPENDENCY ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml
+
+  wayland_protocol(
+    wayland_protos
+    ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
+    ${WAYLAND_PROTOCOLS}/stable/xdg-shell/xdg-shell.xml
+    ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml
     )
 
-  add_library(wayland-protocols STATIC EXCLUDE_FROM_ALL
-    wlr-layer-shell-unstable-v1-client.h
-    wlr-layer-shell-unstable-v1.c
-    xdg-shell.c
-    xdg-output-unstable-v1-client.h
-    xdg-output-unstable-v1.c
-    )
+  add_library(wayland-protocols STATIC EXCLUDE_FROM_ALL ${wayland_protos})
   target_include_directories(wayland-protocols PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
   add_library(bar-wayland STATIC EXCLUDE_FROM_ALL bar/wayland.c bar/wayland.h)
