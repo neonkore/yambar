@@ -472,8 +472,10 @@ run(struct module *mod)
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\"]");
 
-    /* Some replies are *big*. TODO: grow dynamically */
-    static const size_t reply_buf_size = 1 * 1024 * 1024;
+    /* Initial reply typically requires a couple of KB. But we often
+     * need more later. For example, switching workspaces can result
+     * in quite big notification messages. */
+    size_t reply_buf_size = 4096;
     char *buf = malloc(reply_buf_size);
     size_t buf_idx = 0;
 
@@ -493,6 +495,23 @@ run(struct module *mod)
             break;
 
         assert(fds[1].revents & POLLIN);
+
+        /* Grow receive buffer, if necessary */
+        if (buf_idx == reply_buf_size) {
+            LOG_DBG("growing reply buffer: %zu -> %zu",
+                    reply_buf_size, reply_buf_size * 2);
+
+            char *new_buf = realloc(buf, reply_buf_size * 2);
+            if (new_buf == NULL) {
+                LOG_ERR("failed to grow reply buffer from %zu to %zu bytes",
+                        reply_buf_size, reply_buf_size * 2);
+                break;
+            }
+
+            buf = new_buf;
+            reply_buf_size *= 2;
+        }
+
         assert(reply_buf_size > buf_idx);
 
         ssize_t bytes = read(sock, &buf[buf_idx], reply_buf_size - buf_idx);
