@@ -72,23 +72,28 @@ if (ENABLE_WAYLAND)
     VERBATIM
     MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
     )
+
+  execute_process(
+    COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=pkgdatadir wayland-protocols
+    OUTPUT_VARIABLE WAYLAND_PROTOCOLS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
   add_custom_command(
     OUTPUT xdg-shell.c
-    COMMAND wayland-scanner private-code < /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml > xdg-shell.c
+    COMMAND wayland-scanner private-code < ${WAYLAND_PROTOCOLS}/stable/xdg-shell/xdg-shell.xml > xdg-shell.c
     VERBATIM
-    MAIN_DEPENDENCY /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
+    MAIN_DEPENDENCY ${WAYLAND_PROTOCOLS}/stable/xdg-shell/xdg-shell.xml
     )
   add_custom_command(
     OUTPUT xdg-output-unstable-v1-client.h
-    COMMAND wayland-scanner client-header < /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1-client.h
+    COMMAND wayland-scanner client-header < ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1-client.h
     VERBATIM
-    MAIN_DEPENDENCY /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml
+    MAIN_DEPENDENCY ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml
     )
   add_custom_command(
     OUTPUT xdg-output-unstable-v1.c
-    COMMAND wayland-scanner private-code < /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1.c
+    COMMAND wayland-scanner private-code < ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml > xdg-output-unstable-v1.c
     VERBATIM
-    MAIN_DEPENDENCY /usr/share/wayland-protocols/unstable/xdg-output/xdg-output-unstable-v1.xml
+    MAIN_DEPENDENCY ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml
     )
 
   add_library(wayland-protocols STATIC EXCLUDE_FROM_ALL
