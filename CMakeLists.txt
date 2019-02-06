@@ -68,9 +68,9 @@ if (ENABLE_WAYLAND)
     )
   add_custom_command(
     OUTPUT wlr-layer-shell-unstable-v1-client.h
-    COMMAND wayland-scanner client-header < /home/daniel/AUR/wlroots-git/src/wlroots-git/protocol/wlr-layer-shell-unstable-v1.xml > wlr-layer-shell-unstable-v1-client.h
+    COMMAND wayland-scanner client-header < ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml > wlr-layer-shell-unstable-v1-client.h
     VERBATIM
-    MAIN_DEPENDENCY /home/daniel/AUR/wlroots-git/src/wlroots-git/protocol/wlr-layer-shell-unstable-v1.xml
+    MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
     )
   add_custom_command(
     OUTPUT xdg-shell.c
