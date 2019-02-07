@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.13)
 
 add_library(particle-sdk INTERFACE)
 target_link_libraries(particle-sdk INTERFACE PkgConfig::cairo)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.13)
 project(f00bar C)
 
 set(CORE_PLUGINS_AS_SHARED_LIBRARIES 0 CACHE BOOL
