@@ -1,8 +1,7 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.13)
 
 add_library(particle-sdk INTERFACE)
-target_compile_options(particle-sdk INTERFACE ${CAIRO_CFLAGS_OTHER})
-target_include_directories(particle-sdk INTERFACE ${CAIRO_INCLUDE_DIRS})
+target_link_libraries(particle-sdk INTERFACE PkgConfig::cairo)
 
 if (CORE_PLUGINS_AS_SHARED_LIBRARIES)
   set(lib_type MODULE)
@@ -30,3 +29,5 @@ target_link_libraries(string ${CAIRO_LIBRARIES})
 if (CORE_PLUGINS_AS_SHARED_LIBRARIES)
   install(TARGETS ${particles} dynlist DESTINATION lib/f00bar)
 endif ()
+
+set(enabled_particles "dynlist;${particles}" PARENT_SCOPE)

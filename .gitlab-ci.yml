@@ -1,12 +1,17 @@
-image: alpine:latest
+image: alpine:edge
 
 stages:
   - build
 
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
+
 before_script:
+  - echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
   - apk update
   - apk add musl-dev eudev-libs eudev-dev linux-headers cmake ninja gcc
   - apk add libxcb-dev xcb-util-wm-dev xcb-util-cursor-dev cairo-dev yaml-dev
+  - apk add wayland-dev wayland-protocols wlroots-dev
   - apk add json-c-dev libmpdclient-dev alsa-lib-dev i3wm
 
 debug:
@@ -15,7 +20,7 @@ debug:
     - mkdir -p bld/debug
     - cd bld/debug
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ../../
-    - ninja
+    - ninja -k0
 
 release:
   stage: build
@@ -23,4 +28,28 @@ release:
     - mkdir -p bld/release
     - cd bld/release
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ../../
-    - ninja
+    - ninja -k0
+
+x11_only:
+  stage: build
+  script:
+    - mkdir -p bld/debug
+    - cd bld/debug
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_X11=yes -DENABLE_WAYLAND=no ../../
+    - ninja -k0
+
+wayland_only:
+  stage: build
+  script:
+    - mkdir -p bld/debug
+    - cd bld/debug
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_X11=no -DENABLE_WAYLAND=yes ../../
+    - ninja -k0
+
+plugins_as_shared_modules:
+  stage: build
+  script:
+    - mkdir -p bld/debug
+    - cd bld/debug
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCORE_PLUGINS_AS_SHARED_LIBRARIES=yes ../../
+    - ninja -k0

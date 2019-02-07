@@ -14,10 +14,9 @@
 #include <sys/eventfd.h>
 #include <pwd.h>
 
-#include "bar.h"
+#include "bar/bar.h"
 #include "config.h"
 #include "yml.h"
-#include "xcb.h"
 
 #define LOG_MODULE "main"
 #include "log.h"
@@ -47,7 +46,7 @@ get_config_path(void)
         path_max = 1024;
 
     char *path = malloc(path_max + 1);
-    snprintf(path, path_max + 1, "%s/.config/f00bar/config.yml", home_dir);
+    snprintf(path, path_max + 1, "%s/.config/f00bar/config-wayland.yml", home_dir);
     return path;
 }
 
@@ -121,17 +120,6 @@ main(int argc, const char *const *argv)
         return 1;
     }
 
-    /* Connect to XCB, to be able to detect a disconnect (allowing us
-     * to exit) */
-    xcb_connection_t *xcb = xcb_connect(NULL, NULL);
-    if (xcb_connection_has_error(xcb) > 0) {
-        LOG_ERR("failed to connect to X");
-        xcb_disconnect(xcb);
-        return 1;
-    }
-
-    xcb_init();
-
     bar->abort_fd = abort_fd;
 
     thrd_t bar_thread;
@@ -140,26 +128,18 @@ main(int argc, const char *const *argv)
     /* Now unblock. We should be only thread receiving SIGINT */
     pthread_sigmask(SIG_UNBLOCK, &signal_mask, NULL);
 
-    /* Wait for SIGINT, or XCB disconnect */
     while (!aborted) {
-        struct pollfd fds[] = {
-            {.fd = xcb_get_file_descriptor(xcb), .events = POLLPRI}
-        };
+        struct pollfd fds[] = {{.fd = abort_fd, .events = POLLIN}};
+        int r __attribute__((unused)) = poll(fds, 1, -1);
 
-        poll(fds, 1, -1);
-
-        if (aborted)
-            break;
-
-        LOG_INFO("XCB poll data");
-
-        if (fds[0].revents & POLLHUP) {
-            LOG_INFO("disconnected from XCB, exiting");
-            break;
-        }
+        /*
+         * Either the bar aborted (triggering the abort_fd), or user
+         * killed us (triggering the signal handler which sets
+         * 'aborted')
+         */
+        assert(aborted || r == 1);
+        break;
     }
-
-    xcb_disconnect(xcb);
 
     if (aborted)
         LOG_INFO("aborted: %s (%d)", strsignal(aborted), aborted);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "color.h"
-#include "module.h"
+#include "../color.h"
+#include "../module.h"
 
 struct bar {
     int abort_fd;

@@ -1,8 +1,16 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.13)
 project(f00bar C)
 
 set(CORE_PLUGINS_AS_SHARED_LIBRARIES 0 CACHE BOOL
   "Compiles modules, particles and decorations as shared libraries, which are loaded on-demand")
+
+set(ENABLE_X11 1 CACHE BOOL "Enables support for the XCB (X11) backend")
+set_property(DIRECTORY . APPEND PROPERTY
+  COMPILE_DEFINITIONS $<$<BOOL:${ENABLE_X11}>:ENABLE_X11>)
+
+set(ENABLE_WAYLAND 1 CACHE BOOL "Enables support for the wayland backend")
+set_property(DIRECTORY . APPEND PROPERTY
+  COMPILE_DEFINITIONS $<$<BOOL:${ENABLE_WAYLAND}>:ENABLE_WAYLAND>)
 
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -23,15 +31,39 @@ set(CMAKE_C_FLAGS "-Wall -Werror ${CMAKE_C_FLAGS}")
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(XCB REQUIRED xcb xcb-aux xcb-cursor xcb-event xcb-ewmh
-  xcb-randr xcb-render)
-pkg_check_modules(XCB_ERRORS xcb-errors)
-pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
-pkg_check_modules(CAIRO REQUIRED cairo cairo-xcb cairo-ft)
-pkg_check_modules(YAML REQUIRED yaml-0.1)
+pkg_check_modules(fontconfig REQUIRED IMPORTED_TARGET fontconfig)
+pkg_check_modules(cairo REQUIRED IMPORTED_TARGET cairo cairo-ft)
+pkg_check_modules(yaml REQUIRED IMPORTED_TARGET yaml-0.1)
+
+if (ENABLE_X11)
+  pkg_check_modules(xcb REQUIRED IMPORTED_TARGET
+    xcb xcb-aux xcb-cursor xcb-event xcb-ewmh xcb-randr xcb-render cairo-xcb)
+  pkg_check_modules(xcb-errors IMPORTED_TARGET xcb-errors)
+
+  add_library(xcb-stuff STATIC EXCLUDE_FROM_ALL xcb.c xcb.h)
+  target_link_libraries(xcb-stuff PkgConfig::xcb)
+  if (XCB_ERRORS_FOUND)
+    target_compile_definitions(xcb-stuff PRIVATE HAVE_XCB_ERRORS)
+    target_link_libraries(xcb-stuff PkgConfig::xcb-errors)
+  endif ()
+
+  # Since there are plugins linking against xcb-stuff, we need to
+  # ensure it's compiled with -fPIC when the plugins are compiled as
+  # shared libraries.
+  if (CORE_PLUGINS_AS_SHARED_LIBRARIES)
+    set_property(TARGET xcb-stuff PROPERTY POSITION_INDEPENDENT_CODE 1)
+  endif ()
+
+endif ()
+
+if (ENABLE_WAYLAND)
+  pkg_check_modules(wayland REQUIRED IMPORTED_TARGET
+    wayland-client wayland-cursor wlroots)
+endif ()
+
+add_subdirectory(bar)
 
 add_executable(f00bar
-  bar.c bar.h
   config.c config.h
   config-verify.c config-verify.h
   decoration.h
@@ -42,43 +74,16 @@ add_executable(f00bar
   particle.c particle.h
   plugin.c plugin.h
   tag.c tag.h
-  xcb.c xcb.h
   yml.c yml.h
   )
 
-# Make global symbols in f00bar visible to dlopen:ed plugins
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
-
-if (XCB_ERRORS_FOUND)
-  target_compile_definitions(f00bar PRIVATE HAVE_XCB_ERRORS)
-endif ()
-
-target_compile_options(f00bar PRIVATE
-  ${XCB_CFLAGS_OTHER}
-  ${XCB_ERRORS_CFLAGS_OTHER}
-  ${FONTCONFIG_CFLAGS_OTHER}
-  ${CAIRO_CFLAGS_OTHER}
-  ${YAML_CFLAGS_OTHER}
-  )
-
-target_include_directories(f00bar PRIVATE
-  ${XCB_INCLUDE_DIRS}
-  ${XCB_ERRORS_INCLUDE_DIRS}
-  ${FONTCONFIG_INCLUDE_DIRS}
-  ${CAIRO_INCLUDE_DIRS}
-  ${YAML_INCLUDE_DIRS}
-  )
-
 target_link_libraries(f00bar
-  ${CMAKE_THREAD_LIBS_INIT}
-  ${CMAKE_DL_LIBS}
+  bar
+  PkgConfig::cairo PkgConfig::fontconfig PkgConfig::yaml
+  ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 
-  ${XCB_LIBRARIES}
-  ${XCB_ERRORS_LIBRARIES}
-  ${FONTCONFIG_LIBRARIES}
-  ${CAIRO_LIBRARIES}
-  ${YAML_LIBRARIES}
-  )
+# Make global symbols in f00bar visible to dlopen:ed plugins
+target_link_options(f00bar PRIVATE -rdynamic)
 
 set_property(TARGET f00bar PROPERTY INSTALL_RPATH \$ORIGIN/../lib/f00bar)
 set_property(TARGET f00bar PROPERTY
@@ -86,13 +91,21 @@ set_property(TARGET f00bar PROPERTY
 
 install(TARGETS f00bar DESTINATION bin)
 
+set(enabled_modules "")
+set(enabled_particles "")
+set(enabled_decorations "")
+
 add_subdirectory(modules)
 add_subdirectory(particles)
 add_subdirectory(decorations)
 
 if (NOT CORE_PLUGINS_AS_SHARED_LIBRARIES)
-  target_link_libraries(f00bar background stack underline)
-  target_link_libraries(f00bar dynlist empty list map progress-bar ramp string)
-  target_link_libraries(f00bar alsa backlight battery clock i3 label mpd network
-    removables xkb xwindow)
+  target_link_libraries(f00bar ${enabled_decorations})
+  target_link_libraries(f00bar ${enabled_particles})
+  target_link_libraries(f00bar ${enabled_modules})
+
+  foreach (plug ${enabled_decorations} ${enabled_particles} ${enabled_modules})
+    string(REPLACE "-" "_" fixed "${plug}")
+    target_compile_definitions(f00bar PRIVATE "HAVE_PLUGIN_${fixed}")
+  endforeach ()
 endif ()

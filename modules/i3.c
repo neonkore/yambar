@@ -10,8 +10,11 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include <xcb/xcb.h>
-#include <xcb/xcb_aux.h>
+#if defined(ENABLE_X11)
+ #include <xcb/xcb.h>
+ #include <xcb/xcb_aux.h>
+#endif
+
 #include <i3/ipc.h>
 
 #include <json-c/json_tokener.h>
@@ -21,12 +24,15 @@
 #define LOG_MODULE "i3"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
-#include "../bar.h"
+#include "../bar/bar.h"
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particles/dynlist.h"
 #include "../plugin.h"
-#include "../xcb.h"
+
+#if defined(ENABLE_X11)
+ #include "../xcb.h"
+#endif
 
 struct ws_content {
     char *name;
@@ -371,57 +377,83 @@ handle_workspace_event(struct private *m, const struct json_object *json)
     return true;
 }
 
+#if defined(ENABLE_X11)
+static bool
+get_socket_address_x11(struct sockaddr_un *addr)
+{
+    int default_screen;
+    xcb_connection_t *conn = xcb_connect(NULL, &default_screen);
+    if (xcb_connection_has_error(conn) > 0) {
+        LOG_ERR("failed to connect to X");
+        xcb_disconnect(conn);
+        return false;
+    }
+
+    xcb_screen_t *screen = xcb_aux_get_screen(conn, default_screen);
+
+    xcb_atom_t atom = get_atom(conn, "I3_SOCKET_PATH");
+    assert(atom != XCB_ATOM_NONE);
+
+    xcb_get_property_cookie_t cookie
+        = xcb_get_property_unchecked(
+            conn, false, screen->root, atom,
+            XCB_GET_PROPERTY_TYPE_ANY, 0, sizeof(addr->sun_path));
+
+    xcb_generic_error_t *err;
+    xcb_get_property_reply_t *reply =
+        xcb_get_property_reply(conn, cookie, &err);
+
+    if (err != NULL) {
+        LOG_ERR("failed to get i3 socket path: %s", xcb_error(err));
+        free(err);
+        free(reply);
+        return false;
+    }
+
+    const int len = xcb_get_property_value_length(reply);
+    assert(len < sizeof(addr->sun_path));
+
+    if (len == 0) {
+        LOG_ERR("failed to get i3 socket path: empty reply");
+        free(reply);
+        return false;
+    }
+
+    memcpy(addr->sun_path, xcb_get_property_value(reply), len);
+    addr->sun_path[len] = '\0';
+
+    free(reply);
+    xcb_disconnect(conn);
+    return true;
+}
+#endif
+
+static bool
+get_socket_address(struct sockaddr_un *addr)
+{
+    *addr = (struct sockaddr_un){.sun_family = AF_UNIX};
+
+    const char *sway_sock = getenv("SWAYSOCK");
+    if (sway_sock == NULL) {
+#if defined(ENABLE_X11)
+        return get_socket_address_x11(addr);
+#else
+        return false;
+#endif
+    }
+
+    strncpy(addr->sun_path, sway_sock, sizeof(addr->sun_path) - 1);
+    return true;
+}
+
 static int
 run(struct module *mod)
 {
     struct private *m = mod->private;
 
-    struct sockaddr_un addr = {.sun_family = AF_UNIX};
-    {
-        int default_screen;
-        xcb_connection_t *conn = xcb_connect(NULL, &default_screen);
-        if (xcb_connection_has_error(conn) > 0) {
-            LOG_ERR("failed to connect to X");
-            xcb_disconnect(conn);
-            return 1;
-        }
-
-        xcb_screen_t *screen = xcb_aux_get_screen(conn, default_screen);
-
-        xcb_atom_t atom = get_atom(conn, "I3_SOCKET_PATH");
-        assert(atom != XCB_ATOM_NONE);
-
-        xcb_get_property_cookie_t cookie
-            = xcb_get_property_unchecked(
-                conn, false, screen->root, atom,
-                XCB_GET_PROPERTY_TYPE_ANY, 0, sizeof(addr.sun_path));
-
-        xcb_generic_error_t *err;
-        xcb_get_property_reply_t *reply =
-            xcb_get_property_reply(conn, cookie, &err);
-
-        if (err != NULL) {
-            LOG_ERR("failed to get i3 socket path: %s", xcb_error(err));
-            free(err);
-            free(reply);
-            return 1;
-        }
-
-        const int len = xcb_get_property_value_length(reply);
-        assert(len < sizeof(addr.sun_path));
-
-        if (len == 0) {
-            LOG_ERR("failed to get i3 socket path: empty reply");
-            free(reply);
-            return 1;
-        }
-
-        memcpy(addr.sun_path, xcb_get_property_value(reply), len);
-        addr.sun_path[len] = '\0';
-
-        free(reply);
-        xcb_disconnect(conn);
-    }
+    struct sockaddr_un addr;
+    if (!get_socket_address(&addr))
+        return 1;
 
     int sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock == -1) {
@@ -440,8 +472,10 @@ run(struct module *mod)
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\"]");
 
-    /* Some replies are *big*. TODO: grow dynamically */
-    static const size_t reply_buf_size = 1 * 1024 * 1024;
+    /* Initial reply typically requires a couple of KB. But we often
+     * need more later. For example, switching workspaces can result
+     * in quite big notification messages. */
+    size_t reply_buf_size = 4096;
     char *buf = malloc(reply_buf_size);
     size_t buf_idx = 0;
 
@@ -461,6 +495,23 @@ run(struct module *mod)
             break;
 
         assert(fds[1].revents & POLLIN);
+
+        /* Grow receive buffer, if necessary */
+        if (buf_idx == reply_buf_size) {
+            LOG_DBG("growing reply buffer: %zu -> %zu",
+                    reply_buf_size, reply_buf_size * 2);
+
+            char *new_buf = realloc(buf, reply_buf_size * 2);
+            if (new_buf == NULL) {
+                LOG_ERR("failed to grow reply buffer from %zu to %zu bytes",
+                        reply_buf_size, reply_buf_size * 2);
+                break;
+            }
+
+            buf = new_buf;
+            reply_buf_size *= 2;
+        }
+
         assert(reply_buf_size > buf_idx);
 
         ssize_t bytes = read(sock, &buf[buf_idx], reply_buf_size - buf_idx);
@@ -472,6 +523,8 @@ run(struct module *mod)
         buf_idx += bytes;
 
         bool err = false;
+        bool need_bar_refresh = false;
+
         while (!err && buf_idx >= sizeof(i3_ipc_header_t)) {
             const i3_ipc_header_t *hdr = (const i3_ipc_header_t *)buf;
             if (strncmp(hdr->magic, I3_IPC_MAGIC, sizeof(hdr->magic)) != 0) {
@@ -519,12 +572,12 @@ run(struct module *mod)
 
             case I3_IPC_REPLY_TYPE_WORKSPACES:
                 handle_get_workspaces_reply(m, json);
-                mod->bar->refresh(mod->bar);
+                need_bar_refresh = true;
                 break;
 
             case I3_IPC_EVENT_WORKSPACE:
                 handle_workspace_event(m, json);
-                mod->bar->refresh(mod->bar);
+                need_bar_refresh = true;
                 break;
 
             case I3_IPC_EVENT_OUTPUT:
@@ -551,6 +604,9 @@ run(struct module *mod)
 
         if (err)
             break;
+
+        if (need_bar_refresh)
+            mod->bar->refresh(mod->bar);
     }
 
     free(buf);

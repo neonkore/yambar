@@ -112,8 +112,12 @@ init(void)
     REGISTER_CORE_MODULE(mpd, mpd);
     REGISTER_CORE_MODULE(network, network);
     REGISTER_CORE_MODULE(removables, removables);
+#if defined(HAVE_PLUGIN_xkb)
     REGISTER_CORE_MODULE(xkb, xkb);
+#endif
+#if defined(HAVE_PLUGIN_xwindow)
     REGISTER_CORE_MODULE(xwindow, xwindow);
+#endif
 
     REGISTER_CORE_PARTICLE(empty, empty);
     REGISTER_CORE_PARTICLE(list, list);
