@@ -253,21 +253,29 @@ cleanup(struct bar *_bar)
     struct private *bar = _bar->private;
     struct xcb_backend *backend = bar->backend.data;
 
-    if (backend->cursor_ctx != NULL) {
+    if (backend->conn == NULL)
+        return;
+
+    if (backend->cursor != 0)
         xcb_free_cursor(backend->conn, backend->cursor);
+    if (backend->cursor_ctx != NULL)
         xcb_cursor_context_free(backend->cursor_ctx);
 
-        free(bar->cursor_name);
-        bar->cursor_name = NULL;
-    }
+    /* TODO: move to bar.c */
+    free(bar->cursor_name);
 
-    xcb_free_gc(backend->conn, backend->gc);
-    xcb_free_pixmap(backend->conn, backend->pixmap);
-    xcb_destroy_window(backend->conn, backend->win);
-    xcb_free_colormap(backend->conn, backend->colormap);
+    if (backend->gc != 0)
+        xcb_free_gc(backend->conn, backend->gc);
+    if (backend->pixmap != 0)
+        xcb_free_pixmap(backend->conn, backend->pixmap);
+    if (backend->win != 0)
+        xcb_destroy_window(backend->conn, backend->win);
+    if (backend->colormap != 0)
+        xcb_free_colormap(backend->conn, backend->colormap);
+
     xcb_flush(backend->conn);
-
     xcb_disconnect(backend->conn);
+    backend->conn = NULL;
 }
 
 static void
