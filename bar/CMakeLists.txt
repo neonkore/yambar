@@ -35,6 +35,7 @@ if (ENABLE_WAYLAND)
     set(${_deps} ${deps} PARENT_SCOPE)
   endfunction ()
 
+  pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
   execute_process(
     COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=pkgdatadir wayland-protocols
     OUTPUT_VARIABLE WAYLAND_PROTOCOLS
