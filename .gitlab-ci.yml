@@ -26,3 +26,27 @@ release:
     - cd bld/release
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ../../
     - ninja -k0
+
+x11_only:
+  stage: build
+  script:
+    - mkdir -p bld/debug
+    - cd bld/debug
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_X11=yes -DENABLE_WAYLAND=no ../../
+    - ninja -k0
+
+wayland_only:
+  stage: build
+  script:
+    - mkdir -p bld/debug
+    - cd bld/debug
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_X11=no -DENABLE_WAYLAND=yes ../../
+    - ninja -k0
+
+plugins_as_shared_modules:
+  stage: build
+  script:
+    - mkdir -p bld/debug
+    - cd bld/debug
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCORE_PLUGINS_AS_SHARED_LIBRARIES=yes ../../
+    - ninja -k0
