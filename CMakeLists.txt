@@ -47,6 +47,13 @@ if (ENABLE_X11)
     target_link_libraries(xcb-stuff PkgConfig::xcb-errors)
   endif ()
 
+  # Since there are plugins linking against xcb-stuff, we need to
+  # ensure it's compiled with -fPIC when the plugins are compiled as
+  # shared libraries.
+  if (CORE_PLUGINS_AS_SHARED_LIBRARIES)
+    set_property(TARGET xcb-stuff PROPERTY POSITION_INDEPENDENT_CODE 1)
+  endif ()
+
 endif ()
 
 if (ENABLE_WAYLAND)
