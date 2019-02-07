@@ -640,7 +640,7 @@ setup(struct bar *_bar)
 
     //zwlr_layer_surface_v1_set_margin(
     //   layer_surface, margin_top, margin_right, margin_bottom, margin_left);
-    zwlr_layer_surface_v1_set_keyboard_interactivity(backend->layer_surface, 1);
+    //zwlr_layer_surface_v1_set_keyboard_interactivity(backend->layer_surface, 1);
 
     zwlr_layer_surface_v1_add_listener(
         backend->layer_surface, &layer_surface_listener, backend);
