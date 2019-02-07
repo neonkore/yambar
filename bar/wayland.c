@@ -118,7 +118,8 @@ static const struct wl_shm_listener shm_listener = {
 static void
 update_cursor_surface(struct wayland_backend *backend)
 {
-    assert(backend->pointer.cursor != NULL);
+    if (backend->pointer.cursor == NULL)
+        return;
 
     struct wl_cursor_image *image = backend->pointer.cursor->images[0];
 
@@ -582,37 +583,56 @@ cleanup(struct bar *_bar)
     struct wayland_backend *backend = bar->backend.data;
 
     tll_foreach(backend->buffers, it) {
-        wl_buffer_destroy(it->item.wl_buf);
-        cairo_destroy(it->item.cairo);
-        cairo_surface_destroy(it->item.cairo_surface);
-        munmap(it->item.mmapped, it->item.size);
+        if (it->item.wl_buf != NULL)
+            wl_buffer_destroy(it->item.wl_buf);
+        if (it->item.cairo != NULL)
+            cairo_destroy(it->item.cairo);
+        if (it->item.cairo_surface != NULL)
+            cairo_surface_destroy(it->item.cairo_surface);
 
+        munmap(it->item.mmapped, it->item.size);
         tll_remove(backend->buffers, it);
     }
 
     tll_foreach(backend->monitors, it) {
         struct monitor *mon = &it->item;
         free(mon->name);
-        zxdg_output_v1_destroy(mon->xdg);
-        wl_output_destroy(mon->output);
+
+        if (mon->xdg != NULL)
+            zxdg_output_v1_destroy(mon->xdg);
+        if (mon->output != NULL)
+            wl_output_destroy(mon->output);
         tll_remove(backend->monitors, it);
     }
-    zxdg_output_manager_v1_destroy(backend->xdg_output_manager);
+
+    if (backend->xdg_output_manager != NULL)
+        zxdg_output_manager_v1_destroy(backend->xdg_output_manager);
 
     /* TODO: move to bar */
     free(bar->cursor_name);
 
-    zwlr_layer_surface_v1_destroy(backend->layer_surface);
-    zwlr_layer_shell_v1_destroy(backend->layer_shell);
-    wl_cursor_theme_destroy(backend->pointer.theme);
-    wl_pointer_destroy(backend->pointer.pointer);
-    wl_surface_destroy(backend->pointer.surface);
-    wl_surface_destroy(backend->surface);
-    wl_seat_destroy(backend->seat);
-    wl_compositor_destroy(backend->compositor);
-    wl_shm_destroy(backend->shm);
-    wl_registry_destroy(backend->registry);
-    wl_display_disconnect(backend->display);
+    if (backend->layer_surface != NULL)
+        zwlr_layer_surface_v1_destroy(backend->layer_surface);
+    if (backend->layer_shell != NULL)
+        zwlr_layer_shell_v1_destroy(backend->layer_shell);
+    if (backend->pointer.theme != NULL)
+        wl_cursor_theme_destroy(backend->pointer.theme);
+    if (backend->pointer.pointer != NULL)
+        wl_pointer_destroy(backend->pointer.pointer);
+    if (backend->pointer.surface != NULL)
+        wl_surface_destroy(backend->pointer.surface);
+    if (backend->surface != NULL)
+        wl_surface_destroy(backend->surface);
+    if (backend->seat != NULL)
+        wl_seat_destroy(backend->seat);
+    if (backend->compositor != NULL)
+        wl_compositor_destroy(backend->compositor);
+    if (backend->shm != NULL)
+        wl_shm_destroy(backend->shm);
+    if (backend->registry != NULL)
+        wl_registry_destroy(backend->registry);
+    if (backend->display != NULL)
+        wl_display_disconnect(backend->display);
 
     /* Destroyed when freeing buffer list */
     bar->cairo_surface = NULL;
