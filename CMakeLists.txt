@@ -4,6 +4,14 @@ project(f00bar C)
 set(CORE_PLUGINS_AS_SHARED_LIBRARIES 0 CACHE BOOL
   "Compiles modules, particles and decorations as shared libraries, which are loaded on-demand")
 
+set(ENABLE_X11 1 CACHE BOOL "Enables support for the XCB (X11) backend")
+set_property(DIRECTORY . APPEND PROPERTY
+  COMPILE_DEFINITIONS $<$<BOOL:${ENABLE_X11}>:ENABLE_X11>)
+
+set(ENABLE_WAYLAND 1 CACHE BOOL "Enables support for the wayland backend")
+set_property(DIRECTORY . APPEND PROPERTY
+  COMPILE_DEFINITIONS $<$<BOOL:${ENABLE_WAYLAND}>:ENABLE_WAYLAND>)
+
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 11)
@@ -27,26 +35,11 @@ pkg_check_modules(fontconfig REQUIRED IMPORTED_TARGET fontconfig)
 pkg_check_modules(cairo REQUIRED IMPORTED_TARGET cairo cairo-ft)
 pkg_check_modules(yaml REQUIRED IMPORTED_TARGET yaml-0.1)
 
-set(ENABLE_X11 1 CACHE BOOL "Enables support for the XCB (X11) backend")
-set_property(DIRECTORY . APPEND PROPERTY
-  COMPILE_DEFINITIONS $<$<BOOL:${ENABLE_X11}>:ENABLE_X11>)
-
 if (ENABLE_X11)
   pkg_check_modules(xcb REQUIRED IMPORTED_TARGET
     xcb xcb-aux xcb-cursor xcb-event xcb-ewmh xcb-randr xcb-render cairo-xcb)
   pkg_check_modules(xcb-errors IMPORTED_TARGET xcb-errors)
-endif ()
 
-set(ENABLE_WAYLAND 1 CACHE BOOL "Enables support for the wayland backend")
-set_property(DIRECTORY . APPEND PROPERTY
-  COMPILE_DEFINITIONS $<$<BOOL:${ENABLE_WAYLAND}>:ENABLE_WAYLAND>)
-
-if (ENABLE_WAYLAND)
-  pkg_check_modules(wayland REQUIRED IMPORTED_TARGET
-    wayland-client wayland-cursor wlroots)
-endif ()
-
-if (ENABLE_X11)
   add_library(xcb-stuff STATIC EXCLUDE_FROM_ALL xcb.c xcb.h)
   target_link_libraries(xcb-stuff PkgConfig::xcb)
   if (XCB_ERRORS_FOUND)
@@ -54,59 +47,14 @@ if (ENABLE_X11)
     target_link_libraries(xcb-stuff PkgConfig::xcb-errors)
   endif ()
 
-  add_library(bar-xcb STATIC EXCLUDE_FROM_ALL bar/xcb.c bar/xcb.h)
-  target_link_libraries(bar-xcb
-    xcb-stuff PkgConfig::cairo)
 endif ()
 
 if (ENABLE_WAYLAND)
-  function (wayland_protocol _deps)
-    set(deps "")
-    foreach (xml_file ${ARGN})
-      get_filename_component(base ${xml_file} NAME_WE)
-      set(out_c ${base}.c)
-      set(out_h ${base}.h)
-
-      add_custom_command(
-        OUTPUT ${out_h}
-        COMMAND wayland-scanner client-header < ${xml_file} > ${out_h}
-        VERBATIM
-        MAIN_DEPENDENCY ${xml_file}
-        )
-      add_custom_command(
-        OUTPUT ${out_c}
-        COMMAND wayland-scanner private-code < ${xml_file} > ${out_c}
-        VERBATIM
-        MAIN_DEPENDENCY ${xml_file}
-        )
-
-      list(APPEND deps ${out_h})
-      list(APPEND deps ${out_c})
-    endforeach ()
-
-    set(${_deps} ${deps} PARENT_SCOPE)
-  endfunction ()
-
-  execute_process(
-    COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=pkgdatadir wayland-protocols
-    OUTPUT_VARIABLE WAYLAND_PROTOCOLS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  wayland_protocol(
-    wayland_protos
-    ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
-    ${WAYLAND_PROTOCOLS}/stable/xdg-shell/xdg-shell.xml
-    ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml
-    )
-
-  add_library(wayland-protocols STATIC EXCLUDE_FROM_ALL ${wayland_protos})
-  target_include_directories(wayland-protocols PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-
-  add_library(bar-wayland STATIC EXCLUDE_FROM_ALL bar/wayland.c bar/wayland.h)
-  target_compile_definitions(bar-wayland PRIVATE _GNU_SOURCE)
-  target_link_libraries(
-    bar-wayland wayland-protocols PkgConfig::wayland PkgConfig::cairo)
+  pkg_check_modules(wayland REQUIRED IMPORTED_TARGET
+    wayland-client wayland-cursor wlroots)
 endif ()
+
+add_subdirectory(bar)
 
 add_executable(f00bar
   config.c config.h
@@ -120,14 +68,10 @@ add_executable(f00bar
   plugin.c plugin.h
   tag.c tag.h
   yml.c yml.h
-
-  bar.h
-  bar/bar.c bar/private.h bar/backend.h
   )
 
 target_link_libraries(f00bar
-  $<$<BOOL:${ENABLE_X11}>:bar-xcb>
-  $<$<BOOL:${ENABLE_WAYLAND}>:bar-wayland>
+  bar
   PkgConfig::cairo PkgConfig::fontconfig PkgConfig::yaml
   ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 
@@ -147,8 +91,6 @@ set(enabled_decorations "")
 add_subdirectory(modules)
 add_subdirectory(particles)
 add_subdirectory(decorations)
-
-
 
 if (NOT CORE_PLUGINS_AS_SHARED_LIBRARIES)
   target_link_libraries(f00bar ${enabled_decorations})

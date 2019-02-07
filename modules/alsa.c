@@ -6,7 +6,7 @@
 #define LOG_MODULE "alsa"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
-#include "../bar.h"
+#include "../bar/bar.h"
 #include "../config-verify.h"
 #include "../config.h"
 #include "../plugin.h"

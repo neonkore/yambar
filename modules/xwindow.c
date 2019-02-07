@@ -15,7 +15,7 @@
 
 #define LOG_MODULE "xwindow"
 #include "../log.h"
-#include "../bar.h"
+#include "../bar/bar.h"
 #include "../config.h"
 #include "../config-verify.h"
 #include "../plugin.h"

@@ -3,7 +3,7 @@
 #include <cairo.h>
 #include <cairo-xcb.h>
 
-#include "../bar.h"
+#include "../bar/bar.h"
 #include "backend.h"
 
 struct private {

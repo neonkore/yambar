@@ -1,4 +1,4 @@
-#include "../bar.h"
+#include "bar.h"
 #include "private.h"
 
 #include <stdlib.h>

@@ -7,7 +7,7 @@
 
 #include <dlfcn.h>
 
-#include "bar.h"
+#include "bar/bar.h"
 #include "color.h"
 #include "config-verify.h"
 #include "module.h"

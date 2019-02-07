@@ -11,7 +11,7 @@
 #define LOG_MODULE "xkb"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
-#include "../bar.h"
+#include "../bar/bar.h"
 #include "../config.h"
 #include "../config-verify.h"
 #include "../plugin.h"

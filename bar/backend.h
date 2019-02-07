@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-#include "../bar.h"
+#include "bar.h"
 
 struct backend {
     bool (*setup)(struct bar *bar);

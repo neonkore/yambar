@@ -14,7 +14,7 @@
 #include <sys/eventfd.h>
 #include <pwd.h>
 
-#include "bar.h"
+#include "bar/bar.h"
 #include "config.h"
 #include "yml.h"
 

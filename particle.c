@@ -10,7 +10,7 @@
 #define LOG_MODULE "particle"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
-#include "bar.h"
+#include "bar/bar.h"
 
 void
 particle_default_destroy(struct particle *particle)
