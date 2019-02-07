@@ -1,12 +1,12 @@
 pkgname=f00bar
-pkgver=0.9.r32.gf26892d
+pkgver=0.9.0.r85.g3b1998a
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X"
 arch=('x86_64')
 url=https://gitlab.com/dnkl/f00bar
 license=(mit)
 depends=(
-  'libxcb' 'xcb-util' 'xcb-util-cursor'
+  'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
   'freetype2' 'fontconfig' 'cairo'
   'libyaml'
   'alsa-lib'
