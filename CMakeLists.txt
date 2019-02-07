@@ -83,7 +83,7 @@ target_link_libraries(f00bar
   ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 
 # Make global symbols in f00bar visible to dlopen:ed plugins
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
+target_link_options(f00bar PRIVATE -rdynamic)
 
 set_property(TARGET f00bar PROPERTY INSTALL_RPATH \$ORIGIN/../lib/f00bar)
 set_property(TARGET f00bar PROPERTY
