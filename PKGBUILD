@@ -7,6 +7,7 @@ url=https://gitlab.com/dnkl/f00bar
 license=(mit)
 depends=(
   'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
+  'wayland' 'wlroots'
   'freetype2' 'fontconfig' 'cairo'
   'libyaml'
   'alsa-lib'
