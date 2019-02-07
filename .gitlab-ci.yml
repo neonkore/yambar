@@ -3,6 +3,9 @@ image: alpine:edge
 stages:
   - build
 
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
+
 before_script:
   - echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
   - apk update
