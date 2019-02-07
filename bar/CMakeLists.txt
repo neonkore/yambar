@@ -61,5 +61,5 @@ add_library(bar STATIC EXCLUDE_FROM_ALL bar.c bar.h private.h backend.h)
 target_link_libraries(bar
   $<$<BOOL:${ENABLE_X11}>:bar-xcb>
   $<$<BOOL:${ENABLE_WAYLAND}>:bar-wayland>
-  ${CMAKE_THREAD_LIBS_INIT} 
+  ${CMAKE_THREAD_LIBS_INIT}
 )
