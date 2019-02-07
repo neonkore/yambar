@@ -431,50 +431,115 @@ get_buffer(struct wayland_backend *backend)
 {
     tll_foreach(backend->buffers, it) {
         if (!it->item.busy) {
-            //printf("re-using non-busy buffer\n");
             it->item.busy = true;
             return &it->item;
         }
     }
 
-    //printf("allocating a new buffer\n");
+    /*
+     * No existing buffer available. Create a new one by:
+     *
+     * 1. open a memory backed "file" with memfd_create()
+     * 2. mmap() the memory file, to be used by the cairo surface
+     * 3. create a wayland shm buffer for the same memory file
+     *
+     * The cairo surface and the wayland buffer are now sharing
+     * memory.
+     */
 
-    struct buffer buffer;
+    int pool_fd = -1;
+    void *mmapped = NULL;
+    size_t size = 0;
+
+    struct wl_shm_pool *pool = NULL;
+    struct wl_buffer *buf = NULL;
+
+    cairo_surface_t *cairo_surface = NULL;
+    cairo_t *cairo = NULL;
 
     /* Backing memory for SHM */
-    int pool_fd = memfd_create("wayland-test-buffer-pool", MFD_CLOEXEC);
-    assert(pool_fd != -1);
+    pool_fd = memfd_create("wayland-test-buffer-pool", MFD_CLOEXEC);
+    if (pool_fd == -1) {
+        LOG_ERRNO("failed to create SHM backing memory file");
+        goto err;
+    }
 
-    /* Allocate memory for our single buffer */
+    /* Total size */
     uint32_t stride = backend->width * 4;
-    buffer.size = stride * backend->height;
-    ftruncate(pool_fd, buffer.size);
+    size = stride * backend->height;
+    ftruncate(pool_fd, size);
 
-    buffer.mmapped = mmap(
-        NULL, buffer.size, PROT_READ | PROT_WRITE, MAP_SHARED, pool_fd, 0);
-    assert(buffer.mmapped != MAP_FAILED);
+    mmapped = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, pool_fd, 0);
+    if (mmapped == MAP_FAILED) {
+        LOG_ERR("failed to mmap SHM backing memory file");
+        goto err;
+    }
 
-    struct wl_shm_pool *pool = wl_shm_create_pool(backend->shm, pool_fd, buffer.size);
-    assert(pool != NULL);
+    pool = wl_shm_create_pool(backend->shm, pool_fd, size);
+    if (pool == NULL) {
+        LOG_ERR("failed to create SHM pool");
+        goto err;
+    }
 
-    buffer.wl_buf = wl_shm_pool_create_buffer(
+    buf = wl_shm_pool_create_buffer(
         pool, 0, backend->width, backend->height, stride, WL_SHM_FORMAT_ARGB8888);
-    assert(buffer.wl_buf != NULL);
-    buffer.busy = true;
+    if (buf == NULL) {
+        LOG_ERR("failed to create SHM buffer");
+        goto err;
+    }
 
-    wl_shm_pool_destroy(pool);
-    close(pool_fd);
+    /* We use the entire pool for our single buffer */
+    wl_shm_pool_destroy(pool); pool = NULL;
+    close(pool_fd); pool_fd = -1;
 
-    buffer.cairo_surface = cairo_image_surface_create_for_data(
-        buffer.mmapped, CAIRO_FORMAT_ARGB32, backend->width, backend->height, stride);
-    buffer.cairo = cairo_create(buffer.cairo_surface);
-    assert(cairo_status(buffer.cairo) == CAIRO_STATUS_SUCCESS);
+    /* Create a cairo surface around the mmapped memory */
+    cairo_surface = cairo_image_surface_create_for_data(
+        mmapped, CAIRO_FORMAT_ARGB32, backend->width, backend->height, stride);
+    if (cairo_surface_status(cairo_surface) != CAIRO_STATUS_SUCCESS) {
+        LOG_ERR("failed to create cairo surface: %s",
+                cairo_status_to_string(cairo_surface_status(cairo_surface)));
+        goto err;
+    }
 
-    tll_push_back(backend->buffers, buffer);
+    cairo = cairo_create(cairo_surface);
+    if (cairo_status(cairo) != CAIRO_STATUS_SUCCESS) {
+        LOG_ERR("failed to create cairo context: %s",
+                cairo_status_to_string(cairo_status(cairo)));
+        goto err;
+    }
+
+    /* Push to list of available buffers, but marked as 'busy' */
+    tll_push_back(
+        backend->buffers,
+        ((struct buffer){
+            .busy = true,
+            .size = size,
+            .mmapped = mmapped,
+            .wl_buf = buf,
+            .cairo_surface = cairo_surface,
+            .cairo = cairo}
+            )
+        );
 
     struct buffer *ret = &tll_back(backend->buffers);
-    wl_buffer_add_listener(buffer.wl_buf, &buffer_listener, ret);
+    wl_buffer_add_listener(ret->wl_buf, &buffer_listener, ret);
     return ret;
+
+err:
+    if (cairo != NULL)
+        cairo_destroy(cairo);
+    if (cairo_surface != NULL)
+        cairo_surface_destroy(cairo_surface);
+    if (buf != NULL)
+        wl_buffer_destroy(buf);
+    if (pool != NULL)
+        wl_shm_pool_destroy(pool);
+    if (pool_fd != -1)
+        close(pool_fd);
+    if (mmapped != NULL)
+        munmap(mmapped, size);
+
+    return NULL;
 }
 
 static bool
@@ -486,17 +551,37 @@ setup(struct bar *_bar)
     backend->bar = _bar;
 
     backend->display = wl_display_connect(NULL);
-    assert(backend->display != NULL);
+    if (backend->display == NULL) {
+        LOG_ERR("failed to connect to wayland; no compistor running?");
+        return false;
+    }
 
     backend->registry = wl_display_get_registry(backend->display);
-    assert(backend->registry != NULL);
+    if (backend->registry == NULL) {
+        LOG_ERR("failed to get wayland registry");
+        return false;
+    }
 
     wl_registry_add_listener(backend->registry, &registry_listener, backend);
-
     wl_display_roundtrip(backend->display);
-    assert(backend->compositor != NULL &&
-           backend->layer_shell != NULL &&
-           backend->shm != NULL);
+
+    if (backend->compositor == NULL) {
+        LOG_ERR("no compositor");
+        return false;
+    }
+    if (backend->layer_shell == NULL) {
+        LOG_ERR("no layer shell interface");
+        return false;
+    }
+    if (backend->shm == NULL) {
+        LOG_ERR("no shared memory buffers interface");
+        return false;
+    }
+
+    if (tll_length(backend->monitors) == 0) {
+        LOG_ERR("no monitors");
+        return false;
+    }
 
     tll_foreach(backend->monitors, it) {
         const struct monitor *mon = &it->item;
@@ -512,18 +597,30 @@ setup(struct bar *_bar)
     }
 
     backend->surface = wl_compositor_create_surface(backend->compositor);
-    assert(backend->surface != NULL);
+    if (backend->surface == NULL) {
+        LOG_ERR("failed to create panel surface");
+        return false;
+    }
 
     backend->pointer.surface = wl_compositor_create_surface(backend->compositor);
-    assert(backend->pointer.surface != NULL);
+    if (backend->pointer.surface == NULL) {
+        LOG_ERR("failed to create cursor surface");
+        return false;
+    }
 
     backend->pointer.theme = wl_cursor_theme_load(NULL, 24, backend->shm);
-    assert(backend->pointer.theme != NULL);
+    if (backend->pointer.theme == NULL) {
+        LOG_ERR("failed to load cursor theme");
+        return false;
+    }
 
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         backend->layer_shell, backend->surface, backend->monitor->output,
         ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "f00bar");
-    assert(backend->layer_surface != NULL);
+    if (backend->layer_surface == NULL) {
+        LOG_ERR("failed to create layer shell surface");
+        return false;
+    }
 
     /* Aligned to top, maximum width */
     enum zwlr_layer_surface_v1_anchor top_or_bottom = bar->location == BAR_TOP
@@ -543,8 +640,7 @@ setup(struct bar *_bar)
 
     //zwlr_layer_surface_v1_set_margin(
     //   layer_surface, margin_top, margin_right, margin_bottom, margin_left);
-    //zwlr_layer_surface_v1_set_keyboard_interactivity(
-    //   layer_surface, keyboard_interactive);
+    zwlr_layer_surface_v1_set_keyboard_interactivity(backend->layer_surface, 1);
 
     zwlr_layer_surface_v1_add_listener(
         backend->layer_surface, &layer_surface_listener, backend);
@@ -553,7 +649,11 @@ setup(struct bar *_bar)
     wl_surface_commit(backend->surface);
     wl_display_roundtrip(backend->display);
 
-    assert(backend->width != -1 && backend->height == bar->height_with_border);
+    if (backend->width == -1 || backend->height != bar->height_with_border) {
+        LOG_ERR("failed to get panel width");
+        return false;
+    }
+
     bar->width = backend->width;
     bar->x = backend->monitor->x;
     bar->y = backend->monitor->y;
@@ -561,12 +661,17 @@ setup(struct bar *_bar)
         ? 0
         : backend->monitor->height_px - bar->height_with_border;
 
-    pipe(backend->pipe_fds);
+    if (pipe(backend->pipe_fds) == -1) {
+        LOG_ERRNO("failed to create pipe");
+        return false;
+    }
+
     backend->render_scheduled = false;
 
-    wl_surface_commit(backend->surface);
-    wl_display_roundtrip(backend->display);
+    //wl_surface_commit(backend->surface);
+    //wl_display_roundtrip(backend->display);
 
+    /* Prepare a buffer + cairo context for bar to draw to */
     backend->next_buffer = get_buffer(backend);
     assert(backend->next_buffer != NULL && backend->next_buffer->busy);
 
