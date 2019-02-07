@@ -245,8 +245,10 @@ run(struct bar *_bar)
 
     bar->height_with_border = bar->height + 2 * bar->border.width;
 
-    if (!bar->backend.iface->setup(_bar))
+    if (!bar->backend.iface->setup(_bar)) {
+        bar->backend.iface->cleanup(_bar);
         return 1;
+    }
 
     set_cursor(_bar, "left_ptr");
 
