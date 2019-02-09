@@ -7,8 +7,11 @@
 
 #include <poll.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <fcntl.h>
 
 #if defined(ENABLE_X11)
  #include <xcb/xcb.h>
@@ -45,6 +48,12 @@ struct workspace {
     bool visible;
     bool focused;
     bool urgent;
+
+    struct {
+        char *title;
+        char *application;
+        pid_t pid;
+    } window;
 };
 
 struct private {
@@ -108,6 +117,7 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
         .visible = json_object_get_boolean(visible),
         .focused = json_object_get_boolean(focused),
         .urgent = json_object_get_boolean(urgent),
+        .window = {.title = NULL, .pid = -1},
     };
 
     return true;
@@ -118,6 +128,8 @@ workspace_free(struct workspace ws)
 {
     free(ws.name);
     free(ws.output);
+    free(ws.window.title);
+    free(ws.window.application);
 }
 
 static void
@@ -377,6 +389,95 @@ handle_workspace_event(struct private *m, const struct json_object *json)
     return true;
 }
 
+static bool
+handle_window_event(struct private *m, const struct json_object *json)
+{
+    struct workspace *ws = NULL;
+    size_t focused = 0;
+    for (size_t i = 0; i < m->workspaces.count; i++) {
+        if (m->workspaces.v[i].focused) {
+            ws = &m->workspaces.v[i];
+            focused++;
+        }
+    }
+
+    assert(focused == 1);
+    assert(ws != NULL);
+
+    if (!json_object_is_type(json, json_type_object)) {
+        LOG_ERR("'window' event is not of type 'object'");
+        return false;
+    }
+
+    struct json_object *change = json_object_object_get(json, "change");
+    if (change == NULL || !json_object_is_type(change, json_type_string)) {
+        LOG_ERR("'window' event did not contain a 'change' string value");
+        return false;
+    }
+
+    const char *change_str = json_object_get_string(change);
+
+    if (strcmp(change_str, "close") == 0 || strcmp(change_str, "new") == 0) {
+        free(ws->window.title);
+        free(ws->window.application);
+
+        ws->window.title = ws->window.application = NULL;
+        ws->window.pid = -1;
+        return true;
+    }
+
+    const struct json_object *container = json_object_object_get(json, "container");
+    if (container == NULL || !json_object_is_type(container, json_type_object)) {
+        LOG_ERR("'window' event (%s) did not contain a 'container' object", change_str);
+        return false;
+    }
+
+    struct json_object *name = json_object_object_get(container, "name");
+    if (name == NULL || !json_object_is_type(name, json_type_string)) {
+        LOG_ERR(
+            "'window' event (%s) did not contain a 'container.name' string value",
+            change_str);
+        return false;
+    }
+
+    free(ws->window.title);
+    ws->window.title = strdup(json_object_get_string(name));
+
+    const struct json_object *pid = json_object_object_get(container, "pid");
+    if (pid == NULL || !json_object_is_type(pid, json_type_int)) {
+        LOG_ERR(
+            "'window' event (%s) did not contain a 'container.pid' integer value",
+            change_str);
+        return false;
+    }
+
+    /* If PID has changed, update application name from /proc/<pid>/comm */
+    if (ws->window.pid != json_object_get_int(pid)) {
+        ws->window.pid = json_object_get_int(pid);
+
+        char path[64];
+        snprintf(path, sizeof(path), "/proc/%u/comm", ws->window.pid);
+
+        int fd = open(path, O_RDONLY);
+        if (fd == -1) {
+            /* Application may simply have terminated */
+            free(ws->window.application); ws->window.application = NULL;
+            ws->window.pid = -1;
+            return true;
+        }
+
+        char application[128];
+        ssize_t bytes = read(fd, application, sizeof(application));
+        assert(bytes >= 0);
+
+        application[bytes - 1] = '\0';
+        ws->window.application = strdup(application);
+        close(fd);
+    }
+
+    return true;
+}
+
 #if defined(ENABLE_X11)
 static bool
 get_socket_address_x11(struct sockaddr_un *addr)
@@ -473,7 +574,7 @@ run(struct module *mod)
 
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
-    send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\"]");
+    send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\"]");
 
     /* Initial reply typically requires a couple of KB. But we often
      * need more later. For example, switching workspaces can result
@@ -583,9 +684,13 @@ run(struct module *mod)
                 need_bar_refresh = true;
                 break;
 
+            case I3_IPC_EVENT_WINDOW:
+                handle_window_event(m, json);
+                need_bar_refresh = true;
+                break;
+
             case I3_IPC_EVENT_OUTPUT:
             case I3_IPC_EVENT_MODE:
-            case I3_IPC_EVENT_WINDOW:
             case I3_IPC_EVENT_BARCONFIG_UPDATE:
             case I3_IPC_EVENT_BINDING:
             case I3_IPC_EVENT_SHUTDOWN:
@@ -687,8 +792,11 @@ content(struct module *mod)
                 tag_new_bool(mod, "focused", ws->focused),
                 tag_new_bool(mod, "urgent", ws->urgent),
                 tag_new_string(mod, "state", state),
+
+                tag_new_string(mod, "application", ws->window.application),
+                tag_new_string(mod, "title", ws->window.title),
             },
-            .count = 5,
+            .count = 7,
         };
 
         particles[particle_count++] = template->content->instantiate(
