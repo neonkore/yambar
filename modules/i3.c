@@ -763,6 +763,8 @@ content(struct module *mod)
     struct exposable *particles[m->workspaces.count + 1];
 
     size_t particle_count = 0;
+    struct exposable *current = NULL;
+
     for (size_t i = 0; i < m->workspaces.count; i++) {
         const struct workspace *ws = &m->workspaces.v[i];
         const struct ws_content *template = NULL;
@@ -774,11 +776,6 @@ content(struct module *mod)
         if (template == NULL) {
             LOG_DBG("no ws template for %s, using default template", ws->name);
             template = ws_content_for_name(m, "");
-        }
-
-        if (template == NULL) {
-            LOG_WARN("no ws template for %s, and no default template available", ws->name);
-            continue;
         }
 
         const char *state =
@@ -800,40 +797,25 @@ content(struct module *mod)
             .count = 7,
         };
 
-        particles[particle_count++] = template->content->instantiate(
-            template->content, &tags);
-
-        tag_set_destroy(&tags);
-    }
-
-    /* Find currently focused workspace */
-    const struct workspace *ws = NULL;
-    size_t count = 0;
-    for (size_t i = 0; i < m->workspaces.count; i++) {
-        if (m->workspaces.v[i].focused) {
-            ws = &m->workspaces.v[i];
-            count++;
+        if (ws->focused) {
+            const struct ws_content *cur = ws_content_for_name(m, "current");
+            current = cur->content->instantiate(cur->content, &tags);
         }
-    }
 
-    assert(count <= 1);
-    assert(count == 0 || ws != NULL);
+        if (template == NULL) {
+            LOG_WARN(
+                "no ws template for %s, and no default template available",
+                ws->name);
+        } else {
+            particles[particle_count++] = template->content->instantiate(
+                template->content, &tags);
+        }
 
-    const struct ws_content *template = ws_content_for_name(m, "current");
-
-    if (ws != NULL && template != NULL) {
-        struct tag_set tags = {
-            .tags = (struct tag *[]){
-                tag_new_string(mod, "application", ws->window.application),
-                tag_new_string(mod, "title", ws->window.title),
-            },
-            .count = 2,
-        };
-
-        particles[particle_count++] = template->content->instantiate(
-            template->content, &tags);
         tag_set_destroy(&tags);
     }
+
+    if (current != NULL)
+        particles[particle_count++] = current;
 
     mtx_unlock(&mod->lock);
     return dynlist_exposable_new(
