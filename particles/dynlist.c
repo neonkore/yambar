@@ -98,10 +98,10 @@ struct exposable *
 dynlist_exposable_new(struct exposable **exposables, size_t count,
                       int left_spacing, int right_spacing)
 {
-    struct private *e = malloc(sizeof(*e));
+    struct private *e = calloc(1, sizeof(*e));
     e->count = count;
     e->exposables = malloc(count * sizeof(e->exposables[0]));
-    e->widths = malloc(count * sizeof(e->widths[0]));
+    e->widths = calloc(count, sizeof(e->widths[0]));
     e->left_spacing = left_spacing;
     e->right_spacing = right_spacing;
 

@@ -108,9 +108,9 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 {
     const struct private *p = particle->private;
 
-    struct eprivate *e = malloc(sizeof(*e));
+    struct eprivate *e = calloc(1, sizeof(*e));
     e->exposables = malloc(p->count * sizeof(*e->exposables));
-    e->widths = malloc(p->count * sizeof(*e->widths));
+    e->widths = calloc(p->count, sizeof(*e->widths));
     e->count = p->count;
     e->left_spacing = p->left_spacing;
     e->right_spacing = p->right_spacing;
@@ -149,7 +149,7 @@ particle_list_new(struct particle *common,
                   struct particle *particles[], size_t count,
                   int left_spacing, int right_spacing)
 {
-    struct private *p = malloc(sizeof(*p));
+    struct private *p = calloc(1, sizeof(*p));
     p->particles = malloc(count * sizeof(p->particles[0]));
     p->count = count;
     p->left_spacing = left_spacing;

@@ -120,7 +120,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     struct particle *pp = p->particles[idx];
 
-    struct eprivate *e = malloc(sizeof(*e));
+    struct eprivate *e = calloc(1, sizeof(*e));
     e->exposable = pp->instantiate(pp, tags);
 
     char *on_click = tags_expand_template(particle->on_click_template, tags);
@@ -140,9 +140,9 @@ ramp_new(struct particle *common, const char *tag,
          struct particle *particles[], size_t count)
 {
 
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->tag = strdup(tag);
-    priv->particles = calloc(count, sizeof(priv->particles[0]));
+    priv->particles = malloc(count * sizeof(priv->particles[0]));
     priv->count = count;
 
     for (size_t i = 0; i < count; i++)
