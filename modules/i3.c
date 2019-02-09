@@ -445,8 +445,8 @@ handle_window_event(struct private *m, const struct json_object *json)
     free(ws->window.title);
     ws->window.title = strdup(json_object_get_string(name));
 
-    const struct json_object *pid = json_object_object_get(container, "pid");
-    if (pid == NULL || !json_object_is_type(pid, json_type_int)) {
+    const struct json_object *pid_node = json_object_object_get(container, "pid");
+    if (pid_node == NULL || !json_object_is_type(pid_node, json_type_int)) {
         LOG_ERR(
             "'window' event (%s) did not contain a 'container.pid' integer value",
             change_str);
@@ -454,8 +454,9 @@ handle_window_event(struct private *m, const struct json_object *json)
     }
 
     /* If PID has changed, update application name from /proc/<pid>/comm */
-    if (ws->window.pid != json_object_get_int(pid)) {
-        ws->window.pid = json_object_get_int(pid);
+    pid_t pid = json_object_get_int(pid_node);
+    if (ws->window.pid != pid) {
+        ws->window.pid = pid;
 
         char path[64];
         snprintf(path, sizeof(path), "/proc/%u/comm", ws->window.pid);
