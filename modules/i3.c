@@ -435,11 +435,14 @@ get_socket_address(struct sockaddr_un *addr)
 
     const char *sway_sock = getenv("SWAYSOCK");
     if (sway_sock == NULL) {
+        sway_sock = getenv("I3SOCK");
+        if (sway_sock == NULL) {
 #if defined(ENABLE_X11)
-        return get_socket_address_x11(addr);
+            return get_socket_address_x11(addr);
 #else
-        return false;
+            return false;
 #endif
+        }
     }
 
     strncpy(addr->sun_path, sway_sock, sizeof(addr->sun_path) - 1);
