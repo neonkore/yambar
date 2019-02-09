@@ -575,8 +575,8 @@ run(struct module *mod)
     }
 
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
-    send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
     send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\"]");
+    send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
 
     /* Initial reply typically requires a couple of KB. But we often
      * need more later. For example, switching workspaces can result
