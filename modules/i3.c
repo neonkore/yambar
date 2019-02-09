@@ -903,7 +903,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
             const struct yml_dict_iter item = yml_dict_iter(it.node);
             const char *key = yml_value_as_string(item.key);
 
-            if (strcmp(key, "dynlist") == 0) {
+            if (strcmp(key, "workspaces") == 0) {
                 ws_root_node = item.value;
             } else {
                 assert(label == NULL);
@@ -979,7 +979,7 @@ verify_content(keychain_t *chain, const struct yml_node *node)
         if (!yml_is_dict(it.node) || yml_dict_length(it.node) != 1) {
             LOG_ERR(
                 "%s: item must be a dictionary with a single item; "
-                "either a 'dynlist', or a particle name",
+                "either a 'workspaces', or a particle name",
                 conf_err_prefix(chain, it.node));
             return false;
         }
@@ -987,12 +987,13 @@ verify_content(keychain_t *chain, const struct yml_node *node)
         const struct yml_dict_iter item = yml_dict_iter(it.node);
         const char *key = yml_value_as_string(item.key);
         if (key == NULL) {
-            LOG_ERR("%s: key must be a string; either 'dynlist', or a particle name",
-                    conf_err_prefix(chain, item.key));
+            LOG_ERR(
+                "%s: key must be a string; either 'workspaces', or a particle name",
+                conf_err_prefix(chain, item.key));
             return false;
         }
 
-        if (strcmp(key, "dynlist") == 0) {
+        if (strcmp(key, "workspaces") == 0) {
             if (!verify_content_dynlist(chain_push(chain, key), item.value))
                 return false;
             chain_pop(chain);
