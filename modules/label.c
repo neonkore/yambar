@@ -37,7 +37,7 @@ run(struct module *mod)
 static struct module *
 label_new(struct particle *label)
 {
-    struct private *m = malloc(sizeof(*m));
+    struct private *m = calloc(1, sizeof(*m));
     m->label = label;
 
     struct module *mod = module_common_new();

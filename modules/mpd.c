@@ -565,20 +565,11 @@ refresh_in(struct module *mod, long milli_seconds)
 static struct module *
 mpd_new(const char *host, uint16_t port, struct particle *label)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->host = strdup(host);
     priv->port = port;
     priv->label = label;
-    priv->conn = NULL;
     priv->state = STATE_OFFLINE;
-    priv->repeat = priv->random = priv->consume = false;
-    priv->album = NULL;
-    priv->artist = NULL;
-    priv->title = NULL;
-    priv->elapsed.value = 0;
-    priv->elapsed.when.tv_sec = priv->elapsed.when.tv_nsec = 0;
-    priv->duration = 0;
-    priv->refresh_thread_id = 0;
     priv->refresh_abort_fd = -1;
 
     struct module *mod = module_common_new();

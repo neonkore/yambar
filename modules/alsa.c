@@ -269,13 +269,10 @@ err:
 static struct module *
 alsa_new(const char *card, const char *mixer, struct particle *label)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->label = label;
     priv->card = strdup(card);
     priv->mixer = strdup(mixer);
-    memset(&priv->channels, 0, sizeof(priv->channels));
-    priv->vol_cur = priv->vol_min = priv->vol_max = 0;
-    priv->muted = true;
 
     struct module *mod = module_common_new();
     mod->private = priv;

@@ -206,11 +206,9 @@ run(struct module *mod)
 static struct module *
 backlight_new(const char *device, struct particle *label)
 {
-    struct private *m = malloc(sizeof(*m));
+    struct private *m = calloc(1, sizeof(*m));
     m->label = label;
     m->device = strdup(device);
-    m->max_brightness = 0;
-    m->current_brightness = 0;
 
     struct module *mod = module_common_new();
     mod->private = m;

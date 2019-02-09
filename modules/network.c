@@ -511,17 +511,14 @@ run(struct module *mod)
 static struct module *
 network_new(const char *iface, struct particle *label)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->iface = strdup(iface);
     priv->label = label;
 
     priv->nl_sock = -1;
     priv->get_addresses = true;
     priv->ifindex = -1;
-    memset(priv->mac, 0, sizeof(priv->mac));
-    priv->carrier = false;
     priv->state = IF_OPER_DOWN;
-    memset(&priv->addrs, 0, sizeof(priv->addrs));
 
     struct module *mod = module_common_new();
     mod->private = priv;
