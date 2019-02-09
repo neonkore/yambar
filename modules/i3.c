@@ -69,8 +69,6 @@ struct private {
         struct workspace *v;
         size_t count;
     } workspaces;
-
-    struct particle *label;
 };
 
 static bool
@@ -739,9 +737,6 @@ destroy(struct module *mod)
     free(m->ws_content.v);
     workspaces_free(m);
 
-    if (m->label != NULL)
-        m->label->destroy(m->label);
-
     free(m);
     module_default_destroy(mod);
 }
@@ -765,7 +760,7 @@ content(struct module *mod)
 
     mtx_lock(&mod->lock);
 
-    struct exposable *particles[m->workspaces.count + (m->label != NULL)];
+    struct exposable *particles[m->workspaces.count + 1];
 
     size_t particle_count = 0;
     for (size_t i = 0; i < m->workspaces.count; i++) {
@@ -824,7 +819,9 @@ content(struct module *mod)
     assert(count <= 1);
     assert(count == 0 || ws != NULL);
 
-    if (ws != NULL && m->label != NULL) {
+    const struct ws_content *template = ws_content_for_name(m, "current");
+
+    if (ws != NULL && template != NULL) {
         struct tag_set tags = {
             .tags = (struct tag *[]){
                 tag_new_string(mod, "application", ws->window.application),
@@ -833,7 +830,8 @@ content(struct module *mod)
             .count = 2,
         };
 
-        particles[particle_count++] = m->label->instantiate(m->label, &tags);
+        particles[particle_count++] = template->content->instantiate(
+            template->content, &tags);
         tag_set_destroy(&tags);
     }
 
@@ -850,7 +848,7 @@ struct i3_workspaces {
 
 static struct module *
 i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
-       struct particle *label, int left_spacing, int right_spacing)
+       int left_spacing, int right_spacing)
 {
     struct private *m = calloc(1, sizeof(*m));
 
@@ -864,8 +862,6 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
         m->ws_content.v[i].name = strdup(workspaces[i].name);
         m->ws_content.v[i].content = workspaces[i].content;
     }
-
-    m->label = label;
 
     struct module *mod = module_common_new();
     mod->private = m;
@@ -888,37 +884,10 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     int right = spacing != NULL ? yml_value_as_int(spacing) :
         right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
 
-    const struct yml_node *ws_root_node = NULL;
-    struct particle *label = NULL;
-
-    if (yml_is_dict(c)) {
-        ws_root_node = c;
-    } else {
-        for (struct yml_list_iter it = yml_list_iter(c);
-             it.node != NULL;
-             yml_list_next(&it))
-        {
-            assert(yml_is_dict(it.node));
-            assert(yml_dict_length(it.node) == 1);
-
-            const struct yml_dict_iter item = yml_dict_iter(it.node);
-            const char *key = yml_value_as_string(item.key);
-
-            if (strcmp(key, "workspaces") == 0) {
-                ws_root_node = item.value;
-            } else {
-                assert(label == NULL);
-                label = conf_to_particle(it.node, inherited);
-            }
-        }
-    }
-
-    assert(yml_is_dict(ws_root_node));
-    const size_t ws_count = yml_dict_length(ws_root_node);
-    struct i3_workspaces workspaces[ws_count];
+    struct i3_workspaces workspaces[yml_dict_length(c)];
 
     size_t idx = 0;
-    for (struct yml_dict_iter it = yml_dict_iter(ws_root_node);
+    for (struct yml_dict_iter it = yml_dict_iter(c);
          it.key != NULL;
          yml_dict_next(&it), idx++)
     {
@@ -926,13 +895,18 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
         workspaces[idx].content = conf_to_particle(it.value, inherited);
     }
 
-    return i3_new(workspaces, ws_count, label, left, right);
+    return i3_new(workspaces, yml_dict_length(c), left, right);
 }
 
 static bool
-verify_content_dynlist(keychain_t *chain, const struct yml_node *node)
+verify_content(keychain_t *chain, const struct yml_node *node)
 {
-    assert(yml_is_dict(node));
+    if (!yml_is_dict(node)) {
+        LOG_ERR(
+            "%s: must be a dictionary of workspace-name: particle mappings",
+            conf_err_prefix(chain, node));
+        return false;
+    }
 
     for (struct yml_dict_iter it = yml_dict_iter(node);
          it.key != NULL;
@@ -949,60 +923,6 @@ verify_content_dynlist(keychain_t *chain, const struct yml_node *node)
             return false;
 
         chain_pop(chain);
-    }
-
-    return true;
-}
-
-static bool
-verify_content(keychain_t *chain, const struct yml_node *node)
-{
-    if (!yml_is_dict(node) && !yml_is_list(node)) {
-        LOG_ERR(
-            "%s: must be a dictionary of workspace-name: particle mappings",
-            conf_err_prefix(chain, node));
-        return false;
-    }
-
-    if (yml_is_dict(node))
-        return verify_content_dynlist(chain, node);
-
-    if (yml_list_length(node) > 2) {
-        LOG_ERR("%s: must be a list of at most 2 entries",
-                conf_err_prefix(chain, node));
-        return false;
-    }
-
-    for (struct yml_list_iter it = yml_list_iter(node);
-         it.node != NULL;
-         yml_list_next(&it))
-    {
-        if (!yml_is_dict(it.node) || yml_dict_length(it.node) != 1) {
-            LOG_ERR(
-                "%s: item must be a dictionary with a single item; "
-                "either a 'workspaces', or a particle name",
-                conf_err_prefix(chain, it.node));
-            return false;
-        }
-
-        const struct yml_dict_iter item = yml_dict_iter(it.node);
-        const char *key = yml_value_as_string(item.key);
-        if (key == NULL) {
-            LOG_ERR(
-                "%s: key must be a string; either 'workspaces', or a particle name",
-                conf_err_prefix(chain, item.key));
-            return false;
-        }
-
-        if (strcmp(key, "workspaces") == 0) {
-            if (!verify_content_dynlist(chain_push(chain, key), item.value))
-                return false;
-            chain_pop(chain);
-        } else {
-            if (!conf_verify_particle(chain, it.node))
-                return false;
-        }
-
     }
 
     return true;
