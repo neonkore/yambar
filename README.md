@@ -40,7 +40,7 @@
 ![screenshot](screenshot.png "Example configuration")
 
 **f00bar** is a light-weight and configurable status panel (_bar_, for
-short) for X.
+short) for X and Wayland.
 
 It has a number of _modules_ that provide information in the form of
 _tags_. For example, the _clock_ module has a _date_ tag that contains
