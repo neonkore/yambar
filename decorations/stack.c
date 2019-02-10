@@ -34,14 +34,14 @@ expose(const struct deco *deco, cairo_t *cr, int x, int y, int width, int height
 static struct deco *
 stack_new(struct deco *decos[], size_t count)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->decos = malloc(count * sizeof(priv->decos[0]));
     priv->count = count;
 
     for (size_t i = 0; i < count; i++)
         priv->decos[i] = decos[i];
 
-    struct deco *deco = malloc(sizeof(*deco));
+    struct deco *deco = calloc(1, sizeof(*deco));
     deco->private = priv;
     deco->expose = &expose;
     deco->destroy = &destroy;

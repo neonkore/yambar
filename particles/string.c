@@ -108,12 +108,9 @@ static struct exposable *
 instantiate(const struct particle *particle, const struct tag_set *tags)
 {
     const struct private *p = particle->private;
-    struct eprivate *e = malloc(sizeof(*e));
+    struct eprivate *e = calloc(1, sizeof(*e));
 
     e->text = tags_expand_template(p->text, tags);
-    memset(&e->extents, 0, sizeof(e->extents));
-    e->glyphs = NULL;
-    e->clusters = NULL;
     e->num_glyphs = -1;
     e->num_clusters = -1;
 
@@ -164,7 +161,7 @@ particle_destroy(struct particle *particle)
 static struct particle *
 string_new(struct particle *common, const char *text, size_t max_len)
 {
-    struct private *p = malloc(sizeof(*p));
+    struct private *p = calloc(1, sizeof(*p));
     p->text = strdup(text);
     p->max_len = max_len;
 

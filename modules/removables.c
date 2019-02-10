@@ -545,11 +545,10 @@ run(struct module *mod)
 static struct module *
 removables_new(struct particle *label, int left_spacing, int right_spacing)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->label = label;
     priv->left_spacing = left_spacing;
     priv->right_spacing = right_spacing;
-    memset(&priv->devices, 0, sizeof(priv->devices));
 
     struct module *mod = module_common_new();
     mod->private = priv;

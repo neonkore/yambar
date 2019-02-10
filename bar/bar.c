@@ -367,7 +367,7 @@ destroy(struct bar *bar)
 struct bar *
 bar_new(const struct bar_config *config)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->monitor = config->monitor != NULL ? strdup(config->monitor) : NULL;
     priv->location = config->location;
     priv->height = config->height;
@@ -379,15 +379,14 @@ bar_new(const struct bar_config *config)
     priv->border.width = config->border.width;
     priv->border.color = config->border.color;
     priv->left.mods = malloc(config->left.count * sizeof(priv->left.mods[0]));
-    priv->left.exps = malloc(config->left.count * sizeof(priv->left.exps[0]));
+    priv->left.exps = calloc(config->left.count, sizeof(priv->left.exps[0]));
     priv->center.mods = malloc(config->center.count * sizeof(priv->center.mods[0]));
-    priv->center.exps = malloc(config->center.count * sizeof(priv->center.exps[0]));
+    priv->center.exps = calloc(config->center.count, sizeof(priv->center.exps[0]));
     priv->right.mods = malloc(config->right.count * sizeof(priv->right.mods[0]));
-    priv->right.exps = malloc(config->right.count * sizeof(priv->right.exps[0]));
+    priv->right.exps = calloc(config->right.count, sizeof(priv->right.exps[0]));
     priv->left.count = config->left.count;
     priv->center.count = config->center.count;
     priv->right.count = config->right.count;
-    priv->cursor_name = NULL;
 
 #if defined(ENABLE_X11) && !defined(ENABLE_WAYLAND)
     priv->backend.data = bar_backend_xcb_new();
@@ -407,20 +406,14 @@ bar_new(const struct bar_config *config)
 #endif
 #endif
 
-    for (size_t i = 0; i < priv->left.count; i++) {
+    for (size_t i = 0; i < priv->left.count; i++)
         priv->left.mods[i] = config->left.mods[i];
-        priv->left.exps[i] = NULL;
-    }
-    for (size_t i = 0; i < priv->center.count; i++) {
+    for (size_t i = 0; i < priv->center.count; i++)
         priv->center.mods[i] = config->center.mods[i];
-        priv->center.exps[i] = NULL;
-    }
-    for (size_t i = 0; i < priv->right.count; i++) {
+    for (size_t i = 0; i < priv->right.count; i++)
         priv->right.mods[i] = config->right.mods[i];
-        priv->right.exps[i] = NULL;
-    }
 
-    struct bar *bar = malloc(sizeof(*bar));
+    struct bar *bar = calloc(1, sizeof(*bar));
     bar->private = priv;
     bar->run = &run;
     bar->destroy = &destroy;

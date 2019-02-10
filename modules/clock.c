@@ -82,7 +82,7 @@ run(struct module *mod)
 static struct module *
 clock_new(struct particle *label, const char *date_format, const char *time_format)
 {
-    struct private *m = malloc(sizeof(*m));
+    struct private *m = calloc(1, sizeof(*m));
     m->label = label;
     m->date_format = strdup(date_format);
     m->time_format = strdup(time_format);

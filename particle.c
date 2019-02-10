@@ -28,7 +28,7 @@ particle_common_new(int left_margin, int right_margin,
                     struct font *font, struct rgba foreground,
                     struct deco *deco)
 {
-    struct particle *p = malloc(sizeof(*p));
+    struct particle *p = calloc(1, sizeof(*p));
     p->left_margin = left_margin;
     p->right_margin = right_margin;
     p->on_click_template =
@@ -120,14 +120,10 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 struct exposable *
 exposable_common_new(const struct particle *particle, const char *on_click)
 {
-    struct exposable *exposable = malloc(sizeof(*exposable));
+    struct exposable *exposable = calloc(1, sizeof(*exposable));
     exposable->particle = particle;
-    exposable->private = NULL;
-    exposable->width = 0;
     exposable->on_click = on_click != NULL ? strdup(on_click) : NULL;
     exposable->destroy = &exposable_default_destroy;
     exposable->on_mouse = &exposable_default_on_mouse;
-    exposable->begin_expose = NULL;
-    exposable->expose = NULL;
     return exposable;
 }

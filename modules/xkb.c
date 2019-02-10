@@ -642,16 +642,8 @@ run(struct module *mod)
 static struct module *
 xkb_new(struct particle *label)
 {
-    struct private *m = malloc(sizeof(*m));
+    struct private *m = calloc(1, sizeof(*m));
     m->label = label;
-    m->current = 0;
-    m->layouts.count = 0;
-    m->layouts.layouts = NULL;
-    m->indicators.count = 0;
-    m->indicators.names = NULL;
-    m->caps_lock = false;
-    m->num_lock = false;
-    m->scroll_lock = false;
 
     struct module *mod = module_common_new();
     mod->private = m;

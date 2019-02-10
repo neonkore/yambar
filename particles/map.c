@@ -111,7 +111,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         pp = p->default_particle;
     }
 
-    struct eprivate *e = malloc(sizeof(*e));
+    struct eprivate *e = calloc(1, sizeof(*e));
     e->exposable = pp->instantiate(pp, tags);
 
     char *on_click = tags_expand_template(particle->on_click_template, tags);
@@ -151,7 +151,7 @@ map_new(struct particle *common, const char *tag,
         const struct particle_map particle_map[], size_t count,
         struct particle *default_particle)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->tag = strdup(tag);
     priv->default_particle = default_particle;
     priv->count = count;

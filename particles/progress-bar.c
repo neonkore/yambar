@@ -144,7 +144,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     long fill_count = max == min ? 0 : p->width * value / (max - min);
     long empty_count = p->width - fill_count;
 
-    struct eprivate *epriv = malloc(sizeof(*epriv));
+    struct eprivate *epriv = calloc(1, sizeof(*epriv));
     epriv->count = (
         1 +             /* Start marker */
         fill_count +    /* Before current position */
@@ -214,7 +214,7 @@ progress_bar_new(struct particle *common, const char *tag, int width,
                  struct particle *fill, struct particle *empty,
                  struct particle *indicator)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->tag = strdup(tag);
     priv->width = width;
     priv->start_marker = start_marker;

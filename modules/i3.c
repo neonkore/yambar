@@ -248,7 +248,7 @@ handle_get_workspaces_reply(struct private *m, const struct json_object *json)
 
     size_t count = json_object_array_length(json);
     m->workspaces.count = count;
-    m->workspaces.v = malloc(count * sizeof(m->workspaces.v[0]));
+    m->workspaces.v = calloc(count, sizeof(m->workspaces.v[0]));
 
     for (size_t i = 0; i < count; i++) {
         if (!workspace_from_json(
@@ -709,7 +709,7 @@ static struct module *
 i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
        int left_spacing, int right_spacing)
 {
-    struct private *m = malloc(sizeof(*m));
+    struct private *m = calloc(1, sizeof(*m));
 
     m->left_spacing = left_spacing;
     m->right_spacing = right_spacing;
@@ -721,9 +721,6 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
         m->ws_content.v[i].name = strdup(workspaces[i].name);
         m->ws_content.v[i].content = workspaces[i].content;
     }
-
-    m->workspaces.v = NULL;
-    m->workspaces.count = 0;
 
     struct module *mod = module_common_new();
     mod->private = m;

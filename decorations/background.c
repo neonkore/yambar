@@ -30,10 +30,10 @@ expose(const struct deco *deco, cairo_t *cr, int x, int y, int width, int height
 static struct deco *
 background_new(struct rgba color)
 {
-    struct private *priv = malloc(sizeof(*priv));
+    struct private *priv = calloc(1, sizeof(*priv));
     priv->color = color;
 
-    struct deco *deco = malloc(sizeof(*deco));
+    struct deco *deco = calloc(1, sizeof(*deco));
     deco->private = priv;
     deco->expose = &expose;
     deco->destroy = &destroy;

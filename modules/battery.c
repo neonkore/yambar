@@ -327,20 +327,11 @@ out:
 static struct module *
 battery_new(const char *battery, struct particle *label, int poll_interval_secs)
 {
-    struct private *m = malloc(sizeof(*m));
+    struct private *m = calloc(1, sizeof(*m));
     m->label = label;
     m->poll_interval = poll_interval_secs;
     m->battery = strdup(battery);
-
-    m->manufacturer = NULL;
-    m->model = NULL;
-
-    m->energy_full_design = 0;
-    m->energy_full = 0;
     m->state = STATE_DISCHARGING;
-    m->capacity = 0;
-    m->energy = 0;
-    m->power = 0;
 
     struct module *mod = module_common_new();
     mod->private = m;
