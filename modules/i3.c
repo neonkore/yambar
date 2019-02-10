@@ -760,9 +760,8 @@ content(struct module *mod)
 
     mtx_lock(&mod->lock);
 
-    struct exposable *particles[m->workspaces.count + 1];
-
     size_t particle_count = 0;
+    struct exposable *particles[m->workspaces.count + 1];
     struct exposable *current = NULL;
 
     for (size_t i = 0; i < m->workspaces.count; i++) {
