@@ -64,3 +64,5 @@ target_link_libraries(bar
   $<$<BOOL:${ENABLE_WAYLAND}>:bar-wayland>
   ${CMAKE_THREAD_LIBS_INIT}
 )
+
+install(FILES bar.h DESTINATION include/f00bar/bar)
