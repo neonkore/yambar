@@ -43,7 +43,7 @@ if (ENABLE_WAYLAND)
 
   wayland_protocol(
     wayland_protos
-    ${PROJECT_SOURCE_DIR}/external/wlroots/protocol/wlr-layer-shell-unstable-v1.xml
+    ${PROJECT_SOURCE_DIR}/external/wlr-protocols/unstable/wlr-layer-shell-unstable-v1.xml
     ${WAYLAND_PROTOCOLS}/stable/xdg-shell/xdg-shell.xml
     ${WAYLAND_PROTOCOLS}/unstable/xdg-output/xdg-output-unstable-v1.xml
     )

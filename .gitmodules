@@ -1,3 +1,4 @@
-[submodule "external/wlroots"]
-	path = external/wlroots
-	url = https://github.com/swaywm/wlroots.git
+[submodule "external/wlr-protocols"]
+	path = external/wlr-protocols
+	url = https://github.com/swaywm/wlr-protocols.git
+	branch = master
