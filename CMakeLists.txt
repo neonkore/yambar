@@ -54,6 +54,7 @@ if (ENABLE_X11)
     set_property(TARGET xcb-stuff PROPERTY POSITION_INDEPENDENT_CODE 1)
   endif ()
 
+  install(FILES xcb.h DESTINATION include/f00bar)
 endif ()
 
 if (ENABLE_WAYLAND)
@@ -64,8 +65,9 @@ endif ()
 add_subdirectory(bar)
 
 add_executable(f00bar
-  config.c config.h
+  color.h
   config-verify.c config-verify.h
+  config.c config.h
   decoration.h
   font.c font.h
   log.c log.h
@@ -74,6 +76,7 @@ add_executable(f00bar
   particle.c particle.h
   plugin.c plugin.h
   tag.c tag.h
+  tllist.h
   yml.c yml.h
   )
 
@@ -90,6 +93,21 @@ set_property(TARGET f00bar PROPERTY
   BUILD_RPATH "\$ORIGIN/modules;\$ORIGIN/particles;\$ORIGIN/decorations")
 
 install(TARGETS f00bar DESTINATION bin)
+install(FILES
+  color.h
+  config.h
+  config-verify.h
+  decoration.h
+  font.h
+  log.h
+  module.h
+  particle.h
+  tag.h
+  tllist.h
+  yml.h
+
+  DESTINATION include/f00bar
+)
 
 set(enabled_modules "")
 set(enabled_particles "")
