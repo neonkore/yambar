@@ -12,6 +12,7 @@
 
 #include <sys/types.h>
 #include <sys/eventfd.h>
+#include <sys/stat.h>
 #include <pwd.h>
 
 #include "bar/bar.h"
@@ -30,7 +31,7 @@ signal_handler(int signo)
 }
 
 static char *
-get_config_path(void)
+get_config_path_user_config(void)
 {
     struct passwd *passwd = getpwuid(getuid());
     if (passwd == NULL) {
@@ -41,13 +42,41 @@ get_config_path(void)
     const char *home_dir = passwd->pw_dir;
     LOG_DBG("user's home directory: %s", home_dir);
 
-    long path_max = sysconf(_PC_PATH_MAX);
-    if (path_max == -1)
-        path_max = 1024;
-
-    char *path = malloc(path_max + 1);
-    snprintf(path, path_max + 1, "%s/.config/f00bar/config.yml", home_dir);
+    int len = snprintf(NULL, 0, "%s/.config/f00bar/config.yml", home_dir);
+    char *path = malloc(len + 1);
+    snprintf(path, len + 1, "%s/.config/f00bar/config.yml", home_dir);
     return path;
+}
+
+static char *
+get_config_path_xdg(void)
+{
+    const char *xdg_config_home = getenv("XDG_CONFIG_HOME");
+    if (xdg_config_home == NULL)
+        return NULL;
+
+    int len = snprintf(NULL, 0, "%s/f00bar/config.yml", xdg_config_home);
+    char *path = malloc(len + 1);
+    snprintf(path, len + 1, "%s/f00bar/config.yml", xdg_config_home);
+    return path;
+}
+
+static char *
+get_config_path(void)
+{
+    struct stat st;
+
+    char *config = get_config_path_user_config();
+    if (config != NULL && stat(config, &st) == 0 && S_ISREG(st.st_mode))
+        return config;
+    free(config);
+
+    config = get_config_path_xdg();
+    if (config != NULL && stat(config, &st) == 0 && S_ISREG(st.st_mode))
+        return config;
+    free(config);
+
+    return NULL;
 }
 
 static struct bar *
