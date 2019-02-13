@@ -95,8 +95,8 @@ i3_get_socket_address(struct sockaddr_un *addr)
 bool
 i3_send_pkg(int sock, int cmd, char *data)
 {
-    size_t size = data != NULL ? strlen(data) : 0;
-    i3_ipc_header_t hdr = {
+    const size_t size = data != NULL ? strlen(data) : 0;
+    const i3_ipc_header_t hdr = {
         .magic = I3_IPC_MAGIC,
         .size = size,
         .type = cmd
