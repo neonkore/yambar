@@ -798,7 +798,8 @@ content(struct module *mod)
 
         if (ws->focused) {
             const struct ws_content *cur = ws_content_for_name(m, "current");
-            current = cur->content->instantiate(cur->content, &tags);
+            if (cur != NULL)
+                current = cur->content->instantiate(cur->content, &tags);
         }
 
         if (template == NULL) {
