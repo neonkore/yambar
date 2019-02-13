@@ -178,26 +178,6 @@ workspace_lookup(struct private *m, const char *name)
     return NULL;
 }
 
-static bool
-send_pkg(int sock, int cmd, char *data)
-{
-    size_t size = data != NULL ? strlen(data) : 0;
-    i3_ipc_header_t hdr = {
-        .magic = I3_IPC_MAGIC,
-        .size = size,
-        .type = cmd
-    };
-
-    if (write(sock, &hdr, sizeof(hdr)) != (ssize_t)sizeof(hdr))
-        return false;
-
-    if (data != NULL) {
-        if (write(sock, data, size) != (ssize_t)size)
-            return false;
-    }
-
-    return true;
-}
 
 static bool
 handle_get_version_reply(struct private *m, const struct json_object *json)
@@ -495,9 +475,9 @@ run(struct module *mod)
         return 1;
     }
 
-    send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
-    send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\"]");
-    send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
+    i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
+    i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\"]");
+    i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
 
     /* Initial reply typically requires a couple of KB. But we often
      * need more later. For example, switching workspaces can result

@@ -1,12 +1,15 @@
 #include "i3-common.h"
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <assert.h>
 
 #if defined(ENABLE_X11)
  #include <xcb/xcb.h>
  #include <xcb/xcb_aux.h>
 #endif
+
+#include <i3/ipc.h>
 
 #define LOG_MODULE "i3:common"
 #include "../log.h"
@@ -86,5 +89,26 @@ i3_get_socket_address(struct sockaddr_un *addr)
     }
 
     strncpy(addr->sun_path, sway_sock, sizeof(addr->sun_path) - 1);
+    return true;
+}
+
+bool
+i3_send_pkg(int sock, int cmd, char *data)
+{
+    size_t size = data != NULL ? strlen(data) : 0;
+    i3_ipc_header_t hdr = {
+        .magic = I3_IPC_MAGIC,
+        .size = size,
+        .type = cmd
+    };
+
+    if (write(sock, &hdr, sizeof(hdr)) != (ssize_t)sizeof(hdr))
+        return false;
+
+    if (data != NULL) {
+        if (write(sock, data, size) != (ssize_t)size)
+            return false;
+    }
+
     return true;
 }
