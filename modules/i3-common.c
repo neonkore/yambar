@@ -37,15 +37,14 @@ get_socket_address_x11(struct sockaddr_un *addr)
             conn, false, screen->root, atom,
             XCB_GET_PROPERTY_TYPE_ANY, 0, sizeof(addr->sun_path));
 
-    xcb_generic_error_t *err;
+    xcb_generic_error_t *err = NULL;
     xcb_get_property_reply_t *reply =
         xcb_get_property_reply(conn, cookie, &err);
+    bool ret = false;
 
     if (err != NULL) {
         LOG_ERR("failed to get i3 socket path: %s", xcb_error(err));
-        free(err);
-        free(reply);
-        return false;
+        goto err;
     }
 
     const int len = xcb_get_property_value_length(reply);
@@ -53,16 +52,19 @@ get_socket_address_x11(struct sockaddr_un *addr)
 
     if (len == 0) {
         LOG_ERR("failed to get i3 socket path: empty reply");
-        free(reply);
-        return false;
+        goto err;
     }
 
     memcpy(addr->sun_path, xcb_get_property_value(reply), len);
     addr->sun_path[len] = '\0';
 
+    ret = true;
+
+err:
+    free(err);
     free(reply);
     xcb_disconnect(conn);
-    return true;
+    return ret;
 }
 #endif
 
