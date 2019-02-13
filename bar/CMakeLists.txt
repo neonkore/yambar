@@ -8,6 +8,11 @@ endif ()
 
 # Wayland/wlroots bar backend
 if (ENABLE_WAYLAND)
+  find_program(WAYLAND_SCANNER_EXECUTABLE wayland-scanner)
+  if (WAYLAND_SCANNER_EXECUTABLE-NOTFOUND)
+    message(FATAL_ERROR "could not find wayland-scanner")
+  endif ()
+
   function (wayland_protocol _deps)
     set(deps "")
     foreach (xml_file ${ARGN})
@@ -17,13 +22,13 @@ if (ENABLE_WAYLAND)
 
       add_custom_command(
         OUTPUT ${out_h}
-        COMMAND wayland-scanner client-header < ${xml_file} > ${out_h}
+        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header < ${xml_file} > ${out_h}
         VERBATIM
         MAIN_DEPENDENCY ${xml_file}
         )
       add_custom_command(
         OUTPUT ${out_c}
-        COMMAND wayland-scanner private-code < ${xml_file} > ${out_c}
+        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code < ${xml_file} > ${out_c}
         VERBATIM
         MAIN_DEPENDENCY ${xml_file}
         )
