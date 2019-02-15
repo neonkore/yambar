@@ -253,9 +253,11 @@ i3_receive_loop(int abort_fd, int sock,
             case I3_IPC_REPLY_TYPE_TICK:
                 pkt_handler = cbs->reply_tick;
                 break;
+#if defined(I3_IPC_REPLY_TYPE_SYNC)
             case I3_IPC_REPLY_TYPE_SYNC:
                 pkt_handler = cbs->reply_sync;
                 break;
+#endif
 
             case I3_IPC_EVENT_WORKSPACE:
                 pkt_handler = cbs->event_workspace;
