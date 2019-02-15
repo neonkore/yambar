@@ -298,6 +298,9 @@ i3_receive_loop(int abort_fd, int sock,
             memmove(buf, &buf[total_size], buf_idx - total_size);
             buf_idx -= total_size;
         }
+
+        if (cbs->burst_done != NULL)
+            cbs->burst_done(data);
     }
 
     free(buf);
