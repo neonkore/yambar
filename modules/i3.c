@@ -1,16 +1,10 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
 #include <threads.h>
 
-#include <poll.h>
-
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <fcntl.h>
 
 #include <i3/ipc.h>
