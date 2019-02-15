@@ -142,11 +142,13 @@ i3_receive_loop(int abort_fd, int sock,
             break;
         }
 
-        if (fds[0].revents & POLLIN)
+        if (fds[0].revents & POLLIN) {
+            LOG_DBG("aborted");
             break;
+        }
 
         if (fds[1].revents & POLLHUP) {
-            LOG_WARN("disconnected");
+            LOG_DBG("disconnected");
             break;
         }
 
