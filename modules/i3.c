@@ -15,10 +15,6 @@
 
 #include <i3/ipc.h>
 
-#include <json-c/json_tokener.h>
-#include <json-c/json_util.h>
-#include <json-c/linkhash.h>
-
 #define LOG_MODULE "i3"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
@@ -180,7 +176,7 @@ workspace_lookup(struct private *m, const char *name)
 
 
 static bool
-handle_get_version_reply(struct private *m, const struct json_object *json)
+handle_get_version_reply(int type, const struct json_object *json, void *_m)
 {
     if (!json_object_is_type(json, json_type_object)) {
         LOG_ERR("'version' reply is not of type 'object'");
@@ -199,7 +195,7 @@ handle_get_version_reply(struct private *m, const struct json_object *json)
 }
 
 static bool
-handle_subscribe_reply(struct private *m, const struct json_object *json)
+handle_subscribe_reply(int type, const struct json_object *json, void *_m)
 {
     if (!json_object_is_type(json, json_type_object)) {
         LOG_ERR("'subscribe' reply is not of type 'object'");
@@ -222,12 +218,17 @@ handle_subscribe_reply(struct private *m, const struct json_object *json)
 }
 
 static bool
-handle_get_workspaces_reply(struct private *m, const struct json_object *json)
+handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod)
 {
+    struct module *mod = _mod;
+    struct private *m = mod->private;
+
     if (!json_object_is_type(json, json_type_array)) {
         LOG_ERR("'workspaces' reply is not of type 'array'");
         return false;
     }
+
+    mtx_lock(&mod->lock);
 
     workspaces_free(m);
 
@@ -239,18 +240,24 @@ handle_get_workspaces_reply(struct private *m, const struct json_object *json)
         if (!workspace_from_json(
                 json_object_array_get_idx(json, i), &m->workspaces.v[i])) {
             workspaces_free(m);
+            mtx_unlock(&mod->lock);
             return false;
         }
 
         LOG_DBG("#%zu: %s", i, m->workspaces.v[i].name);
     }
 
+    mtx_unlock(&mod->lock);
+    mod->bar->refresh(mod->bar);
     return true;
 }
 
 static bool
-handle_workspace_event(struct private *m, const struct json_object *json)
+handle_workspace_event(int type, const struct json_object *json, void *_mod)
 {
+    struct module *mod = _mod;
+    struct private *m = mod->private;
+
     if (!json_object_is_type(json, json_type_object)) {
         LOG_ERR("'workspace' event is not of type 'object'");
         return false;
@@ -285,12 +292,14 @@ handle_workspace_event(struct private *m, const struct json_object *json)
         }
     }
 
+    mtx_lock(&mod->lock);
+
     if (strcmp(change_str, "init") == 0) {
         assert(workspace_lookup(m, json_object_get_string(current_name)) == NULL);
 
         struct workspace ws;
         if (!workspace_from_json(current, &ws))
-            return false;
+            goto err;
 
         workspace_add(m, ws);
     }
@@ -303,14 +312,14 @@ handle_workspace_event(struct private *m, const struct json_object *json)
     else if (strcmp(change_str, "focus") == 0) {
         if (old == NULL || !json_object_is_type(old, json_type_object)) {
             LOG_ERR("'workspace' event did not contain a 'old' object value");
-            return false;
+            goto err;
         }
 
         struct json_object *old_name = json_object_object_get(old, "name");
         if (old_name == NULL || !json_object_is_type(old_name, json_type_string)) {
             LOG_ERR("'workspace' event's 'old' object did not "
                     "contain a 'name' string value");
-            return false;
+            goto err;
         }
 
         struct workspace *w = workspace_lookup(
@@ -329,7 +338,7 @@ handle_workspace_event(struct private *m, const struct json_object *json)
         if (urgent == NULL || !json_object_is_type(urgent, json_type_boolean)) {
             LOG_ERR("'workspace' event's 'current' object did not "
                     "contain a 'urgent' boolean value");
-            return false;
+            goto err;
         }
 
         w->urgent = json_object_get_boolean(urgent);
@@ -348,7 +357,7 @@ handle_workspace_event(struct private *m, const struct json_object *json)
         if (urgent == NULL || !json_object_is_type(urgent, json_type_boolean)) {
             LOG_ERR("'workspace' event's 'current' object did not "
                     "contain a 'urgent' boolean value");
-            return false;
+            goto err;
         }
 
         struct workspace *w = workspace_lookup(
@@ -359,12 +368,23 @@ handle_workspace_event(struct private *m, const struct json_object *json)
     else if (strcmp(change_str, "reload") == 0)
         LOG_WARN("unimplemented: 'reload' event");
 
+    mtx_unlock(&mod->lock);
+    mod->bar->refresh(mod->bar);
     return true;
+
+err:
+    mtx_unlock(&mod->lock);
+    return false;
 }
 
 static bool
-handle_window_event(struct private *m, const struct json_object *json)
+handle_window_event(int type, const struct json_object *json, void *_mod)
 {
+    struct module *mod = _mod;
+    struct private *m = mod->private;
+
+    mtx_lock(&mod->lock);
+
     struct workspace *ws = NULL;
     size_t focused = 0;
     for (size_t i = 0; i < m->workspaces.count; i++) {
@@ -379,13 +399,13 @@ handle_window_event(struct private *m, const struct json_object *json)
 
     if (!json_object_is_type(json, json_type_object)) {
         LOG_ERR("'window' event is not of type 'object'");
-        return false;
+        goto err;
     }
 
     struct json_object *change = json_object_object_get(json, "change");
     if (change == NULL || !json_object_is_type(change, json_type_string)) {
         LOG_ERR("'window' event did not contain a 'change' string value");
-        return false;
+        goto err;
     }
 
     const char *change_str = json_object_get_string(change);
@@ -396,13 +416,16 @@ handle_window_event(struct private *m, const struct json_object *json)
 
         ws->window.title = ws->window.application = NULL;
         ws->window.pid = -1;
+
+        mtx_unlock(&mod->lock);
+        mod->bar->refresh(mod->bar);
         return true;
     }
 
     const struct json_object *container = json_object_object_get(json, "container");
     if (container == NULL || !json_object_is_type(container, json_type_object)) {
         LOG_ERR("'window' event (%s) did not contain a 'container' object", change_str);
-        return false;
+        goto err;
     }
 
     struct json_object *name = json_object_object_get(container, "name");
@@ -410,7 +433,7 @@ handle_window_event(struct private *m, const struct json_object *json)
         LOG_ERR(
             "'window' event (%s) did not contain a 'container.name' string value",
             change_str);
-        return false;
+        goto err;
     }
 
     free(ws->window.title);
@@ -421,7 +444,7 @@ handle_window_event(struct private *m, const struct json_object *json)
         LOG_ERR(
             "'window' event (%s) did not contain a 'container.pid' integer value",
             change_str);
-        return false;
+        goto err;
     }
 
     /* If PID has changed, update application name from /proc/<pid>/comm */
@@ -437,6 +460,9 @@ handle_window_event(struct private *m, const struct json_object *json)
             /* Application may simply have terminated */
             free(ws->window.application); ws->window.application = NULL;
             ws->window.pid = -1;
+
+            mtx_unlock(&mod->lock);
+            mod->bar->refresh(mod->bar);
             return true;
         }
 
@@ -447,17 +473,22 @@ handle_window_event(struct private *m, const struct json_object *json)
         application[bytes - 1] = '\0';
         ws->window.application = strdup(application);
         close(fd);
+
+        mod->bar->refresh(mod->bar);
     }
 
+    mtx_unlock(&mod->lock);
     return true;
+
+err:
+    mtx_unlock(&mod->lock);
+    return false;
 }
 
 
 static int
 run(struct module *mod)
 {
-    struct private *m = mod->private;
-
     struct sockaddr_un addr;
     if (!i3_get_socket_address(&addr))
         return 1;
@@ -479,150 +510,17 @@ run(struct module *mod)
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\"]");
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
 
-    /* Initial reply typically requires a couple of KB. But we often
-     * need more later. For example, switching workspaces can result
-     * in quite big notification messages. */
-    size_t reply_buf_size = 4096;
-    char *buf = malloc(reply_buf_size);
-    size_t buf_idx = 0;
+    static const struct i3_ipc_callbacks callbacks = {
+        .reply_version = &handle_get_version_reply,
+        .reply_subscribe = &handle_subscribe_reply,
+        .reply_workspaces = &handle_get_workspaces_reply,
+        .event_workspace = &handle_workspace_event,
+        .event_window = &handle_window_event,
+    };
 
-    while (true) {
-        struct pollfd fds[] = {
-            {.fd = mod->abort_fd, .events = POLLIN},
-            {.fd = sock, .events = POLLIN}
-        };
-
-        int res = poll(fds, 2, -1);
-        if (res <= 0) {
-            LOG_ERRNO("failed to poll()");
-            break;
-        }
-
-        if (fds[0].revents & POLLIN)
-            break;
-
-        assert(fds[1].revents & POLLIN);
-
-        /* Grow receive buffer, if necessary */
-        if (buf_idx == reply_buf_size) {
-            LOG_DBG("growing reply buffer: %zu -> %zu",
-                    reply_buf_size, reply_buf_size * 2);
-
-            char *new_buf = realloc(buf, reply_buf_size * 2);
-            if (new_buf == NULL) {
-                LOG_ERR("failed to grow reply buffer from %zu to %zu bytes",
-                        reply_buf_size, reply_buf_size * 2);
-                break;
-            }
-
-            buf = new_buf;
-            reply_buf_size *= 2;
-        }
-
-        assert(reply_buf_size > buf_idx);
-
-        ssize_t bytes = read(sock, &buf[buf_idx], reply_buf_size - buf_idx);
-        if (bytes < 0) {
-            LOG_ERRNO("failed to read from i3's socket");
-            break;
-        }
-
-        buf_idx += bytes;
-
-        bool err = false;
-        bool need_bar_refresh = false;
-
-        while (!err && buf_idx >= sizeof(i3_ipc_header_t)) {
-            const i3_ipc_header_t *hdr = (const i3_ipc_header_t *)buf;
-            if (strncmp(hdr->magic, I3_IPC_MAGIC, sizeof(hdr->magic)) != 0) {
-                LOG_ERR(
-                    "i3 IPC header magic mismatch: expected \"%.*s\", got \"%.*s\"",
-                    (int)sizeof(hdr->magic), I3_IPC_MAGIC,
-                    (int)sizeof(hdr->magic), hdr->magic);
-
-                err = true;
-                break;
-            }
-
-            size_t total_size = sizeof(i3_ipc_header_t) + hdr->size;
-
-            if (total_size > buf_idx) {
-                LOG_DBG("got %zd bytes, need %zu", bytes, total_size);
-                break;
-            }
-
-            /* Json-c expects a NULL-terminated string */
-            char json_str[hdr->size + 1];
-            memcpy(json_str, &buf[sizeof(*hdr)], hdr->size);
-            json_str[hdr->size] = '\0';
-            //printf("raw: %s\n", json_str);
-            LOG_DBG("raw: %s\n", json_str);
-
-            json_tokener *tokener = json_tokener_new();
-            struct json_object *json = json_tokener_parse(json_str);
-            if (json == NULL) {
-                LOG_ERR("failed to parse json");
-                err = true;
-                break;
-            }
-
-            mtx_lock(&mod->lock);
-
-            switch (hdr->type) {
-            case I3_IPC_REPLY_TYPE_VERSION:
-                handle_get_version_reply(m, json);
-                break;
-
-            case I3_IPC_REPLY_TYPE_SUBSCRIBE:
-                handle_subscribe_reply(m, json);
-                break;
-
-            case I3_IPC_REPLY_TYPE_WORKSPACES:
-                handle_get_workspaces_reply(m, json);
-                need_bar_refresh = true;
-                break;
-
-            case I3_IPC_EVENT_WORKSPACE:
-                handle_workspace_event(m, json);
-                need_bar_refresh = true;
-                break;
-
-            case I3_IPC_EVENT_WINDOW:
-                handle_window_event(m, json);
-                need_bar_refresh = true;
-                break;
-
-            case I3_IPC_EVENT_OUTPUT:
-            case I3_IPC_EVENT_MODE:
-            case I3_IPC_EVENT_BARCONFIG_UPDATE:
-            case I3_IPC_EVENT_BINDING:
-            case I3_IPC_EVENT_SHUTDOWN:
-            case I3_IPC_EVENT_TICK:
-                break;
-
-            default: assert(false);
-            }
-
-            mtx_unlock(&mod->lock);
-
-            json_object_put(json);
-            json_tokener_free(tokener);
-
-            assert(total_size <= buf_idx);
-            memmove(buf, &buf[total_size], buf_idx - total_size);
-            buf_idx -= total_size;
-        }
-
-        if (err)
-            break;
-
-        if (need_bar_refresh)
-            mod->bar->refresh(mod->bar);
-    }
-
-    free(buf);
+    bool ret = i3_receive_loop(mod->abort_fd, sock, &callbacks, mod);
     close(sock);
-    return 0;
+    return ret ? 0 : 1;
 }
 
 static void
