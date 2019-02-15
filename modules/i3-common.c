@@ -258,6 +258,10 @@ i3_receive_loop(int abort_fd, int sock,
                 pkt_handler = cbs->reply_sync;
                 break;
 #endif
+            /* Sway extensions */
+            case 100:  /* IPC_GET_INPUTS */
+                pkt_handler = cbs->reply_inputs;
+                break;
 
             case I3_IPC_EVENT_WORKSPACE:
                 pkt_handler = cbs->event_workspace;

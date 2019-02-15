@@ -29,6 +29,7 @@ struct i3_ipc_callbacks {
     i3_ipc_callback_t reply_config;
     i3_ipc_callback_t reply_tick;
     i3_ipc_callback_t reply_sync;
+    i3_ipc_callback_t reply_inputs;
 
     i3_ipc_callback_t event_workspace;
     i3_ipc_callback_t event_output;
