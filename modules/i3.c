@@ -43,6 +43,8 @@ struct private {
     int left_spacing;
     int right_spacing;
 
+    bool dirty;
+
     struct {
         struct ws_content *v;
         size_t count;
@@ -225,6 +227,7 @@ handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod
     mtx_lock(&mod->lock);
 
     workspaces_free(m);
+    m->dirty = true;
 
     size_t count = json_object_array_length(json);
     m->workspaces.count = count;
@@ -242,7 +245,6 @@ handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod
     }
 
     mtx_unlock(&mod->lock);
-    mod->bar->refresh(mod->bar);
     return true;
 }
 
@@ -362,8 +364,8 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     else if (strcmp(change_str, "reload") == 0)
         LOG_WARN("unimplemented: 'reload' event");
 
+    m->dirty = true;
     mtx_unlock(&mod->lock);
-    mod->bar->refresh(mod->bar);
     return true;
 
 err:
@@ -402,6 +404,7 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         goto err;
     }
 
+    m->dirty = true;
     const char *change_str = json_object_get_string(change);
 
     if (strcmp(change_str, "close") == 0 || strcmp(change_str, "new") == 0) {
@@ -412,7 +415,6 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         ws->window.pid = -1;
 
         mtx_unlock(&mod->lock);
-        mod->bar->refresh(mod->bar);
         return true;
     }
 
@@ -456,7 +458,6 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
             ws->window.pid = -1;
 
             mtx_unlock(&mod->lock);
-            mod->bar->refresh(mod->bar);
             return true;
         }
 
@@ -467,8 +468,6 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         application[bytes - 1] = '\0';
         ws->window.application = strdup(application);
         close(fd);
-
-        mod->bar->refresh(mod->bar);
     }
 
     mtx_unlock(&mod->lock);
@@ -479,6 +478,17 @@ err:
     return false;
 }
 
+static void
+burst_done(void *_mod)
+{
+    struct module *mod = _mod;
+    struct private *m = mod->private;
+
+    if (m->dirty) {
+        m->dirty = false;
+        mod->bar->refresh(mod->bar);
+    }
+}
 
 static int
 run(struct module *mod)
@@ -505,6 +515,7 @@ run(struct module *mod)
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
 
     static const struct i3_ipc_callbacks callbacks = {
+        .burst_done = &burst_done,
         .reply_version = &handle_get_version_reply,
         .reply_subscribe = &handle_subscribe_reply,
         .reply_workspaces = &handle_get_workspaces_reply,
