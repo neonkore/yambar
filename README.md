@@ -109,8 +109,13 @@ There are a couple types used that are specific to f00bar.
 | right-margin  | int    | no   | Right-side margin, in pixels
 | margin        | int    | no   | Short-hand for setting both `left-margin` and `right-margin`
 | border        | dict   | no   | Configures a border around the status bar
-| border.width  | int    | yes  | Width, in pixels, of the border
-| border.color  | color  | yes  | The color of the border
+| border.width  | int    | no   | Width, in pixels, of the border
+| border.color  | color  | no   | The color of the border
+| border.margin | int    | no   | left/rigth/top/bottom margins, from screen edge to bar
+| border.left-margin | int | no | left margin from screen edge to bar. Overrides `border.margin`
+| border.right-margin | int | no | right margin from screen edge to bar. Overrides `border.margin`
+| border.top-margin | int | no | top margin from screen edge to bar. Overrides `border.margin`
+| border.bottom-margin | int | no | bottom margin from screen edge to bar. Overrides `border.margin`
 | font          | font   | no   | Default font to use in modules and particles
 | foreground    | color  | no   | Default foreground (text) color to use
 | left          | list   | no   | Left-aligned modules
