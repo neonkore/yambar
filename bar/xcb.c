@@ -21,6 +21,8 @@
 #include "../xcb.h"
 
 struct xcb_backend {
+    int x, y;
+
     xcb_connection_t *conn;
 
     xcb_window_t win;
@@ -92,10 +94,10 @@ setup(struct bar *_bar)
 
         free(name);
 
-        bar->x = mon->x;
-        bar->y = mon->y;
+        backend->x = mon->x;
+        backend->y = mon->y;
         bar->width = mon->width;
-        bar->y += bar->location == BAR_TOP ? 0
+        backend->y += bar->location == BAR_TOP ? 0
             : screen->height_in_pixels - bar->height_with_border;
         found_monitor = true;
         break;
@@ -131,7 +133,7 @@ setup(struct bar *_bar)
     xcb_create_window(
         backend->conn,
         depth, backend->win, screen->root,
-        bar->x, bar->y, bar->width, bar->height_with_border,
+        backend->x, backend->y, bar->width, bar->height_with_border,
         0,
         XCB_WINDOW_CLASS_INPUT_OUTPUT, vis->visual_id,
         (XCB_CW_BACK_PIXEL |
@@ -184,16 +186,16 @@ setup(struct bar *_bar)
     uint32_t top_pair[2], bottom_pair[2];
 
     if (bar->location == BAR_TOP) {
-        top_strut = bar->y + bar->height_with_border;
-        top_pair[0] = bar->x;
-        top_pair[1] = bar->x + bar->width - 1;
+        top_strut = backend->y + bar->height_with_border;
+        top_pair[0] = backend->x;
+        top_pair[1] = backend->x + bar->width - 1;
 
         bottom_strut = 0;
         bottom_pair[0] = bottom_pair[1] = 0;
     } else {
-        bottom_strut = screen->height_in_pixels - bar->y;
-        bottom_pair[0] = bar->x;
-        bottom_pair[1] = bar->x + bar->width - 1;
+        bottom_strut = screen->height_in_pixels - backend->y;
+        bottom_pair[0] = backend->x;
+        bottom_pair[1] = backend->x + bar->width - 1;
 
         top_strut = 0;
         top_pair[0] = top_pair[1] = 0;

@@ -40,7 +40,6 @@ struct private {
     } right;
 
     /* Calculated run-time */
-    int x, y;
     int width;
     int height_with_border;
 

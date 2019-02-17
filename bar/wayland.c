@@ -657,11 +657,6 @@ setup(struct bar *_bar)
     }
 
     bar->width = backend->width;
-    bar->x = backend->monitor->x;
-    bar->y = backend->monitor->y;
-    bar->y += bar->location == BAR_TOP
-        ? 0
-        : backend->monitor->height_px - bar->height_with_border;
 
     if (pipe(backend->pipe_fds) == -1) {
         LOG_ERRNO("failed to create pipe");
