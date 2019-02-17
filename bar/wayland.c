@@ -656,6 +656,7 @@ setup(struct bar *_bar)
         return false;
     }
 
+    assert(backend->width <= backend->monitor->width_px);
     bar->width = backend->width;
 
     if (pipe(backend->pipe_fds) == -1) {

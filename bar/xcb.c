@@ -46,6 +46,14 @@ setup(struct bar *_bar)
     struct private *bar = _bar->private;
     struct xcb_backend *backend = bar->backend.data;
 
+    if (bar->border.left_margin != 0 ||
+        bar->border.right_margin != 0 ||
+        bar->border.top_margin != 0 ||
+        bar->border.bottom_margin)
+    {
+        LOG_WARN("non-zero border margins ignored in X11 backend");
+    }
+
     /* TODO: a lot of this (up to mapping the window) could be done in bar_new() */
     xcb_generic_error_t *e;
 
