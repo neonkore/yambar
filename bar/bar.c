@@ -378,6 +378,10 @@ bar_new(const struct bar_config *config)
     priv->right_margin = config->right_margin;
     priv->border.width = config->border.width;
     priv->border.color = config->border.color;
+    priv->border.left_margin = config->border.left_margin;
+    priv->border.right_margin = config->border.right_margin;
+    priv->border.top_margin = config->border.top_margin;
+    priv->border.bottom_margin = config->border.bottom_margin;
     priv->left.mods = malloc(config->left.count * sizeof(priv->left.mods[0]));
     priv->left.exps = calloc(config->left.count, sizeof(priv->left.exps[0]));
     priv->center.mods = malloc(config->center.count * sizeof(priv->center.mods[0]));

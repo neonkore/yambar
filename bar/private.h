@@ -19,6 +19,8 @@ struct private {
     struct {
         int width;
         struct rgba color;
+        int left_margin, right_margin;
+        int top_margin, bottom_margin;
     } border;
 
     struct {
@@ -38,7 +40,6 @@ struct private {
     } right;
 
     /* Calculated run-time */
-    int x, y;
     int width;
     int height_with_border;
 
