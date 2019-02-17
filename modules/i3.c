@@ -60,42 +60,20 @@ struct private {
 static bool
 workspace_from_json(const struct json_object *json, struct workspace *ws)
 {
-    assert(json_object_is_type(json, json_type_object));
-    if (!json_object_is_type(json, json_type_object)) {
-        LOG_ERR("'workspace' object is not of type 'object'");
+    /* Always present */
+    struct json_object *name, *output;
+    if (!json_object_object_get_ex(json, "name", &name) ||
+        !json_object_object_get_ex(json, "output", &output))
+    {
+        LOG_ERR("malformed 'workspace' IPC reply");
         return false;
     }
 
-    struct json_object *name = json_object_object_get(json, "name");
-    struct json_object *output = json_object_object_get(json, "output");
-    const struct json_object *visible = json_object_object_get(json, "visible");
-    const struct json_object *focused = json_object_object_get(json, "focused");
-    const struct json_object *urgent = json_object_object_get(json, "urgent");
-
-    if (name == NULL || !json_object_is_type(name, json_type_string)) {
-        LOG_ERR("'workspace' object has no 'name' string value");
-        return false;
-    }
-
-    if (output == NULL || !json_object_is_type(output, json_type_string)) {
-        LOG_ERR("'workspace' object has no 'output' string value");
-        return false;
-    }
-
-    if (visible != NULL && !json_object_is_type(visible, json_type_boolean)) {
-        LOG_ERR("'workspace' object's 'visible' value is not a boolean");
-        return false;
-    }
-
-    if (focused != NULL && !json_object_is_type(focused, json_type_boolean)) {
-        LOG_ERR("'workspace' object's 'focused' value is not a boolean");
-        return false;
-    }
-
-    if (urgent != NULL && !json_object_is_type(urgent, json_type_boolean)) {
-        LOG_ERR("'workspace' object's 'urgent' value is not a boolean");
-        return false;
-    }
+    /* Optional */
+    struct json_object *visible = NULL, *focused = NULL, *urgent = NULL;
+    json_object_object_get_ex(json, "visible", &visible);
+    json_object_object_get_ex(json, "focused", &focused);
+    json_object_object_get_ex(json, "urgent", &urgent);
 
     *ws = (struct workspace) {
         .name = strdup(json_object_get_string(name)),
@@ -180,12 +158,9 @@ handle_get_version_reply(int type, const struct json_object *json, void *_m)
         return false;
     }
 
-    struct json_object *version = json_object_object_get(json, "human_readable");
-
-    if (version == NULL || !json_object_is_type(version, json_type_string)) {
-        LOG_ERR("'version' reply did not contain a 'human_readable' string value");
+    struct json_object *version;
+    if (!json_object_object_get_ex(json, "human_readable", &version))
         return false;
-    }
 
     LOG_INFO("i3: %s", json_object_get_string(version));
     return true;
@@ -199,12 +174,9 @@ handle_subscribe_reply(int type, const struct json_object *json, void *_m)
         return false;
     }
 
-    const struct json_object *success = json_object_object_get(json, "success");
-
-    if (success == NULL || !json_object_is_type(success, json_type_boolean)) {
-        LOG_ERR("'subscribe' reply did not contain a 'success' boolean value");
+    struct json_object *success;
+    if (!json_object_object_get_ex(json, "success", &success))
         return false;
-    }
 
     if (!json_object_get_boolean(success)) {
         LOG_ERR("failed to subscribe");
@@ -255,44 +227,34 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     struct module *mod = _mod;
     struct private *m = mod->private;
 
-    if (!json_object_is_type(json, json_type_object)) {
-        LOG_ERR("'workspace' event is not of type 'object'");
+    struct json_object *change;
+    if (!json_object_object_get_ex(json, "change", &change))
         return false;
-    }
-
-    struct json_object *change = json_object_object_get(json, "change");
-    const struct json_object *current = json_object_object_get(json, "current");
-    const struct json_object *old = json_object_object_get(json, "old");
-    struct json_object *current_name = NULL;
-
-    if (change == NULL || !json_object_is_type(change, json_type_string)) {
-        LOG_ERR("'workspace' event did not contain a 'change' string value");
-        return false;
-    }
 
     const char *change_str = json_object_get_string(change);
-    bool is_urgent = strcmp(change_str, "reload") == 0;
 
-    if (!is_urgent) {
-        if (current == NULL || !json_object_is_type(current, json_type_object)) {
-            LOG_ERR("'workspace' event did not contain a 'current' object value");
-            return false;
-        }
+    bool is_init = strcmp(change_str, "init") == 0;
+    bool is_empty = strcmp(change_str, "empty") == 0;
+    bool is_focused = strcmp(change_str, "focus") == 0;
+    bool is_urgent = strcmp(change_str, "urgent") == 0;
+    bool is_reload = strcmp(change_str, "reload") == 0;
 
-        current_name = json_object_object_get(current, "name");
-        if (current_name == NULL ||
-            !json_object_is_type(current_name, json_type_string))
-        {
-            LOG_ERR("'workspace' event's 'current' object did not "
-                    "contain a 'name' string value");
-            return false;
-        }
+    if (is_reload) {
+        LOG_WARN("unimplemented: 'reload' event");
+        return true;
     }
+
+    struct json_object *current, *_current_name;
+    if (!json_object_object_get_ex(json, "current", &current) ||
+        !json_object_object_get_ex(current, "name", &_current_name))
+        return false;
+
+    const char *current_name = json_object_get_string(_current_name);
 
     mtx_lock(&mod->lock);
 
-    if (strcmp(change_str, "init") == 0) {
-        assert(workspace_lookup(m, json_object_get_string(current_name)) == NULL);
+    if (is_init) {
+        assert(workspace_lookup(m, current_name) == NULL);
 
         struct workspace ws;
         if (!workspace_from_json(current, &ws))
@@ -301,28 +263,25 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         workspace_add(m, ws);
     }
 
-    else if (strcmp(change_str, "empty") == 0) {
-        assert(workspace_lookup(m, json_object_get_string(current_name)) != NULL);
-        workspace_del(m, json_object_get_string(current_name));
+    else if (is_empty) {
+        assert(workspace_lookup(m, current_name) != NULL);
+        workspace_del(m, current_name);
     }
 
-    else if (strcmp(change_str, "focus") == 0) {
-        if (old == NULL || !json_object_is_type(old, json_type_object)) {
-            LOG_ERR("'workspace' event did not contain a 'old' object value");
-            goto err;
+    else if (is_focused) {
+        struct json_object *old, *_old_name, *urgent;
+        if (!json_object_object_get_ex(json, "old", &old) ||
+            !json_object_object_get_ex(old, "name", &_old_name) ||
+            !json_object_object_get_ex(current, "urgent", &urgent))
+        {
+            mtx_unlock(&mod->lock);
+            return false;
         }
 
-        struct json_object *old_name = json_object_object_get(old, "name");
-        if (old_name == NULL || !json_object_is_type(old_name, json_type_string)) {
-            LOG_ERR("'workspace' event's 'old' object did not "
-                    "contain a 'name' string value");
-            goto err;
-        }
-
-        struct workspace *w = workspace_lookup(
-            m, json_object_get_string(current_name));
-        LOG_DBG("w: %s", w->name);
+        struct workspace *w = workspace_lookup(m, current_name);
         assert(w != NULL);
+
+        LOG_DBG("w: %s", w->name);
 
         /* Mark all workspaces on current's output invisible */
         for (size_t i = 0; i < m->workspaces.count; i++) {
@@ -331,39 +290,27 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
                 ws->visible = false;
         }
 
-        const struct json_object *urgent = json_object_object_get(current, "urgent");
-        if (urgent == NULL || !json_object_is_type(urgent, json_type_boolean)) {
-            LOG_ERR("'workspace' event's 'current' object did not "
-                    "contain a 'urgent' boolean value");
-            goto err;
-        }
-
         w->urgent = json_object_get_boolean(urgent);
         w->focused = true;
         w->visible = true;
 
         /* Old workspace is no longer focused */
-        struct workspace *old_w = workspace_lookup(
-            m, json_object_get_string(old_name));
+        const char *old_name = json_object_get_string(_old_name);
+        struct workspace *old_w = workspace_lookup(m, old_name);
         if (old_w != NULL)
             old_w->focused = false;
     }
 
-    else if (strcmp(change_str, "urgent") == 0){
-        const struct json_object *urgent = json_object_object_get(current, "urgent");
-        if (urgent == NULL || !json_object_is_type(urgent, json_type_boolean)) {
-            LOG_ERR("'workspace' event's 'current' object did not "
-                    "contain a 'urgent' boolean value");
-            goto err;
+    else if (is_urgent) {
+        struct json_object *urgent;
+        if (!json_object_object_get_ex(current, "urgent", &urgent)) {
+            mtx_unlock(&mod->lock);
+            return false;
         }
 
-        struct workspace *w = workspace_lookup(
-            m, json_object_get_string(current_name));
+        struct workspace *w = workspace_lookup(m, current_name);
         w->urgent = json_object_get_boolean(urgent);
     }
-
-    else if (strcmp(change_str, "reload") == 0)
-        LOG_WARN("unimplemented: 'reload' event");
 
     m->dirty = true;
     mtx_unlock(&mod->lock);
@@ -380,6 +327,18 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     struct module *mod = _mod;
     struct private *m = mod->private;
 
+    struct json_object *change;
+    if (!json_object_object_get_ex(json, "change", &change))
+        return false;
+
+    const char *change_str = json_object_get_string(change);
+    bool is_focus = strcmp(change_str, "focus") == 0;
+    bool is_close = strcmp(change_str, "close") == 0;
+    bool is_title = strcmp(change_str, "title") == 0;
+
+    if (!is_focus && !is_close && !is_title)
+        return true;
+
     mtx_lock(&mod->lock);
 
     struct workspace *ws = NULL;
@@ -393,28 +352,6 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
 
     assert(focused == 1);
     assert(ws != NULL);
-
-    if (!json_object_is_type(json, json_type_object)) {
-        LOG_ERR("'window' event is not of type 'object'");
-        goto err;
-    }
-
-    struct json_object *change = json_object_object_get(json, "change");
-    if (change == NULL || !json_object_is_type(change, json_type_string)) {
-        LOG_ERR("'window' event did not contain a 'change' string value");
-        goto err;
-    }
-
-    const char *change_str = json_object_get_string(change);
-
-    bool is_focus = strcmp(change_str, "focus") == 0;
-    bool is_close = !is_focus && strcmp(change_str, "close") == 0;
-    bool is_title = !is_focus && !is_close && strcmp(change_str, "title") == 0;
-
-    if (!is_focus && !is_close && !is_title) {
-        mtx_unlock(&mod->lock);
-        return true;
-    }
 
     if (is_close) {
         free(ws->window.title);
@@ -430,33 +367,14 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
 
     }
 
-    const struct json_object *container = json_object_object_get(json, "container");
-    if (container == NULL || !json_object_is_type(container, json_type_object)) {
-        LOG_ERR("'window' event (%s) did not contain a 'container' object", change_str);
-        goto err;
-    }
-
-    struct json_object *id = json_object_object_get(container, "id");
-    if (id == NULL || !json_object_is_type(id, json_type_int)) {
-        LOG_ERR("'window' event (%s) did not contain a 'container.id' integer value",
-                change_str);
-        goto err;
-    }
-
-    struct json_object *name = json_object_object_get(container, "name");
-    if (name == NULL || !json_object_is_type(name, json_type_string)) {
-        LOG_ERR(
-            "'window' event (%s) did not contain a 'container.name' string value",
-            change_str);
-        goto err;
-    }
-
-    const struct json_object *pid_node = json_object_object_get(container, "pid");
-    if (pid_node == NULL || !json_object_is_type(pid_node, json_type_int)) {
-        LOG_ERR(
-            "'window' event (%s) did not contain a 'container.pid' integer value",
-            change_str);
-        goto err;
+    struct json_object *container, *id, *name, *pid;
+    if (!json_object_object_get_ex(json, "container", &container) ||
+        !json_object_object_get_ex(container, "id", &id) ||
+        !json_object_object_get_ex(container, "name", &name) ||
+        !json_object_object_get_ex(container, "pid", &pid))
+    {
+        mtx_unlock(&mod->lock);
+        return false;
     }
 
     if (is_title && ws->window.id != json_object_get_int(id)) {
@@ -470,9 +388,8 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     ws->window.id = json_object_get_int(id);
 
     /* If PID has changed, update application name from /proc/<pid>/comm */
-    pid_t pid = json_object_get_int(pid_node);
-    if (ws->window.pid != pid) {
-        ws->window.pid = pid;
+    if (ws->window.pid != json_object_get_int(pid)) {
+        ws->window.pid = json_object_get_int(pid);
 
         char path[64];
         snprintf(path, sizeof(path), "/proc/%u/comm", ws->window.pid);
@@ -483,6 +400,7 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
             free(ws->window.application); ws->window.application = NULL;
             ws->window.pid = -1;
 
+            m->dirty = true;
             mtx_unlock(&mod->lock);
             return true;
         }
@@ -499,11 +417,6 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     m->dirty = true;
     mtx_unlock(&mod->lock);
     return true;
-
-err:
-    m->dirty = false;
-    mtx_unlock(&mod->lock);
-    return false;
 }
 
 static void
