@@ -33,6 +33,7 @@ struct workspace {
     bool urgent;
 
     struct {
+        unsigned id;
         char *title;
         char *application;
         pid_t pid;
@@ -404,25 +405,41 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         goto err;
     }
 
-    m->dirty = true;
     const char *change_str = json_object_get_string(change);
 
-    if (strcmp(change_str, "close") == 0 || strcmp(change_str, "new") == 0 ||
-        strcmp(change_str, "floating") == 0)
-    {
+    bool is_focus = strcmp(change_str, "focus") == 0;
+    bool is_close = !is_focus && strcmp(change_str, "close") == 0;
+    bool is_title = !is_focus && !is_close && strcmp(change_str, "title") == 0;
+
+    if (!is_focus && !is_close && !is_title) {
+        mtx_unlock(&mod->lock);
+        return true;
+    }
+
+    if (is_close) {
         free(ws->window.title);
         free(ws->window.application);
 
+        ws->window.id = -1;
         ws->window.title = ws->window.application = NULL;
         ws->window.pid = -1;
 
+        m->dirty = true;
         mtx_unlock(&mod->lock);
         return true;
+
     }
 
     const struct json_object *container = json_object_object_get(json, "container");
     if (container == NULL || !json_object_is_type(container, json_type_object)) {
         LOG_ERR("'window' event (%s) did not contain a 'container' object", change_str);
+        goto err;
+    }
+
+    struct json_object *id = json_object_object_get(container, "id");
+    if (id == NULL || !json_object_is_type(id, json_type_int)) {
+        LOG_ERR("'window' event (%s) did not contain a 'container.id' integer value",
+                change_str);
         goto err;
     }
 
@@ -434,9 +451,6 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         goto err;
     }
 
-    free(ws->window.title);
-    ws->window.title = strdup(json_object_get_string(name));
-
     const struct json_object *pid_node = json_object_object_get(container, "pid");
     if (pid_node == NULL || !json_object_is_type(pid_node, json_type_int)) {
         LOG_ERR(
@@ -444,6 +458,16 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
             change_str);
         goto err;
     }
+
+    if (is_title && ws->window.id != json_object_get_int(id)) {
+        /* Ignore title changed event if it's not current window */
+        mtx_unlock(&mod->lock);
+        return true;
+    }
+
+    free(ws->window.title);
+    ws->window.title = strdup(json_object_get_string(name));
+    ws->window.id = json_object_get_int(id);
 
     /* If PID has changed, update application name from /proc/<pid>/comm */
     pid_t pid = json_object_get_int(pid_node);
@@ -472,10 +496,12 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         close(fd);
     }
 
+    m->dirty = true;
     mtx_unlock(&mod->lock);
     return true;
 
 err:
+    m->dirty = false;
     mtx_unlock(&mod->lock);
     return false;
 }
