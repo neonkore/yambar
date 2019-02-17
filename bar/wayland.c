@@ -238,14 +238,8 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     }
 }
 
-static void
-seat_handle_name(void *data, struct wl_seat *wl_seat, const char *name)
-{
-}
-
 static const struct wl_seat_listener seat_listener = {
     .capabilities = seat_handle_capabilities,
-    .name = seat_handle_name,
 };
 
 static void
@@ -377,7 +371,7 @@ handle_global(void *data, struct wl_registry *registry,
     }
 
     else if (strcmp(interface, wl_seat_interface.name) == 0) {
-        backend->seat = wl_registry_bind(registry, name, &wl_seat_interface, 3);
+        backend->seat = wl_registry_bind(registry, name, &wl_seat_interface, 1);
         wl_seat_add_listener(backend->seat, &seat_listener, backend);
         wl_display_roundtrip(backend->display);
     }
