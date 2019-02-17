@@ -16,6 +16,7 @@
 #include <json-c/json_tokener.h>
 
 #define LOG_MODULE "i3:common"
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 
 #if defined(ENABLE_X11)
