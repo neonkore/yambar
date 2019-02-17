@@ -65,7 +65,6 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
     if (!json_object_object_get_ex(json, "name", &name) ||
         !json_object_object_get_ex(json, "output", &output))
     {
-        LOG_ERR("malformed 'workspace' IPC reply");
         return false;
     }
 
