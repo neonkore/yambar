@@ -152,11 +152,6 @@ workspace_lookup(struct private *m, const char *name)
 static bool
 handle_get_version_reply(int type, const struct json_object *json, void *_m)
 {
-    if (!json_object_is_type(json, json_type_object)) {
-        LOG_ERR("'version' reply is not of type 'object'");
-        return false;
-    }
-
     struct json_object *version;
     if (!json_object_object_get_ex(json, "human_readable", &version))
         return false;
@@ -168,11 +163,6 @@ handle_get_version_reply(int type, const struct json_object *json, void *_m)
 static bool
 handle_subscribe_reply(int type, const struct json_object *json, void *_m)
 {
-    if (!json_object_is_type(json, json_type_object)) {
-        LOG_ERR("'subscribe' reply is not of type 'object'");
-        return false;
-    }
-
     struct json_object *success;
     if (!json_object_object_get_ex(json, "success", &success))
         return false;
@@ -190,11 +180,6 @@ handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod
 {
     struct module *mod = _mod;
     struct private *m = mod->private;
-
-    if (!json_object_is_type(json, json_type_array)) {
-        LOG_ERR("'workspaces' reply is not of type 'array'");
-        return false;
-    }
 
     mtx_lock(&mod->lock);
 
