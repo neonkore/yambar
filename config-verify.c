@@ -329,8 +329,8 @@ static bool
 verify_bar_border(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"width", true, &conf_verify_int},
-        {"color", true, &conf_verify_color},
+        {"width", false, &conf_verify_int},
+        {"color", false, &conf_verify_color},
         {"margin", false, &conf_verify_int},
         {"left-margin", false, &conf_verify_int},
         {"right-margin", false, &conf_verify_int},
