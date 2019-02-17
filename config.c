@@ -226,12 +226,32 @@ conf_to_bar(const struct yml_node *bar)
     if (border != NULL) {
         const struct yml_node *width = yml_get_value(border, "width");
         const struct yml_node *color = yml_get_value(border, "color");
+        const struct yml_node *margin = yml_get_value(border, "margin");
+        const struct yml_node *left_margin = yml_get_value(border, "left-margin");
+        const struct yml_node *right_margin = yml_get_value(border, "right-margin");
+        const struct yml_node *top_margin = yml_get_value(border, "top-margin");
+        const struct yml_node *bottom_margin = yml_get_value(border, "bottom-margin");
 
         if (width != NULL)
             conf.border.width = yml_value_as_int(width);
 
         if (color != NULL)
             conf.border.color = conf_to_color(color);
+
+        if (margin != NULL)
+            conf.border.left_margin =
+                conf.border.right_margin =
+                conf.border.top_margin =
+                conf.border.bottom_margin = yml_value_as_int(margin);
+
+        if (left_margin != NULL)
+            conf.border.left_margin = yml_value_as_int(left_margin);
+        if (right_margin != NULL)
+            conf.border.right_margin = yml_value_as_int(right_margin);
+        if (top_margin != NULL)
+            conf.border.top_margin = yml_value_as_int(top_margin);
+        if (bottom_margin != NULL)
+            conf.border.bottom_margin = yml_value_as_int(bottom_margin);
     }
 
     /*

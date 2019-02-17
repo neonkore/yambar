@@ -19,6 +19,8 @@ struct private {
     struct {
         int width;
         struct rgba color;
+        int left_margin, right_margin;
+        int top_margin, bottom_margin;
     } border;
 
     struct {
