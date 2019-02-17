@@ -631,11 +631,18 @@ setup(struct bar *_bar)
     zwlr_layer_surface_v1_set_size(
         backend->layer_surface, 0, bar->height_with_border);
     zwlr_layer_surface_v1_set_exclusive_zone(
-        backend->layer_surface, bar->height_with_border);
+        backend->layer_surface,
+        bar->height_with_border + (bar->location == BAR_TOP ?
+                                   bar->border.bottom_margin :
+                                   bar->border.top_margin));
 
-    //zwlr_layer_surface_v1_set_margin(
-    //   layer_surface, margin_top, margin_right, margin_bottom, margin_left);
-    //zwlr_layer_surface_v1_set_keyboard_interactivity(backend->layer_surface, 1);
+    zwlr_layer_surface_v1_set_margin(
+        backend->layer_surface,
+        bar->border.top_margin,
+        bar->border.right_margin,
+        bar->border.bottom_margin,
+        bar->border.left_margin
+        );
 
     zwlr_layer_surface_v1_add_listener(
         backend->layer_surface, &layer_surface_listener, backend);
