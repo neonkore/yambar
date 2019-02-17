@@ -407,7 +407,9 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     m->dirty = true;
     const char *change_str = json_object_get_string(change);
 
-    if (strcmp(change_str, "close") == 0 || strcmp(change_str, "new") == 0) {
+    if (strcmp(change_str, "close") == 0 || strcmp(change_str, "new") == 0 ||
+        strcmp(change_str, "floating") == 0)
+    {
         free(ws->window.title);
         free(ws->window.application);
 
