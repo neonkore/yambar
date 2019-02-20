@@ -368,7 +368,9 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     }
 
     free(ws->window.title);
-    ws->window.title = strdup(json_object_get_string(name));
+
+    const char *title = json_object_get_string(name);
+    ws->window.title = title != NULL ? strdup(title) : NULL;
     ws->window.id = json_object_get_int(id);
 
     /* If PID has changed, update application name from /proc/<pid>/comm */
