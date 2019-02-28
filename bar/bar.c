@@ -79,7 +79,7 @@ expose(const struct bar *_bar)
         b = bar->border.color.blue;
         a = bar->border.color.alpha;
 
-        cairo_set_line_width(bar->cairo, bar->border.width);
+        cairo_set_line_width(bar->cairo, 2 * bar->border.width);
         cairo_set_source_rgba(bar->cairo, r, g, b, a);
         cairo_set_operator(bar->cairo, CAIRO_OPERATOR_OVER);
         cairo_rectangle(bar->cairo, 0, 0, bar->width, bar->height_with_border);
@@ -93,7 +93,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
 
-        bar->left.exps[i] = module_begin_expose(m);
+        bar->left.exps[i] = module_begin_expose(m, bar->cairo);
     }
 
     for (size_t i = 0; i < bar->center.count; i++) {
@@ -103,7 +103,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
 
-        bar->center.exps[i] = module_begin_expose(m);
+        bar->center.exps[i] = module_begin_expose(m, bar->cairo);
     }
 
     for (size_t i = 0; i < bar->right.count; i++) {
@@ -113,7 +113,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
 
-        bar->right.exps[i] = module_begin_expose(m);
+        bar->right.exps[i] = module_begin_expose(m, bar->cairo);
     }
 
     int left_width, center_width, right_width;
