@@ -44,7 +44,7 @@ exposable_destroy(struct exposable *exposable)
 }
 
 static int
-begin_expose(struct exposable *exposable)
+begin_expose(struct exposable *exposable, cairo_t *cr)
 {
     struct eprivate *e = exposable->private;
 

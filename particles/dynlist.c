@@ -31,7 +31,7 @@ dynlist_destroy(struct exposable *exposable)
 }
 
 static int
-dynlist_begin_expose(struct exposable *exposable)
+dynlist_begin_expose(struct exposable *exposable, cairo_t *cr)
 {
     const struct private *e = exposable->private;
 
@@ -39,7 +39,7 @@ dynlist_begin_expose(struct exposable *exposable)
 
     for (size_t i = 0; i < e->count; i++) {
         struct exposable *ee = e->exposables[i];
-        e->widths[i] = ee->begin_expose(ee);
+        e->widths[i] = ee->begin_expose(ee, cr);
 
         exposable->width += e->left_spacing + e->widths[i] + e->right_spacing;
     }

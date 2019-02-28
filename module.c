@@ -20,9 +20,9 @@ module_default_destroy(struct module *mod)
 }
 
 struct exposable *
-module_begin_expose(struct module *mod)
+module_begin_expose(struct module *mod, cairo_t *cr)
 {
     struct exposable *e = mod->content(mod);
-    e->begin_expose(e);
+    e->begin_expose(e, cr);
     return e;
 }

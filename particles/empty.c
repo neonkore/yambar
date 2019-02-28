@@ -6,7 +6,7 @@
 #include "../plugin.h"
 
 static int
-begin_expose(struct exposable *exposable)
+begin_expose(struct exposable *exposable, cairo_t *cr)
 {
     exposable->width = exposable->particle->left_margin +
         exposable->particle->right_margin;
