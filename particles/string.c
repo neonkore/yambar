@@ -20,7 +20,7 @@ struct eprivate {
     char *text;
 
     /* Set in begin_expose() */
-    cairo_text_extents_t extents;
+    cairo_font_extents_t fextents;
     cairo_glyph_t *glyphs;
     cairo_text_cluster_t *clusters;
     cairo_text_cluster_flags_t cluster_flags;
@@ -49,6 +49,14 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
     struct eprivate *e = exposable->private;
 
     cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
+
+    cairo_set_scaled_font(cr, scaled);
+    cairo_font_extents(cr, &e->fextents);
+
+    LOG_DBG("%s: ascent=%f, descent=%f, height=%f",
+            font_face(exposable->particle->font),
+            e->fextents.ascent, e->fextents.descent, e->fextents.height);
+
     cairo_status_t status = cairo_scaled_font_text_to_glyphs(
         scaled, 0, 0, e->text, -1, &e->glyphs, &e->num_glyphs,
         &e->clusters, &e->num_clusters, &e->cluster_flags);
@@ -59,14 +67,15 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 
         e->num_glyphs = -1;
         e->num_clusters = -1;
-        memset(&e->extents, 0, sizeof(e->extents));
+        memset(&e->fextents, 0, sizeof(e->fextents));
         exposable->width = 0;
     } else {
+        cairo_text_extents_t extents;
         cairo_scaled_font_glyph_extents(
-            scaled, e->glyphs, e->num_glyphs, &e->extents);
+            scaled, e->glyphs, e->num_glyphs, &extents);
 
         exposable->width = (exposable->particle->left_margin +
-                            e->extents.x_advance +
+                            extents.x_advance +
                             exposable->particle->right_margin);
     }
 
@@ -87,7 +96,8 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     for (int i = 0; i < e->num_glyphs; i++) {
         e->glyphs[i].x += x + exposable->particle->left_margin;
         e->glyphs[i].y += (double)y +
-            ((double)height - e->extents.height) / 2 - e->extents.y_bearing;
+            (double)(e->fextents.height - e->fextents.descent + height) / 2.0;
+        //(double)(e->fextents.ascent + e->fextents.descent + height) / 2.0;
     }
 
     cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
