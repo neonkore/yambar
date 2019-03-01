@@ -92,12 +92,29 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     if (e->num_glyphs == -1)
         return;
 
+    /*
+     * This tries to center the font around the bar center, by using
+     * the font's ascent+descent as total height, and then removing
+     * its descent. This way, the part of the font *above* the
+     * baseline is centered.
+     *
+     * "EEEE" will typically be dead center, with the middle of each character being in the bar's center. 
+     * "eee" will be slightly below the center.
+     * "jjj" will be even further below the center.
+     *
+     * Finally, if the font's descent is negative, ignore it (except
+     * for the height calculation). This is unfortunately not based on
+     * any real facts, but works very well with e.g. the "Awesome 5"
+     * font family.
+     */
+    const double baseline = (double)y +
+      (double)(height + e->fextents.ascent + e->fextents.descent) / 2.0 -
+      (e->fextents.descent > 0 ? e->fextents.descent : 0);
+
     /* Adjust glyph offsets */
     for (int i = 0; i < e->num_glyphs; i++) {
         e->glyphs[i].x += x + exposable->particle->left_margin;
-        e->glyphs[i].y += (double)y +
-            (double)(e->fextents.height - e->fextents.descent + height) / 2.0;
-        //(double)(e->fextents.ascent + e->fextents.descent + height) / 2.0;
+        e->glyphs[i].y += baseline;
     }
 
     cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
@@ -112,6 +129,42 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     cairo_show_text_glyphs(
         cr, e->text, -1, e->glyphs, e->num_glyphs,
         e->clusters, e->num_clusters, e->cluster_flags);
+
+#if 0
+    cairo_text_extents_t extents;
+    cairo_scaled_font_glyph_extents(scaled, e->glyphs, e->num_glyphs, &extents);
+
+    /* Bar center */
+    cairo_set_line_width(cr, 1);
+    cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);
+    cairo_move_to(cr, x, (double)y + (double)height / 2 + 0.5);
+    cairo_line_to(cr, x + extents.x_advance, (double)y + (double)height / 2 + 0.5);
+    cairo_stroke(cr);
+
+    /* Ascent */
+    cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 1.0);
+    cairo_move_to(cr, x, baseline - e->fextents.ascent + 0.5);
+    cairo_line_to(cr, x + extents.x_advance, baseline - e->fextents.ascent + 0.5);
+    cairo_stroke(cr);
+
+    /* Descent */
+    cairo_set_source_rgba(cr, 0.0, 0.0, 1.0, 1.0);
+    cairo_move_to(cr, x, baseline + e->fextents.descent + 0.5);
+    cairo_line_to(cr, x + extents.x_advance, baseline + e->fextents.descent + 0.5);
+    cairo_stroke(cr);
+
+    /* Height (!= ascent + descent) */
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+    cairo_move_to(cr, x - 3 + 0.5, (double)y + (double)(height - e->fextents.height) / 2);
+    cairo_line_to(cr, x - 3 + 0.5, (double)y + (double)(height + e->fextents.height) / 2);
+    cairo_stroke(cr);
+
+    /* Height (ascent + descent) */
+    cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);
+    cairo_move_to(cr, x - 1 + 0.5, (double)y + (double)(height - (e->fextents.ascent + e->fextents.descent)) / 2);
+    cairo_line_to(cr, x - 1 + 0.5, (double)y + (double)(height + (e->fextents.ascent + e->fextents.descent)) / 2);
+    cairo_stroke(cr);
+#endif
 }
 
 static struct exposable *
