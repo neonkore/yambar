@@ -466,7 +466,8 @@ get_buffer(struct wayland_backend *backend)
     }
 
     /* Total size */
-    uint32_t stride = backend->width * 4;
+    const uint32_t stride = cairo_format_stride_for_width(
+        CAIRO_FORMAT_ARGB32, backend->width);
     size = stride * backend->height;
     ftruncate(pool_fd, size);
 
