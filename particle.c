@@ -56,6 +56,85 @@ exposable_render_deco(const struct exposable *exposable,
 
 }
 
+static bool
+push_argv(char ***argv, size_t *size, char *arg, size_t *argc)
+{
+    if (arg != NULL && arg[0] == '%')
+        return true;
+
+    if (*argc >= *size) {
+        size_t new_size = *size > 0 ? 2 * *size : 10;
+        char **new_argv = realloc(*argv, new_size * sizeof(new_argv[0]));
+
+        if (new_argv == NULL)
+            return false;
+
+        *argv = new_argv;
+        *size = new_size;
+    }
+
+    (*argv)[(*argc)++] = arg;
+    return true;
+}
+
+static bool
+tokenize_cmdline(char *cmdline, char ***argv)
+{
+    *argv = NULL;
+    size_t argv_size = 0;
+
+    bool first_token_is_quoted = cmdline[0] == '"' || cmdline[0] == '\'';
+    char delim = first_token_is_quoted ? cmdline[0] : ' ';
+
+    char *p = first_token_is_quoted ? &cmdline[1] : &cmdline[0];
+
+    size_t idx = 0;
+    while (*p != '\0') {
+        char *end = strchr(p, delim);
+        if (end == NULL) {
+            if (delim != ' ') {
+                LOG_ERR("unterminated %s quote\n", delim == '"' ? "double" : "single");
+                free(*argv);
+                return false;
+            }
+
+            if (!push_argv(argv, &argv_size, p, &idx) ||
+                !push_argv(argv, &argv_size, NULL, &idx))
+            {
+                goto err;
+            } else
+                return true;
+        }
+
+        *end = '\0';
+
+        if (!push_argv(argv, &argv_size, p, &idx))
+            goto err;
+
+        p = end + 1;
+        while (*p == delim)
+            p++;
+
+        while (*p == ' ')
+            p++;
+
+        if (*p == '"' || *p == '\'') {
+            delim = *p;
+            p++;
+        } else
+            delim = ' ';
+    }
+
+    if (!push_argv(argv, &argv_size, NULL, &idx))
+        goto err;
+
+    return true;
+
+err:
+    free(*argv);
+    return false;
+}
+
 void
 exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
                            enum mouse_event event, int x, int y)
@@ -70,26 +149,13 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
     if (exposable->on_click != NULL && event == ON_MOUSE_CLICK) {
         /* Need a writeable copy, whose scope *we* control */
         char *cmd = strdup(exposable->on_click);
-        const char *end = cmd + strlen(cmd);
+        LOG_DBG("cmd = \"%s\"", cmd);
 
-        char *argv[1024];
-        size_t tokens = 0;
-
-        /* Tokenize the command string */
-        for (char *ctx, *tok = strtok_r(cmd, " ", &ctx);
-             tok != NULL;
-             /*tok = strtok_r(NULL, " ", &ctx)*/)
-        {
-            argv[tokens++] = tok;
-
-            /* Is the beginning of the next token a quote? */
-            bool next_is_quoted = &tok[strlen(tok) + 1] < end &&
-                tok[strlen(tok) + 1] == '"';
-            tok = strtok_r(NULL, next_is_quoted ? "\"" : " ", &ctx);
+        char **argv;
+        if (!tokenize_cmdline(cmd, &argv)) {
+            free(cmd);
+            return;
         }
-
-        /* NULL-terminate list (for execvp) */
-        argv[tokens] = NULL;
 
         pid_t pid = fork();
         if (pid == -1)
@@ -97,13 +163,14 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
         else if (pid > 0) {
             /* Parent */
             free(cmd);
+            free(argv);
 
             if (waitpid(pid, NULL, 0) == -1)
                 LOG_ERRNO("failed to wait for on_click handler");
         } else {
 
             LOG_DBG("ARGV:");
-            for (size_t i = 0; i < tokens; i++)
+            for (size_t i = 0; argv[i] != NULL; i++)
                 LOG_DBG("  #%zu: \"%s\" ", i, argv[i]);
 
             LOG_DBG("daemonizing on-click handler");
