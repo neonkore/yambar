@@ -460,7 +460,7 @@ get_buffer(struct wayland_backend *backend)
     cairo_t *cairo = NULL;
 
     /* Backing memory for SHM */
-    pool_fd = memfd_create("wayland-test-buffer-pool", MFD_CLOEXEC);
+    pool_fd = memfd_create("f00bar-wayland-shm-buffer-pool", MFD_CLOEXEC);
     if (pool_fd == -1) {
         LOG_ERRNO("failed to create SHM backing memory file");
         goto err;
