@@ -12,7 +12,6 @@
  #include <xcb/xcb_aux.h>
 #endif
 
-#include <i3/ipc.h>
 #include <json-c/json_tokener.h>
 
 #define LOG_MODULE "i3:common"
@@ -22,6 +21,8 @@
 #if defined(ENABLE_X11)
  #include "../xcb.h"
 #endif
+
+#include "i3-ipc.h"
 
 #if defined(ENABLE_X11)
 static bool

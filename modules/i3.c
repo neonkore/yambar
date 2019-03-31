@@ -7,8 +7,6 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#include <i3/ipc.h>
-
 #define LOG_MODULE "i3"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
@@ -18,6 +16,7 @@
 #include "../particles/dynlist.h"
 #include "../plugin.h"
 
+#include "i3-ipc.h"
 #include "i3-common.h"
 
 struct ws_content {

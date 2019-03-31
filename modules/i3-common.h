@@ -6,7 +6,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-//#include <i3/ipc.h>
 #include <json-c/json_util.h>
 
 bool i3_get_socket_address(struct sockaddr_un *addr);
