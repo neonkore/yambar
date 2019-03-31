@@ -1,7 +1,7 @@
 pkgname=f00bar
-pkgver=0.9.0.r158.gaac2a81
+pkgver=0.9.0.r159.g902245d
 pkgrel=1
-pkgdesc="Simplistic and highly configurable status panel for X"
+pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
 url=https://gitlab.com/dnkl/f00bar
 license=(mit)
