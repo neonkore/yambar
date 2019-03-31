@@ -1,5 +1,5 @@
 pkgname=f00bar
-pkgver=0.9.0.r85.g3b1998a
+pkgver=0.9.0.r158.gaac2a81
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X"
 arch=('x86_64')
@@ -13,8 +13,7 @@ depends=(
   'alsa-lib'
   'libudev.so'
   'json-c'
-  'libmpdclient'
-  'i3-wm')
+  'libmpdclient')
 optdepends=('xcb-util-errors: better X error messages')
 source=()
 
