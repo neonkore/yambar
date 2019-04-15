@@ -130,6 +130,7 @@ update_cursor_surface(struct wayland_backend *backend)
         backend->pointer.pointer, backend->pointer.serial,
         backend->pointer.surface, image->hotspot_x, image->hotspot_y);
 
+
     wl_surface_damage_buffer(
         backend->pointer.surface, 0, 0, INT32_MAX, INT32_MAX);
 
@@ -161,8 +162,8 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 {
     struct wayland_backend *backend = data;
 
-    backend->pointer.x = wl_fixed_to_int(surface_x);
-    backend->pointer.y = wl_fixed_to_int(surface_y);
+    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->monitor->scale;
+    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->monitor->scale;
 
     backend->bar_on_mouse(
         backend->bar, ON_MOUSE_MOTION, backend->pointer.x, backend->pointer.y);
@@ -405,8 +406,8 @@ layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *surface,
                         uint32_t serial, uint32_t w, uint32_t h)
 {
     struct wayland_backend *backend = data;
-    backend->width = w;
-    backend->height = h;
+    backend->width = w * backend->monitor->scale;
+    backend->height = h * backend->monitor->scale;
 
     zwlr_layer_surface_v1_ack_configure(surface, serial);
 }
@@ -636,20 +637,27 @@ setup(struct bar *_bar)
         ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
         top_or_bottom);
 
+    int height = bar->height_with_border;
+    height /= backend->monitor->scale;
+    height *= backend->monitor->scale;
+    bar->height = height - 2 * bar->border.width;
+    bar->height_with_border = height;
+
     zwlr_layer_surface_v1_set_size(
-        backend->layer_surface, 0, bar->height_with_border);
+        backend->layer_surface, 0, bar->height_with_border / backend->monitor->scale);
     zwlr_layer_surface_v1_set_exclusive_zone(
         backend->layer_surface,
-        bar->height_with_border + (bar->location == BAR_TOP ?
-                                   bar->border.bottom_margin :
-                                   bar->border.top_margin));
+        (bar->height_with_border + (bar->location == BAR_TOP
+                                    ? bar->border.bottom_margin
+                                    : bar->border.top_margin))
+        / backend->monitor->scale);
 
     zwlr_layer_surface_v1_set_margin(
         backend->layer_surface,
-        bar->border.top_margin,
-        bar->border.right_margin,
-        bar->border.bottom_margin,
-        bar->border.left_margin
+        bar->border.top_margin / backend->monitor->scale,
+        bar->border.right_margin / backend->monitor->scale,
+        bar->border.bottom_margin / backend->monitor->scale,
+        bar->border.left_margin / backend->monitor->scale
         );
 
     zwlr_layer_surface_v1_add_listener(
@@ -659,12 +667,13 @@ setup(struct bar *_bar)
     wl_surface_commit(backend->surface);
     wl_display_roundtrip(backend->display);
 
-    if (backend->width == -1 || backend->height != bar->height_with_border) {
+    if (backend->width == -1 ||
+        backend->height != bar->height_with_border) {
         LOG_ERR("failed to get panel width");
         return false;
     }
 
-    assert(backend->width <= backend->monitor->width_px);
+    assert(backend->width / backend->monitor->scale <= backend->monitor->width_px);
     bar->width = backend->width;
 
     if (pipe(backend->pipe_fds) == -1) {
@@ -846,6 +855,7 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         struct buffer *buffer = backend->pending_buffer;
         assert(buffer->busy);
 
+        wl_surface_set_buffer_scale(backend->surface, backend->monitor->scale);
         wl_surface_attach(backend->surface, buffer->wl_buf, 0, 0);
         wl_surface_damage(backend->surface, 0, 0, backend->width, backend->height);
 
@@ -884,6 +894,7 @@ commit_surface(const struct bar *_bar)
         struct buffer *buffer = backend->next_buffer;
         assert(buffer->busy);
 
+        wl_surface_set_buffer_scale(backend->surface, backend->monitor->scale);
         wl_surface_attach(backend->surface, buffer->wl_buf, 0, 0);
         wl_surface_damage(backend->surface, 0, 0, backend->width, backend->height);
 
