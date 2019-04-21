@@ -27,4 +27,12 @@ function(add_man_pages)
   add_custom_target(man-pages ALL SOURCES ${ARGN} DEPENDS ${out})
 endfunction()
 
-add_man_pages(f00bar.1.scd f00bar.5.scd)
+add_man_pages(
+  f00bar.1.scd
+  f00bar.5.scd
+
+  f00bar-modules.5.scd
+  f00bar-module-alsa.5.scd
+
+  f00bar-particles.5.scd
+  )
