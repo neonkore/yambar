@@ -1,0 +1,91 @@
+f00bar-decorations(5)
+
+# NAME
+f00bar-decorations - configuration file
+
+# DESCRIPTION
+
+Decorations are optional additions to particles, enabling you to
+e.g. change the background color of the entire particle, draw an
+underline and so on.
+
+Decorations are applied to the particle's margins as well.
+
+All decorations define their own configuration attributes, and there
+are no common attributes.
+
+# BACKGROUND
+
+This decoration sets the particles background color.
+
+## CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  color
+:  color
+:  yes
+:  The background color. See *f00bar*(5) for format.
+
+## EXAMPLES
+
+```
+content:
+  string:
+    deco:
+      background:
+        color: 00ff00ff
+```
+
+# UNDERLINE
+
+This decoration renders a line of configurable size and color at the
+bottom of the particle.
+
+## CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  size
+:  int
+:  yes
+:  The size (height/thickness) of the line, in pixels
+|  color
+:  color
+:  yes
+:  The color of the line. See *f00bar*(5) for format.
+
+## EXAMPLES
+
+```
+content:
+  string:
+    deco:
+      underline:
+        size: 2
+        color: ff0000ff
+```
+
+# STACK
+
+This particles combines multiple decorations.
+
+## CONFIGURATION
+
+No configuration attributes available. The _stack_ is just a *list* of
+the decorations that should be combined.
+
+## EXAMPLES
+
+```
+content:
+  string:
+    deco:
+      stack:
+        - background: ...
+        - underline: ...
+```

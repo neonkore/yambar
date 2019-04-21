@@ -47,8 +47,6 @@ following attributes are supported by all particles:
 
 # STRING
 
-## DESCRIPTION
-
 This is the most basic particle. It takes a format string, consisting
 of free text mixed with tag specifiers.
 
@@ -83,8 +81,6 @@ content:
 
 # EMPTY
 
-## DESCRIPTION
-
 This particle is a place-holder. While it does not render any tags,
 margins and decortions are rendered.
 
@@ -101,30 +97,10 @@ content:
 
 # LIST
 
-## DESCRIPTION
-
 This particle is a list (or sequence, if you like) of other
 particles. It can be used to render e.g. _string_ particles with
 different font and/or color formatting. Or ay other particle
 combinations.
-
-There is a short hand for this particle; instead of
-
-```
-content:
-  list:
-    items:
-      - string: ...
-      - string: ...
-```
-
-you can list the items directly:
-
-```
-content:
-  - string: ...
-  - string: ...
-```
 
 But note that this means you *cannot* set any attributes on the _list_
 particle itself.
@@ -163,9 +139,26 @@ content:
       - string: {text: world}
 ```
 
-# MAP
+Many times, the only attribute you need to set is _items_. In this
+case, there is a shorter form. Instead of:
 
-## DESCRIPTION
+```
+content:
+  list:
+    items:
+      - string: ...
+      - string: ...
+```
+
+you can list the items directly:
+
+```
+content:
+  - string: ...
+  - string: ...
+```
+
+# MAP
 
 This particle maps the values of a specific tag to different
 particles. In addition to explicit tag values, you can also specify a
@@ -212,8 +205,6 @@ content:
 
 # RAMP
 
-## DESCRIPTION
-
 This particle uses a range tag to index into an array of
 particles. This can be used for example to map volume to a
 volume-level icon, or a battery's capacity level to a battery
@@ -252,8 +243,63 @@ content:
 
 # PROGRESS-BAR
 
-## DESCRIPTION
+This particle renders a range tag's value as a progress bar. You
+control the looks of it by defining the particles to use for the
+progress bar's start and end, it's size, which particles to use for
+the range that has been completed, the range that has yet to be
+completed, and the particle to use as the progress bar's current value
+indicator.
 
-This particle 
+This particle also supports _realtime_ tags, and will then auto-update
+itself when needed.
+
+## CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  tag
+:  string
+:  yes
+:  The range or realtime tag (name of) which value will be used as the
+   progress bar's value.
+|  length
+:  int
+:  yes
+:  The size/length of the progress bar, in characters. Note that the
+   _start_, _end_ and _indicator_ particles are *not* included.
+|  start
+:  particle
+:  yes
+:  The progress bar's starting character
+|  end
+:  particle
+:  yes
+:  The progress bar's ending character
+|  fill
+:  particle
+:  yes
+:  Particle to use in the completed range
+|  empty
+:  particle
+:  yes
+:  Particle to use in the not-yet-completed range
+|  indicator
+:  particle
+:  yes
+:  Particle representing the progress bar's current value
 
 ## EXAMPLES
+
+```
+content:
+  progres-bar:
+    tag: tag_name
+    length: 20
+    start: {string: {text: ├}}
+    end: {string: {text: ┤}}
+    fill: {string: {text: ─}}
+    empty: {string: {text: ╌}}
+    indicator: {string: {text: ┼}}
+```

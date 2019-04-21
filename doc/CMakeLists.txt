@@ -35,4 +35,5 @@ add_man_pages(
   f00bar-module-alsa.5.scd
 
   f00bar-particles.5.scd
+  f00bar-decorations.5.scd
   )
