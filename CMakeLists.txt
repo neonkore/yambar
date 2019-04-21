@@ -113,6 +113,7 @@ set(enabled_modules "")
 set(enabled_particles "")
 set(enabled_decorations "")
 
+add_subdirectory(doc)
 add_subdirectory(modules)
 add_subdirectory(particles)
 add_subdirectory(decorations)
