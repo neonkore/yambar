@@ -32,6 +32,15 @@ following attributes are supported by all modules:
 |  anchors
 :  associative array
 :  Free-to-use associative array, where you can put yaml anchor definitions
+|  font
+:  font
+:  no
+:  Font to use in the content particle. This is an inherited attribute.
+|  foreground
+:  color
+:  no
+:  Foreground (text) color of the content particle. This is an
+   inherited attribute.
 
 # ALSA
 
