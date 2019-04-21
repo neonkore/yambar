@@ -85,6 +85,34 @@ bar:
         content: {string: {text: "{volume}"}}
 ```
 
+# BACKLIGHT
+
+This module reads monitor backlight status from
+_/sys/class/backlight_, and uses *udev* to monitor for changes.
+
+## TAGS
+
+[[ *Name*
+:[ *Type*
+:[ *Description*
+|  brightness
+:  range
+:  The current brightness level, in absolute value
+|  percent
+:  range
+:  The current brightness level, in percent
+
+## CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  name
+:  string
+:  yes
+:  The backlight device's name (one of the names in _/sys/class/backlight_)
+
 # SEE ALSO
 
 *f00bar-particles*(5), *f00bar-tags*(5), *f00bar-decorations*(5)
