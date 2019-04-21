@@ -1,10 +1,11 @@
 pkgname=f00bar
-pkgver=0.9.0.r159.g902245d
+pkgver=0.9.0.r162.g879d5ce
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
 url=https://gitlab.com/dnkl/f00bar
 license=(mit)
+makedepends=('scdoc')
 depends=(
   'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
   'wayland' 'wlroots'
