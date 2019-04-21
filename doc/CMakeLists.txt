@@ -32,8 +32,8 @@ add_man_pages(
   f00bar.5.scd
 
   f00bar-modules.5.scd
-  f00bar-module-alsa.5.scd
 
-  f00bar-particles.5.scd
   f00bar-decorations.5.scd
+  f00bar-particles.5.scd
+  f00bar-tags.5.scd
   )

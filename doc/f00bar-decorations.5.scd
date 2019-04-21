@@ -89,3 +89,7 @@ content:
         - background: ...
         - underline: ...
 ```
+
+# SEE ALSO
+
+*f00bar-particles*(5)

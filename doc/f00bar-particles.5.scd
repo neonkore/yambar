@@ -303,3 +303,7 @@ content:
     empty: {string: {text: ╌}}
     indicator: {string: {text: ┼}}
 ```
+
+# SEE ALSO
+
+*f00bar-tags*(5), *f00bar-decorations*(5)

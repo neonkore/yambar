@@ -141,3 +141,8 @@ bar:
 
 # FILES
 _$HOME/.config/f00bar/config.yml_
+
+# SEE ALSO
+
+*f00bar-modules*(5), *f00bar-particles*(5), *f00bar-tags*(5),
+*f00bar-decorations*(5)
