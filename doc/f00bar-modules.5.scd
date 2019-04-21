@@ -113,6 +113,17 @@ _/sys/class/backlight_, and uses *udev* to monitor for changes.
 :  yes
 :  The backlight device's name (one of the names in _/sys/class/backlight_)
 
+## EXAMPLES
+
+```
+bar:
+  left:
+    - backlight:
+        name: intel_backlight
+        content:
+          string: {text: "backlight: {percent}%"}
+```
+
 # SEE ALSO
 
 *f00bar-particles*(5), *f00bar-tags*(5), *f00bar-decorations*(5)
