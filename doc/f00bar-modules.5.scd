@@ -124,6 +124,63 @@ bar:
           string: {text: "backlight: {percent}%"}
 ```
 
+# BATTERY
+
+This module reads battery status from _/sys/class/power_supply_ and
+uses *udev* to monitor for changes.
+
+## TAGS
+
+[[ *Name*
+:[ *Type*
+:[ *Description*
+|  name
+:  string
+:  Battery device name
+|  manufacturer
+:  string
+:  Name of the battery manufacturer
+|  model
+:  string
+:  Battery model name
+|  state
+:  string
+:  One of *full*, *charging*, *discharging* or *unknown*
+|  capacity
+:  range
+:  capacity left, in percent
+|  estimate
+:  string
+:  Estimated time left (to empty while discharging, or to full while
+   charging), formatted as HH:MM.
+
+## CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  name
+:  string
+:  yes
+:  Battery device name (one of the names in _/sys/class/power_supply_)
+|  poll-interval
+:  int
+:  no
+:  How often, in seconds, to poll for capacity changes (default=*60*)
+
+## EXAMPLES
+
+```
+bar:
+  left:
+    - battery:
+        name: BAT0
+        poll-interval: 30
+        content:
+          string: {text: "BAT: {capacity}% {estimate}"}
+```
+
 # SEE ALSO
 
 *f00bar-particles*(5), *f00bar-tags*(5), *f00bar-decorations*(5)
