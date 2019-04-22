@@ -17,7 +17,7 @@ representing tag values. The simplest one is the _string_ particle,
 which renders a text representation of the tag value. See
 *f00bar-particles*(5).
 
-# FORMAT
+# GENERIC CONFIGURATION
 
 Each module defines its own configuration format. However, the
 following attributes are supported by all modules:
@@ -308,6 +308,29 @@ bar:
               values:
                 focused: {string: {text: "{name}*"}}
           current: { string: {text: "{application}: {title}"}}
+```
+
+# LABEL
+
+This module renders the provided _content_ particle, but provides no
+additional data.
+
+## TAGS
+
+None
+
+## CONFIGURATION
+
+No additional attributes supported, only the generic ones (see
+*GENERIC CONFIGURATION*)
+
+## EXAMPLES
+
+```
+bar:
+  left:
+    - label:
+        content: {string: {text: hello world}}
 ```
 
 # SEE ALSO
