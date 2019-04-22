@@ -38,8 +38,8 @@ following attributes are supported by all particles:
 |  on-click
 :  string
 :  no
-:  Command to execute when the particle is clicked. Note that the
-   string is *not* executed in a shell.
+:  Command to execute when the particle is clicked. Tags can be
+   used. Note that the string is *not* executed in a shell.
 |  deco
 :  decoration
 :  no
