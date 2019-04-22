@@ -17,6 +17,93 @@ representing tag values. The simplest one is the _string_ particle,
 which renders a text representation of the tag value. See
 *f00bar-particles*(5).
 
+Note that all the examples showed below have been kept simple. Here
+are a couple of tips that will improve the looks:
+
+## Use list particles to change font and/or color
+
+The _string_ particle, for example, cannot change font or colors in
+the middle of its string. To do this, you need to wrap multiple
+_string_ particles in a _list_ particle.
+
+This is especially important if you want to use an icon font since
+f00bar does not do font fallback handling.
+
+Also remember there is a short version for lists (see
+*f00bar-particles*(5))
+
+For example, to render _backlight_ as " 20%", you could use:
+
+```
+content:
+  - string:
+      font: Font Awesome 5 Free:style=solid:pixelsize=14
+      text: 
+  - string:
+      font: Adobe Helvetica:pixelsize=12
+      text: "{percent}%"
+```
+
+## Use map particles to handle 'state'
+
+Several modules have a _state_ tag that can be used to render
+different particles depending on the module's state.
+
+For example, you might want different things to be shown for a
+_network_ interface that is *down* or *up*. You could further
+differentiate between an *up* interface that has or has not an IP
+address assigned to it.
+
+Below is an example, where a wired connection is not renderer at all
+when disconnected.
+
+When connected, it is rendered in the default text color if it is up
+and also has an IPv4 address. If it is up, but does not have an IPv4
+address, it is rendered in a semi-transparent white color.
+
+Finally, if it is down, or in any other unknown state, it is rendered
+in red.
+
+```
+content:
+  map:
+    tag: carrier
+    values:
+      false: {empty: {}}
+      true:
+        map:
+          tag: state
+          default: {string: {text: , font: *awesome, foreground: ffffff66}}
+          values:
+            up:
+              map:
+                tag: ipv4
+                default: {string: {text: , font: *awesome}}
+                values:
+                  "": {string: {text: , font: *awesome, foreground: ffffff66}}
+```
+
+## Use yaml anchors
+
+You often end up using the same definitions in a lot of places. This
+is particular true for fonts. But it can also be true when mapping
+state.
+
+In these cases, you can define an anchor point, either at top-level,
+or in a module's _anchors_ attribute:
+
+```
+awesome: &awesome Font Awesome 5 Free:style=solid:pixelsize=14
+
+```
+
+Then reference it in your particle definitions:
+
+```
+content:
+  string: {text: , font: *awesome}
+```
+
 # GENERIC CONFIGURATION
 
 Each module defines its own configuration format. However, the
