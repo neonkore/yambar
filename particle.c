@@ -4,8 +4,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <errno.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #define LOG_MODULE "particle"
 #define LOG_ENABLE_DBG 0
@@ -149,7 +153,7 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
     if (exposable->on_click != NULL && event == ON_MOUSE_CLICK) {
         /* Need a writeable copy, whose scope *we* control */
         char *cmd = strdup(exposable->on_click);
-        LOG_DBG("cmd = \"%s\"", cmd);
+        LOG_DBG("cmd = \"%s\"", exposable->on_click);
 
         char **argv;
         if (!tokenize_cmdline(cmd, &argv)) {
@@ -165,21 +169,96 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
             free(cmd);
             free(argv);
 
-            if (waitpid(pid, NULL, 0) == -1)
-                LOG_ERRNO("failed to wait for on_click handler");
+            int wstatus;
+            if (waitpid(pid, &wstatus, 0) == -1)
+                LOG_ERRNO("%s: failed to wait for on_click handler", exposable->on_click);
+
+            if (WIFEXITED(wstatus)) {
+                if (WEXITSTATUS(wstatus) != 0)
+                    LOG_ERRNO_P("%s: failed to execute", WEXITSTATUS(wstatus), exposable->on_click);
+            } else
+                LOG_ERR("%s: did not exit normally", exposable->on_click);
+
+            LOG_DBG("%s: launched", exposable->on_click);
         } else {
+            /*
+             * Use a pipe with O_CLOEXEC to communicate exec() failure
+             * to parent process.
+             *
+             * If the child succeeds with exec(), the pipe is simply
+             * closed. If it fails, we write the fail reason (errno)
+             * to the pipe. The parent reads the pipe; if it receives
+             * data, the child failed, else it succeeded.
+             */
+            int pipe_fds[2];
+            if (pipe2(pipe_fds, O_CLOEXEC) == -1) {
+                LOG_ERRNO("%s: failed to create pipe", cmd);
+                free(cmd);
+                return;
+            }
 
             LOG_DBG("ARGV:");
             for (size_t i = 0; argv[i] != NULL; i++)
                 LOG_DBG("  #%zu: \"%s\" ", i, argv[i]);
 
-            LOG_DBG("daemonizing on-click handler");
-            daemon(0, 0);
+            LOG_DBG("double forking");
 
-            LOG_DBG("executing on-click handler: %s", cmd);
-            execvp(argv[0], argv);
+            switch (fork()) {
+            case -1:
+                close(pipe_fds[0]);
+                close(pipe_fds[1]);
 
-            LOG_ERRNO("failed to run on_click handler (exec)");
+                LOG_ERRNO("failed to double fork");
+                _exit(errno);
+                break;
+
+            case 0:
+                /* Child */
+                close(pipe_fds[0]);  /* Close read end */
+
+                LOG_DBG("executing on-click handler: %s", cmd);
+
+                /* Redirect stdin/stdout/stderr to /dev/null */
+                int dev_null_r = open("/dev/null", O_RDONLY | O_CLOEXEC);
+                int dev_null_w = open("/dev/null", O_WRONLY | O_CLOEXEC);
+
+                if (dev_null_r == -1 || dev_null_w == -1) {
+                    LOG_ERRNO("/dev/null: failed to open");
+                    write(pipe_fds[1], &errno, sizeof(errno));
+                    _exit(1);
+                }
+
+                if (dup2(dev_null_r, STDIN_FILENO) == -1 ||
+                    dup2(dev_null_w, STDOUT_FILENO) == -1 ||
+                    dup2(dev_null_w, STDERR_FILENO) == -1)
+                {
+                    LOG_ERRNO("failed to redirect stdin/stdout/stderr");
+                    write(pipe_fds[1], &errno, sizeof(errno));
+                    _exit(1);
+                }
+                
+                execvp(argv[0], argv);
+
+                /* Signal failure to parent process */
+                write(pipe_fds[1], &errno, sizeof(errno));
+                _exit(1);
+                break;
+
+            default:
+                /* Parent */
+                close(pipe_fds[1]); /* Close write end */
+
+                int _errno = 0;
+                ssize_t ret = read(pipe_fds[0], &_errno, sizeof(_errno));
+                if (ret == 0) {
+                    /* Pipe was closed - child succeeded with exec() */
+                    _exit(0);
+                }
+
+                LOG_DBG("second pipe failed", _errno);
+                _exit(_errno);
+                break;
+            }
         }
     }
 }
