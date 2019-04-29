@@ -140,6 +140,10 @@ main(int argc, const char *const *argv)
     }
 
     char *config_path = get_config_path();
+    if (config_path == NULL) {
+        LOG_ERR("could not find a configuration (see man 5 f00bar)");
+        return 1;
+    }
 
     struct bar *bar = load_bar(config_path);
     free(config_path);
