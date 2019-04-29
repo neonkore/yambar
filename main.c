@@ -66,12 +66,13 @@ get_config_path(void)
 {
     struct stat st;
 
-    char *config = get_config_path_user_config();
+    char *config = get_config_path_xdg();
     if (config != NULL && stat(config, &st) == 0 && S_ISREG(st.st_mode))
         return config;
     free(config);
 
-    config = get_config_path_xdg();
+    /* 'Default' XDG_CONFIG_HOME */
+    config = get_config_path_user_config();
     if (config != NULL && stat(config, &st) == 0 && S_ISREG(st.st_mode))
         return config;
     free(config);
