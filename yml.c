@@ -182,7 +182,8 @@ post_process(struct yml_node *node)
 {
     switch (node->type) {
     case ROOT:
-        post_process(node->root.root);
+        if (node->root.root != NULL)
+            post_process(node->root.root);
         break;
 
     case SCALAR:
