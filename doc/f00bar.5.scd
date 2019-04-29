@@ -140,7 +140,10 @@ bar:
 ```
 
 # FILES
-_$HOME/.config/f00bar/config.yml_
+The configuration file is searched for (in this order):
+
+- _$XDG_CONFIG_HOME/f00bar/config.yml_
+- _$HOME/.config/f00bar/config.yml_
 
 # SEE ALSO
 
