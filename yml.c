@@ -572,10 +572,13 @@ yml_is_list(const struct yml_node *node)
  const struct yml_node *
 yml_get_value(const struct yml_node *node, const char *_path)
 {
-    char *path = strdup(_path);
-
-    if (node->type == ROOT)
+    if (node != NULL && node->type == ROOT)
         node = node->root.root;
+
+    if (node == NULL)
+        return NULL;
+
+    char *path = strdup(_path);
 
     for (const char *part = strtok(path, "."), *next_part = strtok(NULL, ".");
          part != NULL;
@@ -779,6 +782,9 @@ yml_source_column(const struct yml_node *node)
 static void
 _print_node(const struct yml_node *n, int indent)
 {
+    if (n == NULL)
+        return;
+
     switch (n->type) {
     case ROOT:
         _print_node(n->root.root, indent);
