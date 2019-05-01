@@ -8,8 +8,7 @@ foreach deco : ['background', 'stack', 'underline']
                  name_prefix: 'decoration_')
   else
     lib = static_library(
-      'decoration_@0@'.format(deco), '@0@.c'.format(deco), dependencies: deco_sdk,
-      target_type: target_type)
+      'decoration_@0@'.format(deco), '@0@.c'.format(deco), dependencies: deco_sdk)
 
     decorations += [declare_dependency(
       link_with: lib,
