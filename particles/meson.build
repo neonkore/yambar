@@ -2,14 +2,25 @@ particle_sdk = declare_dependency(dependencies: [cairo, cairo_ft])
 
 particles = []
 foreach particle : ['empty', 'list', 'map', 'progress-bar', 'ramp', 'string']
-  lib = static_library(
-    'particle_@0@'.format(particle), '@0@.c'.format(particle),
-    dependencies: particle_sdk)
-  particles += [declare_dependency(
-    link_with: lib,
-    compile_args: '-DHAVE_PLUGIN_@0@'.format(particle.underscorify()))]
+  if get_option('core-plugins-as-shared-libraries')
+    shared_module('@0@'.format(particle), '@0@.c'.format(particle),
+                  dependencies: particle_sdk,
+                 name_prefix: 'particle_')
+  else
+    lib = static_library(
+      'particle_@0@'.format(particle), '@0@.c'.format(particle),
+      dependencies: particle_sdk)
+
+    particles += [declare_dependency(
+      link_with: lib,
+      compile_args: '-DHAVE_PLUGIN_@0@'.format(particle.underscorify()))]
+  endif
 endforeach
 
-dynlist_lib = static_library(
-  'dynlist', 'dynlist.c', 'dynlist.h', dependencies: particle_sdk)
+dynlist_lib = build_target(
+  'dynlist', 'dynlist.c', 'dynlist.h', dependencies: particle_sdk,
+  target_type: (get_option('core-plugins-as-shared-libraries')
+                ? 'shared_library' : 'static_library'),
+  override_options : ['b_lundef=false'])
+
 dynlist = declare_dependency(link_with: dynlist_lib)
