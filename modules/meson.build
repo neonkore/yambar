@@ -35,7 +35,9 @@ foreach mod, data : deps
   if get_option('core-plugins-as-shared-libraries')
     shared_module(mod, '@0@.c'.format(mod), sources,
                   dependencies: [module_sdk] + dep,
-                  name_prefix: 'module_')
+                  name_prefix: 'module_',
+                  install: true,
+                  install_dir: get_option('libdir') + '/f00bar')
   else
     modules += [declare_dependency(
       sources: ['@0@.c'.format(mod)] + sources,
@@ -52,7 +54,9 @@ if enable_x11
     if get_option('core-plugins-as-shared-libraries')
       shared_module(mod, '@0@.c'.format(mod), sources,
                     dependencies: [module_sdk] + dep,
-                    name_prefix: 'module_')
+                    name_prefix: 'module_',
+                    install: true,
+                    install_dir: get_option('libdir') + '/f00bar')
     else
       modules += [declare_dependency(
         sources: ['@0@.c'.format(mod)] + sources,

@@ -81,4 +81,6 @@ executable(
   dependencies: [bar, cairo, cairo_ft, fontconfig, yaml, threads, dl] +
                 decorations + particles + modules,
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
-  export_dynamic: true)
+  export_dynamic: true,
+  install: true,
+  install_rpath: '$ORIGIN/../' + get_option('libdir') + '/f00bar')
