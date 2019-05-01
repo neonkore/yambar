@@ -86,7 +86,7 @@ init(void)
             ((struct plugin){                                     \
                 .name = strdup(#plug_name),                       \
                 .type = (plug_type),                              \
-                .lib = NULL,                                      \
+                .lib = RTLD_DEFAULT,                              \
             }));                                                  \
     } while (0)
 
