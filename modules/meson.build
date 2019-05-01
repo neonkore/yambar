@@ -10,21 +10,23 @@ xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 
 # Module name -> (source-list, dep-list)
 deps = {
-    'alsa': [[], [alsa]],
-    'backlight': [[], [udev]],
-    'battery': [[], [udev]],
-    'clock': [[], []],
-    'i3': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
-    'label': [[], []],
-    'mpd': [[], [mpd]],
-    'network': [[], []],
-    'removables': [[], [dynlist, udev]],
+  'alsa': [[], [alsa]],
+  'backlight': [[], [udev]],
+  'battery': [[], [udev]],
+  'clock': [[], []],
+  'i3': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
+  'label': [[], []],
+  'mpd': [[], [mpd]],
+  'network': [[], []],
+  'removables': [[], [dynlist, udev]],
 }
 
-deps_x11_only = {
+if enable_x11
+  deps_x11_only = {
     'xkb': [[], [xcb_stuff, xcb_xkb]],
     'xwindow': [[], [xcb_stuff]],
-}
+  }
+endif
 
 foreach mod, data : deps
   sources = data[0]
