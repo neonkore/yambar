@@ -54,6 +54,7 @@ if enable_x11
     c_args: xcb_errors.found() ? '-DHAVE_XCB_ERRORS' : [],
     pic: get_option('core-plugins-as-shared-libraries'))
   xcb_stuff = declare_dependency(link_with: xcb_stuff_lib)
+  install_headers('xcb.h', subdir: 'f00bar')
 endif
 
 subdir('doc')
@@ -83,3 +84,17 @@ executable(
   export_dynamic: true,
   install: true,
   install_rpath: '$ORIGIN/../' + get_option('libdir') + '/f00bar')
+
+install_headers(
+  'color.h',
+  'config.h',
+  'config-verify.h',
+  'decoration.h',
+  'font.h',
+  'log.h',
+  'module.h',
+  'particle.h',
+  'tag.h',
+  'tllist.h',
+  'yml.h',
+  subdir: 'f00bar')
