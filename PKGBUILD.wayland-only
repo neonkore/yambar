@@ -1,5 +1,5 @@
 pkgname=f00bar-wayland
-pkgver=0.9.0.r200.gaaa5239
+pkgver=0.9.0.r203.g22989d6
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for Wayland"
 arch=('x86_64')
@@ -7,7 +7,7 @@ url=https://gitlab.com/dnkl/f00bar
 license=(mit)
 conflicts=('f00bar')
 provides=('f00bar')
-makedepends=('meson' 'ninja' 'scdoc' 'gzip')
+makedepends=('meson' 'ninja' 'scdoc')
 depends=(
   'wayland' 'wlroots'
   'freetype2' 'fontconfig' 'cairo'
