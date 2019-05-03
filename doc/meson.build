@@ -14,7 +14,8 @@ foreach man_src : ['f00bar.1.scd', 'f00bar.5.scd', 'f00bar-decorations.5.scd',
     out,
     output: out,
     input: man_src,
-    command: [sh, '-c', '@0@ < @INPUT@ > doc/@1@'.format(scdoc_prog.path(), out)],
+    command: [sh, '-c', '@0@ < @INPUT@'.format(scdoc_prog.path())],
+    capture: true,
     install: true,
     install_dir: join_paths(get_option('mandir'), 'man@0@'.format(section)))
 endforeach
