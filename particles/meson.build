@@ -7,7 +7,7 @@ foreach particle : ['empty', 'list', 'map', 'progress-bar', 'ramp', 'string']
                   dependencies: particle_sdk,
                   name_prefix: 'particle_',
                   install: true,
-                  install_dir: get_option('libdir') + '/f00bar')
+                  install_dir: join_paths(get_option('libdir'), 'f00bar'))
   else
     lib = static_library(
       'particle_@0@'.format(particle), '@0@.c'.format(particle),

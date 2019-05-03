@@ -37,7 +37,7 @@ foreach mod, data : deps
                   dependencies: [module_sdk] + dep,
                   name_prefix: 'module_',
                   install: true,
-                  install_dir: get_option('libdir') + '/f00bar')
+                  install_dir: join_paths(get_option('libdir'), 'f00bar'))
   else
     modules += [declare_dependency(
       sources: ['@0@.c'.format(mod)] + sources,
@@ -56,7 +56,7 @@ if enable_x11
                     dependencies: [module_sdk] + dep,
                     name_prefix: 'module_',
                     install: true,
-                    install_dir: get_option('libdir') + '/f00bar')
+                    install_dir: join_paths(get_option('libdir'), 'f00bar'))
     else
       modules += [declare_dependency(
         sources: ['@0@.c'.format(mod)] + sources,

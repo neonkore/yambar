@@ -7,7 +7,7 @@ foreach deco : ['background', 'stack', 'underline']
                   dependencies: deco_sdk,
                   name_prefix: 'decoration_',
                   install: true,
-                  install_dir: get_option('libdir') + '/f00bar')
+                  install_dir: join_paths(get_option('libdir'), 'f00bar'))
   else
     lib = static_library(
       'decoration_@0@'.format(deco), '@0@.c'.format(deco), dependencies: deco_sdk)
