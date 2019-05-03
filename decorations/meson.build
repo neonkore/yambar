@@ -9,11 +9,9 @@ foreach deco : ['background', 'stack', 'underline']
                   install: true,
                   install_dir: join_paths(get_option('libdir'), 'f00bar'))
   else
-    lib = static_library(
-      'decoration_@0@'.format(deco), '@0@.c'.format(deco), dependencies: deco_sdk)
-
     decorations += [declare_dependency(
-      link_with: lib,
+      sources: '@0@.c'.format(deco),
+      dependencies: deco_sdk,
       compile_args: '-DHAVE_PLUGIN_@0@'.format(deco.underscorify()))]
   endif
 endforeach

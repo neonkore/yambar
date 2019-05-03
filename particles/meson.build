@@ -9,12 +9,9 @@ foreach particle : ['empty', 'list', 'map', 'progress-bar', 'ramp', 'string']
                   install: true,
                   install_dir: join_paths(get_option('libdir'), 'f00bar'))
   else
-    lib = static_library(
-      'particle_@0@'.format(particle), '@0@.c'.format(particle),
-      dependencies: particle_sdk)
-
     particles += [declare_dependency(
-      link_with: lib,
+      sources: '@0@.c'.format(particle),
+      dependencies: particle_sdk,
       compile_args: '-DHAVE_PLUGIN_@0@'.format(particle.underscorify()))]
   endif
 endforeach
