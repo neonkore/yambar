@@ -1,0 +1,7 @@
+option(
+  'backend-x11', type: 'feature', value: 'enabled', description: 'XCB (X11) backend')
+option(
+  'backend-wayland', type: 'feature', value: 'enabled', description: 'Wayland backend')
+option(
+  'core-plugins-as-shared-libraries', type: 'boolean', value: false,
+  description: 'Compiles modules, particles and decorations as shared libraries, which are loaded on-demand')

@@ -1,11 +1,11 @@
 pkgname=f00bar
-pkgver=0.9.0.r162.g879d5ce
+pkgver=0.9.0.r200.gaaa5239
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
 url=https://gitlab.com/dnkl/f00bar
 license=(mit)
-makedepends=('scdoc')
+makedepends=('meson' 'ninja' 'scdoc' 'gzip')
 depends=(
   'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
   'wayland' 'wlroots'
@@ -23,7 +23,7 @@ pkgver() {
 }
 
 build() {
-  cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX=/usr ../
+  meson --buildtype=minsize --prefix=/usr -Dbackend-x11=enabled -Dbackend-wayland=enabled ../
   ninja
 }
 

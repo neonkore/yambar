@@ -1,5 +1,5 @@
 pkgname=f00bar-wayland
-pkgver=0.9.0.r186.g5ace4d7
+pkgver=0.9.0.r200.gaaa5239
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for Wayland"
 arch=('x86_64')
@@ -7,7 +7,7 @@ url=https://gitlab.com/dnkl/f00bar
 license=(mit)
 conflicts=('f00bar')
 provides=('f00bar')
-makedepends=('scdoc')
+makedepends=('meson' 'ninja' 'scdoc' 'gzip')
 depends=(
   'wayland' 'wlroots'
   'freetype2' 'fontconfig' 'cairo'
@@ -23,7 +23,7 @@ pkgver() {
 }
 
 build() {
-  cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_X11=0 -DENABLE_WAYLAND=1 ../
+  meson --buildtype=minsize --prefix=/usr -Dbackend-x11=disabled -Dbackend-wayland=enabled ../
   ninja
 }
 
