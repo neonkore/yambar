@@ -16,7 +16,6 @@ cairo = dependency('cairo')
 cairo_ft = dependency('cairo-ft')
 yaml = dependency('yaml-0.1')
 
-# TODO: X11
 xcb_aux = dependency('xcb-aux', required: get_option('backend-x11'))
 xcb_cursor = dependency('xcb-cursor', required: get_option('backend-x11'))
 xcb_event = dependency('xcb-event', required: get_option('backend-x11'))
@@ -36,7 +35,6 @@ else
   enable_x11 = false
 endif
 
-# TODO: conditional on Wayland
 wayland_client = dependency('wayland-client', required: get_option('backend-wayland'))
 wayland_cursor = dependency('wayland-cursor', required: get_option('backend-wayland'))
 wlroots = dependency('wlroots', required: get_option('backend-wayland'))
@@ -58,6 +56,7 @@ if enable_x11
   xcb_stuff = declare_dependency(link_with: xcb_stuff_lib)
 endif
 
+subdir('doc')
 subdir('bar')
 subdir('decorations')
 subdir('particles')
