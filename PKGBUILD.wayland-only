@@ -1,5 +1,5 @@
 pkgname=f00bar-wayland
-pkgver=0.9.0.r203.g22989d6
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for Wayland"
 arch=('x86_64')
@@ -18,9 +18,9 @@ depends=(
   'libmpdclient')
 source=()
 
-pkgver() {
-  git describe --tags --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
-}
+# pkgver() {
+#   git describe --tags --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+# }
 
 build() {
   meson --buildtype=minsize --prefix=/usr -Dbackend-x11=disabled -Dbackend-wayland=enabled ../
