@@ -3,8 +3,7 @@ project('f00bar', 'c',
         default_options: ['c_std=c11', 'warning_level=1', 'werror=true'])
 
 add_project_arguments(
-  ['-D_GNU_SOURCE',
-   '-Wno-unused-result'] +
+  ['-D_GNU_SOURCE'] +
   (get_option('core-plugins-as-shared-libraries') ?
    ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
   language: 'c',
