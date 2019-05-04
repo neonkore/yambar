@@ -179,7 +179,8 @@ main(int argc, const char *const *argv)
         LOG_INFO("aborted: %s (%d)", strsignal(aborted), aborted);
 
     /* Signal abort to other threads */
-    write(abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+    if (write(abort_fd, &(uint64_t){1}, sizeof(uint64_t)) != sizeof(uint64_t))
+        LOG_ERRNO("failed to signal abort to threads");
 
     int res;
     int r = thrd_join(bar_thread, &res);
