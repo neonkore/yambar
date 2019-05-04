@@ -224,7 +224,7 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 
                 if (dev_null_r == -1 || dev_null_w == -1) {
                     LOG_ERRNO("/dev/null: failed to open");
-                    write(pipe_fds[1], &errno, sizeof(errno));
+                    (void)!write(pipe_fds[1], &errno, sizeof(errno));
                     _exit(1);
                 }
 
@@ -233,14 +233,14 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
                     dup2(dev_null_w, STDERR_FILENO) == -1)
                 {
                     LOG_ERRNO("failed to redirect stdin/stdout/stderr");
-                    write(pipe_fds[1], &errno, sizeof(errno));
+                    (void)!write(pipe_fds[1], &errno, sizeof(errno));
                     _exit(1);
                 }
-                
+
                 execvp(argv[0], argv);
 
                 /* Signal failure to parent process */
-                write(pipe_fds[1], &errno, sizeof(errno));
+                (void)!write(pipe_fds[1], &errno, sizeof(errno));
                 _exit(1);
                 break;
 
