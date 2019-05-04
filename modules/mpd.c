@@ -65,10 +65,15 @@ destroy(struct module *mod)
     struct private *m = mod->private;
     if (m->refresh_thread_id != 0) {
         assert(m->refresh_abort_fd != -1);
-        write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+        if (write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t))
+            != sizeof(uint64_t))
+        {
+            LOG_ERRNO("failed to signal abort to refresher thread");
+        } else{
+            int res;
+            thrd_join(m->refresh_thread_id, &res);
+        }
 
-        int res;
-        thrd_join(m->refresh_thread_id, &res);
         close(m->refresh_abort_fd);
     };
 
@@ -521,7 +526,12 @@ refresh_in(struct module *mod, long milli_seconds)
 
         /* Signal abort to thread */
         assert(m->refresh_abort_fd != -1);
-        write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+        if (write(m->refresh_abort_fd, &(uint64_t){1}, sizeof(uint64_t))
+            != sizeof(uint64_t))
+        {
+            LOG_ERRNO("failed to signal abort to refresher thread");
+            return false;
+        }
 
         /* Wait for it to finish */
         int res;
