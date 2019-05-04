@@ -471,7 +471,10 @@ get_buffer(struct wayland_backend *backend)
     const uint32_t stride = cairo_format_stride_for_width(
         CAIRO_FORMAT_ARGB32, backend->width);
     size = stride * backend->height;
-    ftruncate(pool_fd, size);
+    if (ftruncate(pool_fd, size) == -1) {
+        LOG_ERR("failed to truncate SHM pool");
+        goto err;
+    }
 
     mmapped = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, pool_fd, 0);
     if (mmapped == MAP_FAILED) {
@@ -800,14 +803,23 @@ loop(struct bar *_bar,
 
         if (fds[1].revents & POLLHUP) {
             LOG_WARN("disconnceted from wayland");
-            write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+            if (write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t))
+                != sizeof(uint64_t))
+            {
+                LOG_ERRNO("failed to signal abort to modules");
+            }
             break;
         }
 
         if (fds[2].revents & POLLIN) {
             uint8_t command;
             //wl_display_cancel_read(backend->display);
-            read(backend->pipe_fds[0], &command, sizeof(command));
+            if (read(backend->pipe_fds[0], &command, sizeof(command))
+                != sizeof(command))
+            {
+                LOG_ERRNO("failed to read from command pipe");
+                break;
+            }
 
             assert(command == 1);
             //printf("refresh\n");
@@ -918,7 +930,11 @@ refresh(const struct bar *_bar)
     const struct private *bar = _bar->private;
     const struct wayland_backend *backend = bar->backend.data;
 
-    write(backend->pipe_fds[1], &(uint8_t){1}, sizeof(uint8_t));
+    if (write(backend->pipe_fds[1], &(uint8_t){1}, sizeof(uint8_t))
+        != sizeof(uint8_t))
+    {
+        LOG_ERRNO("failed to signal 'refresh' to main thread");
+    }
 }
 
 static void
