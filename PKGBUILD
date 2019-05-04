@@ -1,5 +1,5 @@
 pkgname=f00bar
-pkgver=0.9.0.r203.g22989d6
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
@@ -18,9 +18,9 @@ depends=(
 optdepends=('xcb-util-errors: better X error messages')
 source=()
 
-pkgver() {
-  git describe --tags --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
-}
+# pkgver() {
+#   git describe --tags --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+# }
 
 build() {
   meson --buildtype=minsize --prefix=/usr -Dbackend-x11=enabled -Dbackend-wayland=enabled ../
