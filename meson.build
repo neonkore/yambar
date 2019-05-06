@@ -10,6 +10,7 @@ add_project_arguments(
   language: 'c',
 )
 
+# Common dependencies
 cc = meson.get_compiler('c')
 dl = cc.find_library('dl', required : false)
 threads = dependency('threads')
@@ -18,6 +19,7 @@ cairo = dependency('cairo')
 cairo_ft = dependency('cairo-ft')
 yaml = dependency('yaml-0.1')
 
+# X11/XCB dependencies
 xcb_aux = dependency('xcb-aux', required: get_option('backend-x11'))
 xcb_cursor = dependency('xcb-cursor', required: get_option('backend-x11'))
 xcb_event = dependency('xcb-event', required: get_option('backend-x11'))
@@ -26,26 +28,22 @@ xcb_randr = dependency('xcb-randr', required: get_option('backend-x11'))
 xcb_render = dependency('xcb-render', required: get_option('backend-x11'))
 cairo_xcb = dependency('cairo-xcb', required: get_option('backend-x11'))
 xcb_errors = dependency('xcb-errors', required: false)
+backend_x11 = xcb_aux.found() and xcb_cursor.found() and xcb_event.found() and \
+              xcb_ewmh.found() and xcb_randr.found() and xcb_render.found() and \
+              cairo_xcb.found()
 
-if xcb_aux.found() and xcb_cursor.found() and xcb_event.found() and \
-  xcb_ewmh.found() and xcb_randr.found() and xcb_render.found() and \
-  cairo_xcb.found()
-
-  backend_x11 = true
+if backend_x11
   add_project_arguments('-DENABLE_X11', language: 'c')
-else
-  backend_x11 = false
 endif
 
+# Wayland dependencies
 wayland_client = dependency('wayland-client', required: get_option('backend-wayland'))
 wayland_cursor = dependency('wayland-cursor', required: get_option('backend-wayland'))
 wlroots = dependency('wlroots', required: get_option('backend-wayland'))
+backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.found()
 
-if wayland_client.found() and wayland_cursor.found() and wlroots.found()
-  backend_wayland = true
+if backend_wayland
   add_project_arguments('-DENABLE_WAYLAND', language: 'c')
-else
-  backend_wayland = false
 endif
 
 if backend_x11
@@ -55,6 +53,7 @@ if backend_x11
                    xcb_render, cairo_xcb, xcb_errors],
     c_args: xcb_errors.found() ? '-DHAVE_XCB_ERRORS' : [],
     pic: plugs_as_libs)
+
   xcb_stuff = declare_dependency(link_with: xcb_stuff_lib)
   install_headers('xcb.h', subdir: 'f00bar')
 endif
