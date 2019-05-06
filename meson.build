@@ -2,10 +2,11 @@ project('f00bar', 'c',
         license: 'MIT',
         default_options: ['c_std=c11', 'warning_level=1', 'werror=true'])
 
+plugs_as_libs = get_option('core-plugins-as-shared-libraries')
+
 add_project_arguments(
   ['-D_GNU_SOURCE'] +
-  (get_option('core-plugins-as-shared-libraries') ?
-   ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
+  (plugs_as_libs ? ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
   language: 'c',
 )
 
@@ -53,7 +54,7 @@ if backend_x11
     dependencies: [xcb_aux, xcb_cursor, xcb_event, xcb_ewmh, xcb_randr,
                    xcb_render, cairo_xcb, xcb_errors],
     c_args: xcb_errors.found() ? '-DHAVE_XCB_ERRORS' : [],
-    pic: get_option('core-plugins-as-shared-libraries'))
+    pic: plugs_as_libs)
   xcb_stuff = declare_dependency(link_with: xcb_stuff_lib)
   install_headers('xcb.h', subdir: 'f00bar')
 endif

@@ -32,7 +32,7 @@ foreach mod, data : deps
   sources = data[0]
   dep = data[1]
 
-  if get_option('core-plugins-as-shared-libraries')
+  if plugs_as_libs
     shared_module(mod, '@0@.c'.format(mod), sources,
                   dependencies: [module_sdk] + dep,
                   name_prefix: 'module_',
@@ -51,7 +51,7 @@ if backend_x11
     sources = data[0]
     dep = data[1]
 
-    if get_option('core-plugins-as-shared-libraries')
+    if plugs_as_libs
       shared_module(mod, '@0@.c'.format(mod), sources,
                     dependencies: [module_sdk] + dep,
                     name_prefix: 'module_',

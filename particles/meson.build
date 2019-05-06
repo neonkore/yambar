@@ -2,7 +2,7 @@ particle_sdk = declare_dependency(dependencies: [cairo, cairo_ft])
 
 particles = []
 foreach particle : ['empty', 'list', 'map', 'progress-bar', 'ramp', 'string']
-  if get_option('core-plugins-as-shared-libraries')
+  if plugs_as_libs
     shared_module('@0@'.format(particle), '@0@.c'.format(particle),
                   dependencies: particle_sdk,
                   name_prefix: 'particle_',
@@ -18,10 +18,9 @@ endforeach
 
 dynlist_lib = build_target(
   'dynlist', 'dynlist.c', 'dynlist.h', dependencies: particle_sdk,
-  target_type: (get_option('core-plugins-as-shared-libraries')
-                ? 'shared_library' : 'static_library'),
+  target_type: plugs_as_libs ? 'shared_library' : 'static_library',
   override_options : ['b_lundef=false'],
-  install: get_option('core-plugins-as-shared-libraries'),
+  install: plugs_as_libs,
   install_dir: get_option('libdir') + '/f00bar',
 )
 
