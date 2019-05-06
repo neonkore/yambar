@@ -5,12 +5,6 @@ project('f00bar', 'c',
 
 plugs_as_libs = get_option('core-plugins-as-shared-libraries')
 
-add_project_arguments(
-  ['-D_GNU_SOURCE'] +
-  (plugs_as_libs ? ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
-  language: 'c',
-)
-
 # Common dependencies
 cc = meson.get_compiler('c')
 dl = cc.find_library('dl', required : false)
@@ -33,19 +27,19 @@ backend_x11 = xcb_aux.found() and xcb_cursor.found() and xcb_event.found() and \
               xcb_ewmh.found() and xcb_randr.found() and xcb_render.found() and \
               cairo_xcb.found()
 
-if backend_x11
-  add_project_arguments('-DENABLE_X11', language: 'c')
-endif
-
 # Wayland dependencies
 wayland_client = dependency('wayland-client', required: get_option('backend-wayland'))
 wayland_cursor = dependency('wayland-cursor', required: get_option('backend-wayland'))
 wlroots = dependency('wlroots', required: get_option('backend-wayland'))
 backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.found()
 
-if backend_wayland
-  add_project_arguments('-DENABLE_WAYLAND', language: 'c')
-endif
+add_project_arguments(
+  ['-D_GNU_SOURCE'] +
+  (backend_x11 ? ['-DENABLE_X11'] : []) +
+  (backend_wayland ? ['-DENABLE_WAYLAND'] : []) +
+  (plugs_as_libs ? ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
+  language: 'c',
+)
 
 if backend_x11
   xcb_stuff_lib = static_library(
