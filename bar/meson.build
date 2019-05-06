@@ -1,8 +1,8 @@
 bar_backends = []
 
 if backend_x11
-  bar_x11 = declare_dependency(sources: ['xcb.c', 'xcb.h'],
-                               dependencies: [xcb_stuff, cairo, cairo_ft])
+  bar_x11 = declare_dependency(
+    sources: ['xcb.c', 'xcb.h'], dependencies: [xcb_stuff, cairo, cairo_ft])
   bar_backends += [bar_x11]
 endif
 
