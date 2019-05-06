@@ -21,7 +21,7 @@ deps = {
   'removables': [[], [dynlist, udev]],
 }
 
-if enable_x11
+if backend_x11
   deps_x11_only = {
     'xkb': [[], [xcb_stuff, xcb_xkb]],
     'xwindow': [[], [xcb_stuff]],
@@ -46,7 +46,7 @@ foreach mod, data : deps
   endif
 endforeach
 
-if enable_x11
+if backend_x11
   foreach mod, data : deps_x11_only
     sources = data[0]
     dep = data[1]

@@ -30,10 +30,10 @@ if xcb_aux.found() and xcb_cursor.found() and xcb_event.found() and \
   xcb_ewmh.found() and xcb_randr.found() and xcb_render.found() and \
   cairo_xcb.found()
 
-  enable_x11 = true
+  backend_x11 = true
   add_project_arguments('-DENABLE_X11', language: 'c')
 else
-  enable_x11 = false
+  backend_x11 = false
 endif
 
 wayland_client = dependency('wayland-client', required: get_option('backend-wayland'))
@@ -41,13 +41,13 @@ wayland_cursor = dependency('wayland-cursor', required: get_option('backend-wayl
 wlroots = dependency('wlroots', required: get_option('backend-wayland'))
 
 if wayland_client.found() and wayland_cursor.found() and wlroots.found()
-  enable_wayland = true
+  backend_wayland = true
   add_project_arguments('-DENABLE_WAYLAND', language: 'c')
 else
-  enable_wayland = false
+  backend_wayland = false
 endif
 
-if enable_x11
+if backend_x11
   xcb_stuff_lib = static_library(
     'xcb-stuff', 'xcb.c', 'xcb.h',
     dependencies: [xcb_aux, xcb_cursor, xcb_event, xcb_ewmh, xcb_randr,
