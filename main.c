@@ -122,6 +122,13 @@ main(int argc, const char *const *argv)
 {
     setlocale(LC_ALL, "");
 
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+            printf("f00bar version %s\n", F00BAR_VERSION);
+            return 0;
+        }
+    }
+
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);

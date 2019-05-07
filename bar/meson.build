@@ -1,14 +1,12 @@
 bar_backends = []
 
-# TODO: X11
-if enable_x11
-  bar_x11 = declare_dependency(sources: ['xcb.c', 'xcb.h'],
-                               dependencies: [xcb_stuff, cairo, cairo_ft])
+if backend_x11
+  bar_x11 = declare_dependency(
+    sources: ['xcb.c', 'xcb.h'], dependencies: [xcb_stuff, cairo, cairo_ft])
   bar_backends += [bar_x11]
 endif
 
-# TODO: conditional Wayland
-if enable_wayland
+if backend_wayland
   wayland_protocols = dependency('wayland-protocols')
   wayland_protocols_datadir = wayland_protocols.get_pkgconfig_variable('pkgdatadir')
 

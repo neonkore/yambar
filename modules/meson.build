@@ -21,8 +21,8 @@ deps = {
   'removables': [[], [dynlist, udev]],
 }
 
-if enable_x11
-  deps_x11_only = {
+if backend_x11
+  deps += {
     'xkb': [[], [xcb_stuff, xcb_xkb]],
     'xwindow': [[], [xcb_stuff]],
   }
@@ -32,7 +32,7 @@ foreach mod, data : deps
   sources = data[0]
   dep = data[1]
 
-  if get_option('core-plugins-as-shared-libraries')
+  if plugs_as_libs
     shared_module(mod, '@0@.c'.format(mod), sources,
                   dependencies: [module_sdk] + dep,
                   name_prefix: 'module_',
@@ -45,23 +45,3 @@ foreach mod, data : deps
       compile_args: '-DHAVE_PLUGIN_@0@'.format(mod))]
   endif
 endforeach
-
-if enable_x11
-  foreach mod, data : deps_x11_only
-    sources = data[0]
-    dep = data[1]
-
-    if get_option('core-plugins-as-shared-libraries')
-      shared_module(mod, '@0@.c'.format(mod), sources,
-                    dependencies: [module_sdk] + dep,
-                    name_prefix: 'module_',
-                    install: true,
-                    install_dir: join_paths(get_option('libdir'), 'f00bar'))
-    else
-      modules += [declare_dependency(
-        sources: ['@0@.c'.format(mod)] + sources,
-        dependencies: [module_sdk] + dep,
-        compile_args: '-DHAVE_PLUGIN_@0@'.format(mod))]
-    endif
-  endforeach
-endif
