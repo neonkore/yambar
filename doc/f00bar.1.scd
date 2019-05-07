@@ -4,7 +4,12 @@ f00bar(1)
 f00bar - modular status panel for X11 and Wayland
 
 # SYNOPSIS
-*f00bar*
+*f00bar* [ -v ]
+
+# OPTIONS
+
+*-v, --version*
+	Show the version number and quit
 
 # DESCRIPTION
 *f00bar* is a light-weight and configurable status panel (_bar_, for
