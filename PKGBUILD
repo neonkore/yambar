@@ -19,7 +19,8 @@ optdepends=('xcb-util-errors: better X error messages')
 source=()
 
 pkgver() {
-  git describe --tags --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+  [ -d ../.git ] && git describe --tags --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+  [ ! -d ../.git ] && head -3 ../meson.build | grep version | cut -d "'" -f 2
 }
 
 build() {
