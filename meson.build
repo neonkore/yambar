@@ -94,3 +94,10 @@ install_headers(
   'tllist.h',
   'yml.h',
   subdir: 'f00bar')
+
+message('')
+message('Build type:              @0@'.format(get_option('buildtype')))
+message('XCB backend:             @0@'.format(backend_x11))
+message('Wayland backend:         @0@'.format(backend_wayland))
+message('Core modules as plugins: @0@'.format(plugs_as_libs))
+message('')
