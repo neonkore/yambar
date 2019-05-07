@@ -1,5 +1,5 @@
 pkgname=f00bar
-pkgver=1.0.0
+pkgver=1.0.2
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
