@@ -1,9 +1,32 @@
 project('f00bar', 'c',
+        version: '1.0.0',
         license: 'MIT',
         meson_version: '>=0.48.0',
         default_options: ['c_std=c11', 'warning_level=1', 'werror=true'])
 
 plugs_as_libs = get_option('core-plugins-as-shared-libraries')
+
+version = '"@0@"'.format(meson.project_version())
+
+sh = find_program('sh', native: true)
+git = find_program('git', required: false, native: true)
+
+if git.found()
+  commit_hash = run_command(
+    [sh.path(), '-c',
+     '@0@ --git-dir=$MESON_SOURCE_ROOT/.git describe --always --tags'.format(
+       git.path())])
+
+  branch = run_command(
+    [sh.path(), '-c',
+     '@0@ --git-dir=$MESON_SOURCE_ROOT/.git rev-parse --abbrev-ref HEAD'.format(
+       git.path())])
+
+  if commit_hash.returncode() == 0 and branch.returncode() == 0
+    version = '"@0@ (" __DATE__ ", branch \'@1@\')"'.format(
+      commit_hash.stdout().strip(), branch.stdout().strip())
+  endif
+endif
 
 # Common dependencies
 cc = meson.get_compiler('c')
@@ -34,7 +57,8 @@ wlroots = dependency('wlroots', required: get_option('backend-wayland'))
 backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.found()
 
 add_project_arguments(
-  ['-D_GNU_SOURCE'] +
+  ['-D_GNU_SOURCE',
+   '-DF00BAR_VERSION=@0@'.format(version)] +
   (backend_x11 ? ['-DENABLE_X11'] : []) +
   (backend_wayland ? ['-DENABLE_WAYLAND'] : []) +
   (plugs_as_libs ? ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
