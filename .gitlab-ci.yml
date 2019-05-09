@@ -25,7 +25,7 @@ debug:
     - cd bld/debug
     - meson --buildtype=debug -Db_coverage=true ../..
     - ninja -k0
-    - ninja test
+    - meson test --print-errorlogs
     - ninja coverage-html
     - mv meson-logs/coveragereport ../..
     - ninja coverage-text
@@ -52,7 +52,7 @@ release:
     - cd bld/release
     - meson --buildtype=minsize ../../
     - ninja -k0
-    - ninja test
+    - meson test --print-errorlogs
 
 x11_only:
   stage: build
@@ -61,7 +61,7 @@ x11_only:
     - cd bld/debug
     - meson --buildtype=debug -Dbackend-x11=enabled -Dbackend-wayland=disabled ../../
     - ninja -k0
-    - ninja test
+    - meson test --print-errorlogs
 
 wayland_only:
   stage: build
@@ -70,7 +70,7 @@ wayland_only:
     - cd bld/debug
     - meson --buildtype=debug -Dbackend-x11=disabled -Dbackend-wayland=enabled ../../
     - ninja -k0
-    - ninja test
+    - meson test --print-errorlogs
 
 plugins_as_shared_modules:
   stage: build
@@ -79,4 +79,4 @@ plugins_as_shared_modules:
     - cd bld/debug
     - meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true ../../
     - ninja -k0
-    - ninja test
+    - meson test --print-errorlogs
