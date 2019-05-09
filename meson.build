@@ -83,7 +83,7 @@ subdir('decorations')
 subdir('particles')
 subdir('modules')
 
-executable(
+f00bar = executable(
   'f00bar',
   'color.h',
   'config-verify.c', 'config-verify.h',
@@ -104,6 +104,8 @@ executable(
   export_dynamic: true,
   install: true,
   install_rpath: '$ORIGIN/../' + get_option('libdir') + '/f00bar')
+
+test('f00bar-is-executable', f00bar, args: ['--version'])
 
 install_headers(
   'color.h',
