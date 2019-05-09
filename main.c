@@ -9,6 +9,7 @@
 #include <string.h>
 #include <threads.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <sys/types.h>
 #include <sys/eventfd.h>
@@ -117,15 +118,47 @@ out:
     return bar;
 }
 
+static void
+print_usage(const char *prog_name)
+{
+    printf("Usage: %s [OPTION]...\n", prog_name);
+    printf("\n");
+    printf("Options:\n");
+    printf("  -v,--version               print f00sel version and quit\n");
+}
+
 int
-main(int argc, const char *const *argv)
+main(int argc, char *const *argv)
 {
     setlocale(LC_ALL, "");
 
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+    static const struct option longopts[] = {
+        {"version",          no_argument,       0, 'v'},
+        {"help",             no_argument,       0, 'h'},
+        {NULL,               no_argument,       0, 0},
+    };
+
+    while (true) {
+        int c = getopt_long(argc, argv, ":vh", longopts, NULL);
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case 'v':
             printf("f00bar version %s\n", F00BAR_VERSION);
-            return 0;
+            return EXIT_SUCCESS;
+
+        case 'h':
+            print_usage(argv[0]);
+            return EXIT_SUCCESS;
+
+        case ':':
+            fprintf(stderr, "error: -%c: missing required argument\n", optopt);
+            return EXIT_FAILURE;
+
+        case '?':
+            fprintf(stderr, "error: -%c: invalid option\n", optopt);
+            return EXIT_FAILURE;
         }
     }
 
