@@ -124,7 +124,8 @@ print_usage(const char *prog_name)
     printf("Usage: %s [OPTION]...\n", prog_name);
     printf("\n");
     printf("Options:\n");
-    printf("  -C,--validate             verify configuration then quit\n"
+    printf("  -c,--config=FILE           alternative configuration file\n"
+           "  -C,--validate              verify configuration then quit\n"
            "  -v,--version               print f00sel version and quit\n");
 }
 
@@ -134,6 +135,7 @@ main(int argc, char *const *argv)
     setlocale(LC_ALL, "");
 
     static const struct option longopts[] = {
+        {"config",           required_argument, 0, 'c'},
         {"validate",         no_argument,       0, 'C'},
         {"version",          no_argument,       0, 'v'},
         {"help",             no_argument,       0, 'h'},
@@ -141,13 +143,29 @@ main(int argc, char *const *argv)
     };
 
     bool verify_config = false;
+    char *config_path = NULL;
 
     while (true) {
-        int c = getopt_long(argc, argv, ":Cvh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":c:Cvh", longopts, NULL);
         if (c == -1)
             break;
 
         switch (c) {
+        case 'c': {
+            struct stat st;
+            if (stat(optarg, &st) == -1) {
+                LOG_ERRNO("%s: invalid configuration file", optarg);
+                return EXIT_FAILURE;
+            } else if (!S_ISREG(st.st_mode)) {
+                LOG_ERR("%s: invalid configuration file: not a regular file",
+                        optarg);
+                return EXIT_FAILURE;
+            }
+
+            config_path = strdup(optarg);
+            break;
+        }
+
         case 'C':
             verify_config = true;
             break;
@@ -188,10 +206,12 @@ main(int argc, char *const *argv)
         return 1;
     }
 
-    char *config_path = get_config_path();
     if (config_path == NULL) {
-        LOG_ERR("could not find a configuration (see man 5 f00bar)");
-        return 1;
+        config_path = get_config_path();
+        if (config_path == NULL) {
+            LOG_ERR("could not find a configuration (see man 5 f00bar)");
+            return 1;
+        }
     }
 
     struct bar *bar = load_bar(config_path);

@@ -8,6 +8,9 @@ f00bar - modular status panel for X11 and Wayland
 
 # OPTIONS
 
+*-c, --config=FILE*
+	Use an alternative configuration file instead of the default one.
+
 *-C, --validate*
 	Verify the configuration and then quit. If no errors are detected,
 	nothing is printed and the exit code is 0. If there are errors,
