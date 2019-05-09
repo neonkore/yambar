@@ -28,6 +28,7 @@ debug:
     - ninja test
     - ninja coverage-text
     - tail meson-logs/coverage.txt
+  coverage: '/^TOTAL.*\s+(\d+\%)$/'
 
 # valgrind:
 #   stage: build
