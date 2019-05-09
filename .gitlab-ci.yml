@@ -37,7 +37,7 @@ valgrind:
     - cd bld/debug
     - meson --buildtype=debug ../..
     - ninja -k0
-    - meson test --wrapper "valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=3"
+    - meson test --verbose --wrapper "valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=3"
 
 release:
   stage: build
