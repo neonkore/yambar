@@ -105,7 +105,7 @@ f00bar = executable(
   install: true,
   install_rpath: '$ORIGIN/../' + get_option('libdir') + '/f00bar')
 
-test('f00bar-is-executable', f00bar, args: ['--version'])
+subdir('test')
 
 install_headers(
   'color.h',
