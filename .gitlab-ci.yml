@@ -25,6 +25,7 @@ debug:
     - ninja test
     - cat /usr/bin/gcovr
     - python2 -m gcovr --version
+    - python3 -m gcovr --version
     - gcovr --version
     - ninja coverage-xml
 
