@@ -306,31 +306,6 @@ run(struct bar *_bar)
 
     LOG_DBG("modules joined");
 
-    for (size_t i = 0; i < bar->left.count; i++) {
-        struct module *m = bar->left.mods[i];
-        struct exposable *e = bar->left.exps[i];
-
-        if (e != NULL)
-            e->destroy(e);
-        m->destroy(m);
-    }
-    for (size_t i = 0; i < bar->center.count; i++) {
-        struct module *m = bar->center.mods[i];
-        struct exposable *e = bar->center.exps[i];
-
-        if (e != NULL)
-            e->destroy(e);
-        m->destroy(m);
-    }
-    for (size_t i = 0; i < bar->right.count; i++) {
-        struct module *m = bar->right.mods[i];
-        struct exposable *e = bar->right.exps[i];
-
-        if (e != NULL)
-            e->destroy(e);
-        m->destroy(m);
-    }
-
     bar->backend.iface->cleanup(_bar);
 
     if (bar->cairo)
@@ -340,7 +315,6 @@ run(struct bar *_bar)
         cairo_surface_finish(bar->cairo_surface);
         cairo_surface_destroy(bar->cairo_surface);
     }
-    cairo_debug_reset_static_data();
 
     LOG_DBG("bar exiting");
     return ret;
@@ -350,6 +324,33 @@ static void
 destroy(struct bar *bar)
 {
     struct private *b = bar->private;
+
+    for (size_t i = 0; i < b->left.count; i++) {
+        struct module *m = b->left.mods[i];
+        struct exposable *e = b->left.exps[i];
+
+        if (e != NULL)
+            e->destroy(e);
+        m->destroy(m);
+    }
+    for (size_t i = 0; i < b->center.count; i++) {
+        struct module *m = b->center.mods[i];
+        struct exposable *e = b->center.exps[i];
+
+        if (e != NULL)
+            e->destroy(e);
+        m->destroy(m);
+    }
+    for (size_t i = 0; i < b->right.count; i++) {
+        struct module *m = b->right.mods[i];
+        struct exposable *e = b->right.exps[i];
+
+        if (e != NULL)
+            e->destroy(e);
+        m->destroy(m);
+    }
+
+    cairo_debug_reset_static_data();
 
     free(b->left.mods);
     free(b->left.exps);
