@@ -13,11 +13,12 @@ before_script:
   - apk add libxcb-dev xcb-util-wm-dev xcb-util-cursor-dev cairo-dev yaml-dev
   - apk add wayland-dev wayland-protocols wlroots-dev
   - apk add json-c-dev libmpdclient-dev alsa-lib-dev
-  - apk add gcovr
 
 debug:
   stage: build
   script:
+    - apk add gcovr
+    - python2 -m pip install --upgrade setuptools
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Db_coverage=true ../..
@@ -25,7 +26,6 @@ debug:
     - ninja test
     - cat /usr/bin/gcovr
     - python2 -m gcovr --version
-    - python3 -m gcovr --version
     - gcovr --version
     - ninja coverage-xml
 
