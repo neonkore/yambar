@@ -27,12 +27,12 @@ debug:
     - ninja -k0
     - meson test --print-errorlogs
     - ninja coverage-html
-    - mv meson-logs/coveragereport ../..
+    - mv meson-logs/coveragereport ../../coverage
     - ninja coverage-text
     - tail meson-logs/coverage.txt
   artifacts:
     paths:
-      - coveragereport
+      - coverage
   coverage: '/^TOTAL.*\s+(\d+\%)$/'
 
 # valgrind:
