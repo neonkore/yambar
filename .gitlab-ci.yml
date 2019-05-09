@@ -23,6 +23,7 @@ debug:
     - meson --buildtype=debug -Db_coverage=true ../..
     - ninja -k0
     - ninja test
+    - gcovr --version
     - ninja coverage-xml
 
 release:
