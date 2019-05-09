@@ -29,15 +29,15 @@ debug:
     - ninja coverage-text
     - tail meson-logs/coverage.txt
 
-valgrind:
-  stage: build
-  script:
-    - apk add valgrind
-    - mkdir -p bld/debug
-    - cd bld/debug
-    - meson --buildtype=debug ../..
-    - ninja -k0
-    - meson test --verbose --wrapper "valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=3"
+# valgrind:
+#   stage: build
+#   script:
+#     - apk add valgrind
+#     - mkdir -p bld/debug
+#     - cd bld/debug
+#     - meson --buildtype=debug ../..
+#     - ninja -k0
+#     - meson test --verbose --wrapper "valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=3"
 
 release:
   stage: build
