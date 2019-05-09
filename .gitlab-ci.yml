@@ -26,12 +26,13 @@ debug:
     - meson --buildtype=debug -Db_coverage=true ../..
     - ninja -k0
     - ninja test
+    - ninja coverage-html
+    - mv meson-logs/coveragereport ../..
     - ninja coverage-text
-    - ninja coverage-xml
     - tail meson-logs/coverage.txt
   artifacts:
     paths:
-      - bld/debug/meson-logs/coverage.xml
+      - coveragereport
   coverage: '/^TOTAL.*\s+(\d+\%)$/'
 
 # valgrind:
