@@ -30,7 +30,7 @@ endif
 
 # Common dependencies
 cc = meson.get_compiler('c')
-dl = cc.find_library('dl', required : false)
+dl = cc.find_library('dl')
 threads = dependency('threads')
 fontconfig = dependency('fontconfig')
 cairo = dependency('cairo')
