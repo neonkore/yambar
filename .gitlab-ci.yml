@@ -27,7 +27,11 @@ debug:
     - ninja -k0
     - ninja test
     - ninja coverage-text
+    - ninja coverage-xml
     - tail meson-logs/coverage.txt
+  artifacts:
+    paths:
+      bld/debug/meson-logs/coverage.xml
   coverage: '/^TOTAL.*\s+(\d+\%)$/'
 
 # valgrind:
