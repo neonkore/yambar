@@ -26,9 +26,6 @@ debug:
     - meson --buildtype=debug -Db_coverage=true ../..
     - ninja -k0
     - ninja test
-    - cat /usr/bin/gcovr
-    - python2 -m gcovr --version
-    - gcovr --version
     - ninja coverage-text
     - tail meson-logs/coverage.txt
 
