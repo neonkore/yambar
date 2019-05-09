@@ -124,7 +124,8 @@ print_usage(const char *prog_name)
     printf("Usage: %s [OPTION]...\n", prog_name);
     printf("\n");
     printf("Options:\n");
-    printf("  -v,--version               print f00sel version and quit\n");
+    printf("  -c,--check-config          verify configuration then quit\n"
+           "  -v,--version               print f00sel version and quit\n");
 }
 
 int
@@ -133,17 +134,24 @@ main(int argc, char *const *argv)
     setlocale(LC_ALL, "");
 
     static const struct option longopts[] = {
+        {"check-config",     no_argument,       0, 'c'},
         {"version",          no_argument,       0, 'v'},
         {"help",             no_argument,       0, 'h'},
         {NULL,               no_argument,       0, 0},
     };
 
+    bool verify_config = false;
+
     while (true) {
-        int c = getopt_long(argc, argv, ":vh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":cvh", longopts, NULL);
         if (c == -1)
             break;
 
         switch (c) {
+        case 'c':
+            verify_config = true;
+            break;
+
         case 'v':
             printf("f00bar version %s\n", F00BAR_VERSION);
             return EXIT_SUCCESS;
@@ -192,6 +200,12 @@ main(int argc, char *const *argv)
     if (bar == NULL) {
         close(abort_fd);
         return 1;
+    }
+
+    if (verify_config) {
+        bar->destroy(bar);
+        close(abort_fd);
+        return 0;
     }
 
     bar->abort_fd = abort_fd;
