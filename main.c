@@ -124,7 +124,7 @@ print_usage(const char *prog_name)
     printf("Usage: %s [OPTION]...\n", prog_name);
     printf("\n");
     printf("Options:\n");
-    printf("  -C,--check-config          verify configuration then quit\n"
+    printf("  -C,--validate             verify configuration then quit\n"
            "  -v,--version               print f00sel version and quit\n");
 }
 
@@ -134,7 +134,7 @@ main(int argc, char *const *argv)
     setlocale(LC_ALL, "");
 
     static const struct option longopts[] = {
-        {"check-config",     no_argument,       0, 'C'},
+        {"validate",         no_argument,       0, 'C'},
         {"version",          no_argument,       0, 'v'},
         {"help",             no_argument,       0, 'h'},
         {NULL,               no_argument,       0, 0},
@@ -148,7 +148,7 @@ main(int argc, char *const *argv)
             break;
 
         switch (c) {
-        case 'c':
+        case 'C':
             verify_config = true;
             break;
 

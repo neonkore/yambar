@@ -8,7 +8,7 @@ f00bar - modular status panel for X11 and Wayland
 
 # OPTIONS
 
-*-C, --check-config*
+*-C, --validate*
 	Verify the configuration and then quit. If no errors are detected,
 	nothing is printed and the exit code is 0. If there are errors,
 	these are printed on stdout and the exit code is non-zero.
