@@ -29,7 +29,8 @@ debug:
     - cat /usr/bin/gcovr
     - python2 -m gcovr --version
     - gcovr --version
-    - ninja coverage-xml
+    - ninja coverage-text
+    - tail meson-logs/coverage.txt
 
 release:
   stage: build
