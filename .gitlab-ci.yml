@@ -30,7 +30,7 @@ debug:
     - ninja coverage-html
     - mv meson-logs/coveragereport ../../coverage
     - ninja coverage-text
-    - tail meson-logs/coverage.txt
+    - tail -2 meson-logs/coverage.txt
   artifacts:
     paths:
       - coverage
