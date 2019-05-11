@@ -1,0 +1,52 @@
+bar:
+  height: 10
+  location: bottom
+  spacing: 3
+  margin: 2
+  monitor: LVDS-1
+
+  font: monospace
+
+  foreground: ffffffff
+  background: 000000ff
+
+  border:
+    width: 1
+    color: 77777777
+    margin: 7
+
+  left:
+    - alsa:
+        card: Default
+        mixer: Master
+        content: {string: {text: "{volume}"}}
+    - backlight:
+        name: intel_backlight
+        content: {string: {text: "{percent}"}}
+    - battery:
+        name: BAT0
+        content: {string: {text: "{capacity}"}}
+    - clock:
+        content: {string: {text: "{date} {time}"}}
+
+  center:
+    - i3:
+        content:
+          "": {string: {text: "{name}"}}
+          ws: {string: {text: WS}}
+    - label:
+        content: {string: {text: hello}}
+    - mpd:
+        host: 127.0.0.1
+        content: {string: {text: "{state}"}}
+    - network:
+        name: ldsjfdf
+        content: {string: {text: "{name}"}}
+
+  right:
+    - removables:
+        content: {string: {text: "{label}"}}
+    - xkb:
+        content: {string: {text: "{name}"}}
+    - xwindow:
+        content: {string: {text: "{application}: {title}"}}
