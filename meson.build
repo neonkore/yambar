@@ -2,7 +2,10 @@ project('f00bar', 'c',
         version: '1.0.3',
         license: 'MIT',
         meson_version: '>=0.48.0',
-        default_options: ['c_std=c11', 'warning_level=1', 'werror=true'])
+        default_options: ['c_std=c11',
+                          'warning_level=1',
+                          'werror=true',
+                          'b_ndebug=if-release'])
 
 plugs_as_libs = get_option('core-plugins-as-shared-libraries')
 
