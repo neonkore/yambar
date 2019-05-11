@@ -62,6 +62,7 @@ backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.
 add_project_arguments(
   ['-D_GNU_SOURCE',
    '-DF00BAR_VERSION=@0@'.format(version)] +
+  (get_option('buildtype').startswith('debug') ? ['-D_DEBUG'] : []) +
   (backend_x11 ? ['-DENABLE_X11'] : []) +
   (backend_wayland ? ['-DENABLE_WAYLAND'] : []) +
   (plugs_as_libs ? ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
