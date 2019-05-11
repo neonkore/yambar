@@ -368,6 +368,52 @@ destroy(struct bar *bar)
 struct bar *
 bar_new(const struct bar_config *config)
 {
+    void *backend_data = NULL;
+    const struct backend *backend_iface = NULL;
+
+    switch (config->backend) {
+    case BAR_BACKEND_AUTO:
+#if defined(ENABLE_X11) && !defined(ENABLE_WAYLAND)
+        backend_data = bar_backend_xcb_new();
+        backend_iface = &xcb_backend_iface;
+#elif !defined(ENABLE_X11) && defined(ENABLE_WAYLAND)
+        backend_data = bar_backend_wayland_new();
+        backend_iface = &wayland_backend_iface;
+#else
+        if (getenv("WAYLAND_DISPLAY") != NULL) {
+            backend_data = bar_backend_wayland_new();
+            backend_iface = &wayland_backend_iface;
+        } else {
+            backend_data = bar_backend_xcb_new();
+            backend_iface = &xcb_backend_iface;
+        }
+#endif
+        break;
+
+    case BAR_BACKEND_XCB:
+#if defined(ENABLE_X11)
+        backend_data = bar_backend_xcb_new();
+        backend_iface = &xcb_backend_iface;
+#else
+        LOG_ERR("f00bar was compiled without the XCB backend");
+        return NULL;
+#endif
+        break;
+
+    case BAR_BACKEND_WAYLAND:
+#if defined(BAR_WAYLAND)
+        backend_data = bar_backend_wayland_new();
+        backend_iface = &wayland_backend_iface;
+#else
+        LOG_ERR("f00bar was compiled without the Wayland backend");
+        return NULL;
+#endif
+        break;
+    }
+
+    if (backend_data == NULL)
+        return NULL;
+
     struct private *priv = calloc(1, sizeof(*priv));
     priv->monitor = config->monitor != NULL ? strdup(config->monitor) : NULL;
     priv->location = config->location;
@@ -392,24 +438,8 @@ bar_new(const struct bar_config *config)
     priv->left.count = config->left.count;
     priv->center.count = config->center.count;
     priv->right.count = config->right.count;
-
-#if defined(ENABLE_X11) && !defined(ENABLE_WAYLAND)
-    priv->backend.data = bar_backend_xcb_new();
-    priv->backend.iface = &xcb_backend_iface;
-#else
-#if !defined(ENABLE_X11) && defined(ENABLE_WAYLAND)
-    priv->backend.data = bar_backend_wayland_new();
-    priv->backend.iface = &wayland_backend_iface;
-#else
-    if (getenv("WAYLAND_DISPLAY") != NULL) {
-        priv->backend.data = bar_backend_wayland_new();
-        priv->backend.iface = &wayland_backend_iface;
-    } else {
-        priv->backend.data = bar_backend_xcb_new();
-        priv->backend.iface = &xcb_backend_iface;
-    }
-#endif
-#endif
+    priv->backend.data = backend_data;
+    priv->backend.iface = backend_iface;
 
     for (size_t i = 0; i < priv->left.count; i++)
         priv->left.mods[i] = config->left.mods[i];

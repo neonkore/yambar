@@ -176,6 +176,8 @@ conf_to_bar(const struct yml_node *bar)
 
     struct bar_config conf = {0};
 
+    conf.backend = BAR_BACKEND_AUTO;
+
     /*
      * Required attributes
      */

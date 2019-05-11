@@ -15,8 +15,11 @@ struct bar {
 };
 
 enum bar_location { BAR_TOP, BAR_BOTTOM };
+enum bar_backend { BAR_BACKEND_AUTO, BAR_BACKEND_XCB, BAR_BACKEND_WAYLAND };
 
 struct bar_config {
+    enum bar_backend backend;
+
     const char *monitor;
     enum bar_location location;
     int height;
