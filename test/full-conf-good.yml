@@ -46,7 +46,7 @@ bar:
   right:
     - removables:
         content: {string: {text: "{label}"}}
-    - xkb:
-        content: {string: {text: "{name}"}}
-    - xwindow:
-        content: {string: {text: "{application}: {title}"}}
+    # - xkb:
+    #     content: {string: {text: "{name}"}}
+    # - xwindow:
+    #     content: {string: {text: "{application}: {title}"}}
