@@ -8,6 +8,12 @@ f00bar - modular status panel for X11 and Wayland
 
 # OPTIONS
 
+*-b, --backend={xcb,wayland,auto}*
+	Backend to use. The default is *auto*. In this mode, f00bar will
+	look for the environment variable _WAYLAND\_DISPLAY_, and if
+	available, use the *Wayland* backend. If not, the *XCB* backend is
+	used.
+
 *-c, --config=FILE*
 	Use an alternative configuration file instead of the default one.
 

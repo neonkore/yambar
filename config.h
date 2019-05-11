@@ -2,12 +2,13 @@
 
 #include "font.h"
 #include "yml.h"
+#include "bar/bar.h"
 
 struct bar;
 struct particle;
 
 bool conf_verify_bar(const struct yml_node *bar);
-struct bar *conf_to_bar(const struct yml_node *bar);
+struct bar *conf_to_bar(const struct yml_node *bar, enum bar_backend backend);
 
 /*
  * Utility functions, for e.g. modules

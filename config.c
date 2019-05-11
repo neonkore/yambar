@@ -169,14 +169,14 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
 }
 
 struct bar *
-conf_to_bar(const struct yml_node *bar)
+conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
 {
     if (!conf_verify_bar(bar))
         return NULL;
 
-    struct bar_config conf = {0};
-
-    conf.backend = BAR_BACKEND_AUTO;
+    struct bar_config conf = {
+        .backend = backend,
+    };
 
     /*
      * Required attributes

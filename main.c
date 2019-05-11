@@ -82,7 +82,7 @@ get_config_path(void)
 }
 
 static struct bar *
-load_bar(const char *config_path)
+load_bar(const char *config_path, enum bar_backend backend)
 {
     FILE *conf_file = fopen(config_path, "r");
     if (conf_file == NULL) {
@@ -105,7 +105,7 @@ load_bar(const char *config_path)
         goto out;
     }
 
-    bar = conf_to_bar(bar_conf);
+    bar = conf_to_bar(bar_conf, backend);
     if (bar == NULL) {
         LOG_ERR("%s: failed to load configuration", config_path);
         goto out;
@@ -124,9 +124,10 @@ print_usage(const char *prog_name)
     printf("Usage: %s [OPTION]...\n", prog_name);
     printf("\n");
     printf("Options:\n");
-    printf("  -c,--config=FILE           alternative configuration file\n"
-           "  -C,--validate              verify configuration then quit\n"
-           "  -v,--version               print f00sel version and quit\n");
+    printf("  -b,--backend={xcb,wayland,auto}  backend to use (default: auto)\n"
+           "  -c,--config=FILE                 alternative configuration file\n"
+           "  -C,--validate                    verify configuration then quit\n"
+           "  -v,--version                     print f00sel version and quit\n");
 }
 
 int
@@ -135,6 +136,7 @@ main(int argc, char *const *argv)
     setlocale(LC_ALL, "");
 
     static const struct option longopts[] = {
+        {"backend",          required_argument, 0, 'b'},
         {"config",           required_argument, 0, 'c'},
         {"validate",         no_argument,       0, 'C'},
         {"version",          no_argument,       0, 'v'},
@@ -144,13 +146,25 @@ main(int argc, char *const *argv)
 
     bool verify_config = false;
     char *config_path = NULL;
+    enum bar_backend backend = BAR_BACKEND_AUTO;
 
     while (true) {
-        int c = getopt_long(argc, argv, ":c:Cvh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":b:c:Cvh", longopts, NULL);
         if (c == -1)
             break;
 
         switch (c) {
+        case 'b':
+            if (strcmp(optarg, "xcb") == 0)
+                backend = BAR_BACKEND_XCB;
+            else if (strcmp(optarg, "wayland") == 0)
+                backend = BAR_BACKEND_WAYLAND;
+            else {
+                LOG_ERR("%s: invalid backend", optarg);
+                return EXIT_FAILURE;
+            }
+            break;
+
         case 'c': {
             struct stat st;
             if (stat(optarg, &st) == -1) {
@@ -214,7 +228,7 @@ main(int argc, char *const *argv)
         }
     }
 
-    struct bar *bar = load_bar(config_path);
+    struct bar *bar = load_bar(config_path, backend);
     free(config_path);
 
     if (bar == NULL) {
