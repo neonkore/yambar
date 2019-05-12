@@ -4,7 +4,7 @@ f00bar(1)
 f00bar - modular status panel for X11 and Wayland
 
 # SYNOPSIS
-*f00bar* [ -v ]
+*f00bar* [_OPTIONS_]...
 
 # OPTIONS
 
