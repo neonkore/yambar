@@ -7,6 +7,7 @@ project('f00bar', 'c',
                           'werror=true',
                           'b_ndebug=if-release'])
 
+is_debug_build = get_option('buildtype').startswith('debug')
 plugs_as_libs = get_option('core-plugins-as-shared-libraries')
 
 version = '"@0@"'.format(meson.project_version())
@@ -62,7 +63,7 @@ backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.
 add_project_arguments(
   ['-D_GNU_SOURCE',
    '-DF00BAR_VERSION=@0@'.format(version)] +
-  (get_option('buildtype').startswith('debug') ? ['-D_DEBUG'] : []) +
+  (is_debug_build ? ['-D_DEBUG'] : []) +
   (backend_x11 ? ['-DENABLE_X11'] : []) +
   (backend_wayland ? ['-DENABLE_WAYLAND'] : []) +
   (plugs_as_libs ? ['-DCORE_PLUGINS_AS_SHARED_LIBRARIES'] : []),
