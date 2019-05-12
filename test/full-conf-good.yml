@@ -15,6 +15,7 @@ bar:
     color: 77777777
     margin: 7
 
+  # left: focus on modules
   left:
     - alsa:
         card: Default
@@ -28,8 +29,6 @@ bar:
         content: {string: {text: "{capacity}"}}
     - clock:
         content: {string: {text: "{date} {time}"}}
-
-  center:
     - i3:
         content:
           "": {string: {text: "{name}"}}
@@ -42,11 +41,64 @@ bar:
     - network:
         name: ldsjfdf
         content: {string: {text: "{name}"}}
-
-  right:
     - removables:
         content: {string: {text: "{label}"}}
     # - xkb:
     #     content: {string: {text: "{name}"}}
     # - xwindow:
     #     content: {string: {text: "{application}: {title}"}}
+
+  # center: focus on particles
+  center:
+    - clock: {content: {empty: {}}}
+    - clock:
+        content: [string: {text: hello}, string: {text: world}]
+    - clock:
+        content:
+          list:
+            items:
+              - string: {text: hello}
+              - string: {text: world}
+    - clock:
+        content:
+          map:
+            tag: date
+            default: {string: {text: default value}}
+            values:
+              1234: {string: {text: specific value}}
+    - clock:
+        content:
+          progress-bar:
+            tag: date
+            length: 20
+            start: {string: {text: START}}
+            end: {string: {text: START}}
+            fill: {string: {text: FILL}}
+            empty: {string: {text: EMPTY}}
+            indicator: {string: {text: INDICATOR}}
+    - clock:
+        content:
+          ramp:
+            tag: date  # date isn't a range tag...
+            items: [string: {text: value}]
+
+  # right: focus on decorations
+  right:
+    - clock:
+        content:
+          string:
+            text: background deco
+            deco: {background: {color: ffffffff}}
+    - clock:
+        content:
+          string:
+            text: underline deco
+            deco: {underline: {size: 2, color: ffffffff}}
+    - clock:
+        content:
+          string:
+            text: stacked deco
+            deco:
+              stack:
+                - underline: {size: 2, color: ffffffff}
+                - background: {color: ffffffff}
