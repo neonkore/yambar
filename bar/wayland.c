@@ -123,6 +123,9 @@ update_cursor_surface(struct wayland_backend *backend)
 
     struct wl_cursor_image *image = backend->pointer.cursor->images[0];
 
+    wl_surface_set_buffer_scale(
+        backend->pointer.surface, backend->monitor->scale);
+
     wl_surface_attach(
         backend->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
 
@@ -615,7 +618,8 @@ setup(struct bar *_bar)
         return false;
     }
 
-    backend->pointer.theme = wl_cursor_theme_load(NULL, 24, backend->shm);
+    backend->pointer.theme = wl_cursor_theme_load(
+        NULL, 24 * backend->monitor->scale, backend->shm);
     if (backend->pointer.theme == NULL) {
         LOG_ERR("failed to load cursor theme");
         return false;
