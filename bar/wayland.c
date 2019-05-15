@@ -121,17 +121,18 @@ update_cursor_surface(struct wayland_backend *backend)
     if (backend->pointer.cursor == NULL)
         return;
 
+    const int scale = backend->monitor->scale;
+
     struct wl_cursor_image *image = backend->pointer.cursor->images[0];
 
-    wl_surface_set_buffer_scale(
-        backend->pointer.surface, backend->monitor->scale);
+    wl_surface_set_buffer_scale(backend->pointer.surface, scale);
 
     wl_surface_attach(
         backend->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
 
     wl_pointer_set_cursor(
         backend->pointer.pointer, backend->pointer.serial,
-        backend->pointer.surface, image->hotspot_x, image->hotspot_y);
+        backend->pointer.surface, image->hotspot_x / scale, image->hotspot_y / scale);
 
 
     wl_surface_damage_buffer(
