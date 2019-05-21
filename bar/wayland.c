@@ -18,6 +18,7 @@
 #include <wlr-layer-shell-unstable-v1.h>
 
 #define LOG_MODULE "bar:wayland"
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../tllist.h"
 
@@ -619,8 +620,22 @@ setup(struct bar *_bar)
         return false;
     }
 
+    unsigned cursor_size = 24;
+    const char *cursor_theme = getenv("XCURSOR_THEME");
+
+    {
+        const char *env_cursor_size = getenv("XCURSOR_SIZE");
+        if (env_cursor_size != NULL) {
+            unsigned size;
+            if (sscanf(env_cursor_size, "%u", &size) == 1)
+                cursor_size = size;
+        }
+    }
+
+    LOG_INFO("cursor theme: %s, size: %u", cursor_theme, cursor_size);
+
     backend->pointer.theme = wl_cursor_theme_load(
-        NULL, 24 * backend->monitor->scale, backend->shm);
+        cursor_theme, cursor_size * backend->monitor->scale, backend->shm);
     if (backend->pointer.theme == NULL) {
         LOG_ERR("failed to load cursor theme");
         return false;
