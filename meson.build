@@ -82,6 +82,7 @@ if backend_x11
   install_headers('xcb.h', subdir: 'f00bar')
 endif
 
+subdir('completions')
 subdir('doc')
 subdir('bar')
 subdir('decorations')

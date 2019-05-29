@@ -1,0 +1,9 @@
+#compdef f00bar
+
+_arguments \
+    -s \
+    '(-v --version)'{-v,--version}'[show the version number and quit]' \
+    '(-h --help)'{-h,--help}'[show help message and quit]' \
+    '(-b --backend)'{-b,--backend}'[backend to use; xcb,wayland,auto (default: auto)]' \
+    '(-c --config)'{-c,--config}'[alternative configuration file]' \
+    '(-C --validate)'{-C,--validate}'[verify configuration then quit]'
