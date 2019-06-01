@@ -73,6 +73,7 @@ expose(const struct bar *_bar)
     cairo_paint(bar->cairo);
 
     if (bar->border.width > 0) {
+        /* TODO: actually use border width */
         r = bar->border.color.red;
         g = bar->border.color.green;
         b = bar->border.color.blue;
@@ -81,11 +82,7 @@ expose(const struct bar *_bar)
         cairo_set_line_width(bar->cairo, 2 * bar->border.width);
         cairo_set_source_rgba(bar->cairo, r, g, b, a);
         cairo_set_operator(bar->cairo, CAIRO_OPERATOR_OVER);
-        cairo_rectangle(bar->cairo,
-                        bar->border.width,
-                        bar->border.width,
-                        bar->width - bar->border.width,
-                        bar->height_with_border - bar->border.width);
+        cairo_rectangle(bar->cairo, 0, 0, bar->width, bar->height_with_border);
         cairo_stroke(bar->cairo);
     }
 
