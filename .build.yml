@@ -36,12 +36,24 @@ tasks:
       python2 -m pip install --user --upgrade pip
       python2 -m pip install --user --upgrade setuptools
   - setup: |
-      mkdir -p bld/debug
+      mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
       meson --buildtype=debug -Db_coverage=true f00bar bld/debug
+      meson --buildtype=minsize f00bar bld/release
+      meson --buildtype=debug -Dbackend-x11=enabled -Dbackend-wayland=disabled f00bar bld/x11-only
+      meson --buildtype=debug -Dbackend-x11=disabled -Dbackend-wayland=enabled f00bar bld/wayland-only
+      meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true f00bar bld/plugs-are-shared
   - build: |
       ninja -C bld/debug -k0
+      ninja -C bld/release -k0
+      ninja -C bld/x11-only -k0
+      ninja -C bld/wayland-only -k0
+      ninja -C bld/plugs-are-shared -k0
   - tests: |
       meson test -C bld/debug --print-errorlogs
+      meson test -C bld/release --print-errorlogs
+      meson test -C bld/x11-only --print-errorlogs
+      meson test -C bld/wayland-only --print-errorlogs
+      meson test -C bld/plugs-are-shared --print-errorlogs
   - coverage: |
       ninja -C bld/debug coverage-html
       ninja -C bld/debug coverage-text
