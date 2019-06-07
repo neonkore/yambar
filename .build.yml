@@ -31,14 +31,13 @@ triggers:
     to: daniel@ekloef.se
 
 tasks:
-  - setup_gcovr: |
-      python2 -m ensurepip --upgrade
-      python2 -m pip install --upgrade pip
-      python2 -m pip install --upgrade setuptools
-  - prepare: |
-      mkdir -p bld/debug
+  - install-gcovr: |
+      python2 -m ensurepip --user --upgrade
+      python2 -m pip install --user --upgrade pip
+      python2 -m pip install --user --upgrade setuptools
   - setup: |
-      meson --buildtype=debug -Db_coverage=true . bld/debug
+      mkdir -p bld/debug
+      meson --buildtype=debug -Db_coverage=true f00bar bld/debug
   - build: |
       ninja -C bld/debug -k0
   - tests: |
