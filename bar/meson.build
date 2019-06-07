@@ -24,15 +24,15 @@ if backend_wayland
 
     wl_proto_headers += custom_target(
       prot.underscorify() + '-client-header',
-      output : '@BASENAME@.h',
-      input : prot,
-      command : [wscanner_prog, 'client-header', '@INPUT@', '@OUTPUT@'])
+      output: '@BASENAME@.h',
+      input: prot,
+      command: [wscanner_prog, 'client-header', '@INPUT@', '@OUTPUT@'])
 
     wl_proto_src += custom_target(
       prot.underscorify() + '-private-code',
-      output : '@BASENAME@.c',
-      input : prot,
-      command : [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
+      output: '@BASENAME@.c',
+      input: prot,
+      command: [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
   endforeach
 
   bar_wayland = declare_dependency(
