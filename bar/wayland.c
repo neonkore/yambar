@@ -822,7 +822,7 @@ loop(struct bar *_bar,
         }
 
         if (fds[1].revents & POLLHUP) {
-            LOG_WARN("disconnceted from wayland");
+            LOG_WARN("disconnected from wayland");
             if (write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t))
                 != sizeof(uint64_t))
             {
