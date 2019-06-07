@@ -1,0 +1,49 @@
+image: alpine/edge
+packages:
+  - musl-dev
+  - eudev-libs
+  - eudev-dev
+  - linux-headers
+  - meson
+  - ninja
+  - gcc
+  - scdoc
+  - libxcb-dev
+  - xcb-util-wm-dev
+  - xcb-util-cursor-dev
+  - cairo-dev
+  - yaml-dev
+  - wayland-dev
+  - wayland-protocols
+  - wlroots-dev
+  - json-c-dev
+  - libmdpclient-dev
+  - alsa-lib-dev
+  - ttf-dejavu
+  - gcovr
+
+sources:
+  - https://git.sr.ht/~dnkl/f00bar
+
+triggers:
+  - action: email
+    condition: failure
+    to: daniel@ekloef.se
+
+tasks:
+  - setup_gcovr: |
+      python2 -m ensurepip --upgrade
+      python2 -m pip install --upgrade pip
+      python2 -m pip install --upgrade setuptools
+  - prepare: |
+      mkdir -p bld/debug
+  - setup: |
+      meson --buildtype=debug -Db_coverage=true . bld/debug
+  - build: |
+      ninja -C bld/debug -k0
+  - tests: |
+      meson test -C bld/debug --print-errorlogs
+  - coverage: |
+      ninja -C bld/debug coverage-html
+      ninja -C bld/debug coverage-text
+      tail -2 bld/debug/meson-logs/coverage.txt
