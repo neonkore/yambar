@@ -17,7 +17,7 @@ packages:
   - wayland-protocols
   - wlroots-dev
   - json-c-dev
-  - libmdpclient-dev
+  - libmpdclient-dev
   - alsa-lib-dev
   - ttf-dejavu
   - gcovr
