@@ -149,8 +149,8 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
 {
     struct wayland_backend *backend = data;
     backend->pointer.serial = serial;
-    backend->pointer.x = wl_fixed_to_int(surface_x);
-    backend->pointer.y = wl_fixed_to_int(surface_y);
+    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->monitor->scale;
+    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->monitor->scale;
 
     update_cursor_surface(backend);
 }
