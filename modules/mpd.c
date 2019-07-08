@@ -353,9 +353,9 @@ update_status(struct module *mod)
         free(m->artist);
         free(m->title);
 
-        m->album = strdup(album);
-        m->artist = strdup(artist);
-        m->title = strdup(title);
+        m->album = album != NULL ? strdup(album) : NULL;
+        m->artist = artist != NULL ? strdup(artist) : NULL;
+        m->title = title != NULL ? strdup(title) : NULL;
         mtx_unlock(&mod->lock);
 
         mpd_song_free(song);
