@@ -1,3 +1,4 @@
+#include <string.h>
 #include <unistd.h>
 
 #define LOG_MODULE "sway-xkb"
