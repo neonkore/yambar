@@ -265,6 +265,10 @@ i3_receive_loop(int abort_fd, int sock,
                 pkt_handler = cbs->reply_inputs;
                 break;
 
+            /*
+             * Events
+             */
+
             case I3_IPC_EVENT_WORKSPACE:
                 pkt_handler = cbs->event_workspace;
                 break;
@@ -288,6 +292,11 @@ i3_receive_loop(int abort_fd, int sock,
                 break;
             case I3_IPC_EVENT_TICK:
                 pkt_handler = cbs->event_tick;
+                break;
+
+            /* Sway extensions */
+            case ((1<<31) | 21):  /* IPC_EVENT_INPUT */
+                pkt_handler = cbs->event_input;
                 break;
 
             default:

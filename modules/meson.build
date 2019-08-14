@@ -19,6 +19,7 @@ deps = {
   'mpd': [[], [mpd]],
   'network': [[], []],
   'removables': [[], [dynlist, udev]],
+  'sway_xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
 }
 
 if backend_x11

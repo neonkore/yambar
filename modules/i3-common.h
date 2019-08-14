@@ -38,6 +38,9 @@ struct i3_ipc_callbacks {
     i3_ipc_callback_t event_binding;
     i3_ipc_callback_t event_shutdown;
     i3_ipc_callback_t event_tick;
+
+    /* Sway extensions */
+    i3_ipc_callback_t event_input;
 };
 
 bool i3_receive_loop(
