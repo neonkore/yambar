@@ -104,9 +104,9 @@ handle_input_reply(int type, const struct json_object *json, void *_mod)
             struct input *maybe_input = &m->inputs[i];
             if (strcmp(maybe_input->identifier, id) == 0) {
                 input = maybe_input;
-                input->exists = true;
 
                 mtx_lock(&mod->lock);
+                input->exists = true;
                 m->num_existing_inputs++;
                 mtx_unlock(&mod->lock);
                 break;
@@ -184,10 +184,11 @@ handle_input_event(int type, const struct json_object *json, void *_mod)
         mtx_lock(&mod->lock);
         assert((is_removed && input->exists) ||
                (is_added && !input->exists));
-        input->exists = !input->exists;
 
+        input->exists = !input->exists;
         m->num_existing_inputs += is_added ? 1 : -1;
         m->dirty = true;
+
         mtx_unlock(&mod->lock);
 
         if (is_removed)
