@@ -70,22 +70,10 @@ begin_expose(struct exposable *exposable)
     return exposable->width;
 }
 
-static inline pixman_color_t
-color_hex_to_pixman_with_alpha(uint32_t color, uint16_t alpha)
-{
-    int alpha_div = 0xffff / alpha;
-    return (pixman_color_t){
-        .red =   ((color >> 16 & 0xff) | (color >> 8 & 0xff00)) / alpha_div,
-        .green = ((color >>  8 & 0xff) | (color >> 0 & 0xff00)) / alpha_div,
-        .blue =  ((color >>  0 & 0xff) | (color << 8 & 0xff00)) / alpha_div,
-        .alpha = alpha,
-    };
-}
-
 static void
-expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
+expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height)
 {
-    exposable_render_deco(exposable, cr, x, y, height);
+    exposable_render_deco(exposable, pix, x, y, height);
 
     const struct eprivate *e = exposable->private;
     const struct font *font = exposable->particle->font;
@@ -112,24 +100,6 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
         (double)(height + font->fextents.ascent + font->fextents.descent) / 2.0 -
         (font->fextents.descent > 0 ? font->fextents.descent : 0);
 
-    /* TODO: get rid of cairo?... */
-    cairo_surface_t *surf = cairo_get_target(cr);
-    cairo_surface_flush(surf);
-
-    pixman_image_t *pix = pixman_image_create_bits_no_clear(
-        PIXMAN_a8r8g8b8,
-        cairo_image_surface_get_width(surf),
-        cairo_image_surface_get_height(surf),
-        (uint32_t *)cairo_image_surface_get_data(surf),
-        cairo_image_surface_get_stride(surf));
-
-    uint32_t hex_color =
-        (uint32_t)(uint8_t)(exposable->particle->foreground.red * 255) << 16 |
-        (uint32_t)(uint8_t)(exposable->particle->foreground.green * 255) << 8 |
-        (uint32_t)(uint8_t)(exposable->particle->foreground.blue * 255) << 0;
-    uint16_t alpha = exposable->particle->foreground.alpha * 65535;
-    pixman_color_t fg = color_hex_to_pixman_with_alpha(hex_color, alpha);
-
     x += exposable->particle->left_margin;
 
     /* Loop glyphs and render them, one by one */
@@ -145,7 +115,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
                 glyph->width, glyph->height);
         } else {
             /* Glyph surface is an alpha mask */
-            pixman_image_t *src = pixman_image_create_solid_fill(&fg);
+            pixman_image_t *src = pixman_image_create_solid_fill(&exposable->particle->foreground);
             pixman_image_composite32(
                 PIXMAN_OP_OVER, src, glyph->pix, pix, 0, 0, 0, 0,
                 x + glyph->x, baseline - glyph->y,
@@ -155,9 +125,6 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
 
         x += glyph->x_advance;
     }
-
-    pixman_image_unref(pix);
-    cairo_surface_mark_dirty(surf);
 }
 
 static struct exposable *

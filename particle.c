@@ -29,7 +29,7 @@ particle_default_destroy(struct particle *particle)
 struct particle *
 particle_common_new(int left_margin, int right_margin,
                     const char *on_click_template,
-                    struct font *font, struct rgba foreground,
+                    struct font *font, pixman_color_t foreground,
                     struct deco *deco)
 {
     struct particle *p = calloc(1, sizeof(*p));
@@ -52,11 +52,11 @@ exposable_default_destroy(struct exposable *exposable)
 
 void
 exposable_render_deco(const struct exposable *exposable,
-                      cairo_t *cr, int x, int y, int height)
+                      pixman_image_t *pix, int x, int y, int height)
 {
     const struct deco *deco = exposable->particle->deco;
     if (deco != NULL)
-        deco->expose(deco, cr, x, y, exposable->width, height);
+        deco->expose(deco, pix, x, y, exposable->width, height);
 
 }
 

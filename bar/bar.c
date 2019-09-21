@@ -61,33 +61,21 @@ static void
 expose(const struct bar *_bar)
 {
     const struct private *bar = _bar->private;
+    pixman_image_t *pix = bar->backend.iface->get_pixman_image(_bar);
 
-    double r, g, b, a;
-    r = bar->background.red;
-    g = bar->background.green;
-    b = bar->background.blue;
-    a = bar->background.alpha;
-
-    cairo_set_source_rgba(bar->cairo, r, g, b, a);
-    cairo_set_operator(bar->cairo, CAIRO_OPERATOR_SOURCE);
-    cairo_paint(bar->cairo);
+    pixman_image_fill_rectangles(
+        PIXMAN_OP_SRC, pix, &bar->background, 1,
+        &(pixman_rectangle16_t){0, 0, bar->width, bar->height_with_border});
 
     if (bar->border.width > 0) {
-        r = bar->border.color.red;
-        g = bar->border.color.green;
-        b = bar->border.color.blue;
-        a = bar->border.color.alpha;
-
-        cairo_set_line_width(bar->cairo, bar->border.width);
-        cairo_set_source_rgba(bar->cairo, r, g, b, a);
-        cairo_set_operator(bar->cairo, CAIRO_OPERATOR_OVER);
-        cairo_rectangle(
-            bar->cairo,
-            bar->border.width / 2.0,
-            bar->border.width / 2.0,
-            bar->width - bar->border.width,
-            bar->height_with_border - bar->border.width);
-        cairo_stroke(bar->cairo);
+        pixman_image_fill_rectangles(
+            PIXMAN_OP_OVER, pix, &bar->border.color, 4,
+            (pixman_rectangle16_t[]){
+                {0, 0, bar->width, bar->border.width},
+                {0, 0, bar->border.width, bar->height},
+                {bar->width - bar->border.width, 0, bar->border.width, bar->height},
+                {0, bar->height - bar->border.width, bar->width, bar->border.width},
+            });
     }
 
     for (size_t i = 0; i < bar->left.count; i++) {
@@ -127,14 +115,14 @@ expose(const struct bar *_bar)
     int x = bar->border.width + bar->left_margin - bar->left_spacing;
     for (size_t i = 0; i < bar->left.count; i++) {
         const struct exposable *e = bar->left.exps[i];
-        e->expose(e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        e->expose(e, pix, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     x = bar->width / 2 - center_width / 2 - bar->left_spacing;
     for (size_t i = 0; i < bar->center.count; i++) {
         const struct exposable *e = bar->center.exps[i];
-        e->expose(e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        e->expose(e, pix, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
@@ -146,12 +134,11 @@ expose(const struct bar *_bar)
 
     for (size_t i = 0; i < bar->right.count; i++) {
         const struct exposable *e = bar->right.exps[i];
-        e->expose(e, bar->cairo, x + bar->left_spacing, y, bar->height);
+        e->expose(e, pix, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
-    cairo_surface_flush(bar->cairo_surface);
-    bar->backend.iface->commit_surface(_bar);
+    bar->backend.iface->commit_pixman(_bar, pix);
 }
 
 

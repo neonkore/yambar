@@ -1,4 +1,4 @@
-module_sdk = declare_dependency(dependencies: [cairo, cairo_ft, threads])
+module_sdk = declare_dependency(dependencies: [pixman, threads])
 
 modules = []
 

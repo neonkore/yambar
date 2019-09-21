@@ -370,10 +370,56 @@ loop(struct bar *_bar,
 }
 
 static void
-commit_surface(const struct bar *_bar)
+free_pixman_bits(pixman_image_t *pix, void *data)
+{
+    free(data);
+}
+
+static pixman_image_t *
+get_pixman_image(const struct bar *_bar)
+{
+    const struct private *bar = _bar->private;
+    uint32_t *bits = malloc(
+        bar->width * bar->height_with_border * sizeof(uint32_t));
+
+    pixman_image_t *ret = pixman_image_create_bits_no_clear(
+        PIXMAN_a8r8g8b8,
+        bar->width,
+        bar->height_with_border,
+        bits,
+        bar->width * sizeof(uint32_t));
+
+    if (ret == NULL) {
+        free(bits);
+        return NULL;
+    }
+
+    pixman_image_set_destroy_function(ret, &free_pixman_bits, bits);
+    return ret;
+}
+
+static void
+commit_pixman(const struct bar *_bar, pixman_image_t *pix)
 {
     const struct private *bar = _bar->private;
     const struct xcb_backend *backend = bar->backend.data;
+
+    /* Blit pixman image to our XCB surface */
+    cairo_surface_t *surf = cairo_image_surface_create_for_data(
+        (unsigned char *)pixman_image_get_data(pix),
+        CAIRO_FORMAT_ARGB32,
+        bar->width,
+        bar->height_with_border,
+        cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, bar->width));
+
+    cairo_set_source_surface(bar->cairo, surf, 0, 0);
+    cairo_set_operator(bar->cairo, CAIRO_OPERATOR_SOURCE);
+    cairo_paint(bar->cairo);
+
+    cairo_surface_flush(bar->cairo_surface);
+    cairo_surface_destroy(surf);
+    pixman_image_unref(pix);
+
     xcb_copy_area(backend->conn, backend->pixmap, backend->win, backend->gc,
                   0, 0, 0, 0, bar->width, bar->height_with_border);
     xcb_flush(backend->conn);
@@ -430,7 +476,8 @@ const struct backend xcb_backend_iface = {
     .setup = &setup,
     .cleanup = &cleanup,
     .loop = &loop,
-    .commit_surface = &commit_surface,
+    .get_pixman_image = &get_pixman_image,
+    .commit_pixman = &commit_pixman,
     .refresh = &refresh,
     .set_cursor = &set_cursor,
 };

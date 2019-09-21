@@ -901,11 +901,30 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         ;//printf("nothing more to do\n");
 }
 
+static pixman_image_t *
+get_pixman_image(const struct bar *_bar)
+{
+    struct private *bar = _bar->private;
+
+    cairo_surface_t *surf = cairo_get_target(bar->cairo);
+    cairo_surface_flush(surf);
+
+    return pixman_image_create_bits_no_clear(
+        PIXMAN_a8r8g8b8,
+        cairo_image_surface_get_width(surf),
+        cairo_image_surface_get_height(surf),
+        (uint32_t *)cairo_image_surface_get_data(surf),
+        cairo_image_surface_get_stride(surf));
+}
+
 static void
-commit_surface(const struct bar *_bar)
+commit_pixman(const struct bar *_bar, pixman_image_t *pix)
 {
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
+
+    pixman_image_unref(pix);
+    cairo_surface_mark_dirty(cairo_get_target(bar->cairo));
 
     //printf("commit: %dxl%d\n", backend->width, backend->height);
 
@@ -973,7 +992,8 @@ const struct backend wayland_backend_iface = {
     .setup = &setup,
     .cleanup = &cleanup,
     .loop = &loop,
-    .commit_surface = &commit_surface,
+    .get_pixman_image = &get_pixman_image,
+    .commit_pixman = &commit_pixman,
     .refresh = &refresh,
     .set_cursor = &set_cursor,
 };

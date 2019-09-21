@@ -55,11 +55,11 @@ begin_expose(struct exposable *exposable)
 }
 
 static void
-expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
+expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height)
 {
     const struct eprivate *e = exposable->private;
 
-    exposable_render_deco(exposable, cr, x, y, height);
+    exposable_render_deco(exposable, pix, x, y, height);
 
     int left_margin = exposable->particle->left_margin;
     int left_spacing = e->left_spacing;
@@ -68,7 +68,7 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     x += left_margin - left_spacing;
     for (size_t i = 0; i < e->count; i++) {
         const struct exposable *ee = e->exposables[i];
-        ee->expose(ee, cr, x + left_spacing, y, height);
+        ee->expose(ee, pix, x + left_spacing, y, height);
         x += left_spacing + e->widths[i] + right_spacing;
     }
 }

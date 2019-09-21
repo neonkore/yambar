@@ -49,7 +49,7 @@ dynlist_begin_expose(struct exposable *exposable)
 }
 
 static void
-dynlist_expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
+dynlist_expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height)
 {
     const struct private *e = exposable->private;
 
@@ -60,7 +60,7 @@ dynlist_expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int
 
     for (size_t i = 0; i < e->count; i++) {
         const struct exposable *ee = e->exposables[i];
-        ee->expose(ee, cr, x + left_spacing, y, height);
+        ee->expose(ee, pix, x + left_spacing, y, height);
         x += left_spacing + e->widths[i] + right_spacing;
     }
 }

@@ -14,12 +14,12 @@ struct bar *conf_to_bar(const struct yml_node *bar, enum bar_backend backend);
  * Utility functions, for e.g. modules
  */
 
-struct rgba conf_to_color(const struct yml_node *node);
+pixman_color_t conf_to_color(const struct yml_node *node);
 struct font *conf_to_font(const struct yml_node *node);
 
 struct conf_inherit {
     const struct font *font;
-    struct rgba foreground;
+    pixman_color_t foreground;
 };
 
 struct particle *conf_to_particle(

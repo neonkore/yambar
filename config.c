@@ -13,6 +13,10 @@
 #include "module.h"
 #include "plugin.h"
 
+#define LOG_MODULE "config"
+#define LOG_ENABLE_DBG 0
+#include "log.h"
+
 static uint8_t
 hex_nibble(char hex)
 {
@@ -36,7 +40,7 @@ hex_byte(const char hex[2])
     return upper << 4 | lower;
 }
 
-struct rgba
+pixman_color_t
 conf_to_color(const struct yml_node *node)
 {
     const char *hex = yml_value_as_string(node);
@@ -44,30 +48,26 @@ conf_to_color(const struct yml_node *node)
     assert(hex != NULL);
     assert(strlen(hex) == 8);
 
-    uint8_t red = hex_byte(&hex[0]);
-    uint8_t green = hex_byte(&hex[2]);
-    uint8_t blue = hex_byte(&hex[4]);
-    uint8_t alpha = hex_byte(&hex[6]);
+    uint16_t red = hex_byte(&hex[0]);
+    uint16_t green = hex_byte(&hex[2]);
+    uint16_t blue = hex_byte(&hex[4]);
+    uint16_t alpha = hex_byte(&hex[6]);
 
-    struct rgba rgba = {
-        (double)red / 255.0,
-        (double)green / 255.0,
-        (double)blue / 255.0,
-        (double)alpha / 255.0
+    alpha |= alpha << 8;
+    int alpha_div = 0xffff / alpha;
+
+    return (pixman_color_t){
+        .red =   (red << 8 | red) / alpha_div,
+        .green = (green << 8 | green) / alpha_div,
+        .blue =  (blue << 8 | blue) / alpha_div,
+        .alpha = alpha,
     };
-
-    assert(rgba.red >= 0.0 && rgba.red <= 1.0);
-    assert(rgba.green >= 0.0 && rgba.green <= 1.0);
-    assert(rgba.blue >= 0.0 && rgba.blue <= 1.0);
-    assert(rgba.alpha >= 0.0 && rgba.alpha <= 1.0);
-
-    return rgba;
 }
 
 struct font *
 conf_to_font(const struct yml_node *node)
 {
-    return font_from_name(yml_value_as_string(node));;
+    return font_from_name(yml_value_as_string(node));
 }
 
 struct deco *
@@ -155,7 +155,7 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
      */
     struct font *font = font_node != NULL
         ? conf_to_font(font_node) : font_clone(inherited.font);
-    struct rgba foreground = foreground_node != NULL
+    pixman_color_t foreground = foreground_node != NULL
         ? conf_to_color(foreground_node) : inherited.foreground;
 
     /* Instantiate base/common particle */
@@ -264,7 +264,7 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
      * foreground color at top-level.
      */
     struct font *font = font_from_name("sans");
-    struct rgba foreground = (struct rgba){1.0, 1.0, 1.0, 1.0}; /* White */
+    pixman_color_t foreground = {0xffff, 0xffff, 0xffff, 0xffff}; /* White */
 
     const struct yml_node *font_node = yml_get_value(bar, "font");
     if (font_node != NULL) {

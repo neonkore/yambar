@@ -1,5 +1,5 @@
 #pragma once
-#include <cairo.h>
+#include <pixman.h>
 
 #include "color.h"
 #include "decoration.h"
@@ -14,7 +14,7 @@ struct particle {
     int left_margin, right_margin;
     char *on_click_template;
 
-    struct rgba foreground;
+    pixman_color_t foreground;
     struct font *font;
     struct deco *deco;
 
@@ -37,7 +37,7 @@ struct exposable {
 
     void (*destroy)(struct exposable *exposable);
     int (*begin_expose)(struct exposable *exposable);
-    void (*expose)(const struct exposable *exposable, cairo_t *cr,
+    void (*expose)(const struct exposable *exposable, pixman_image_t *pix,
                    int x, int y, int height);
 
     void (*on_mouse)(struct exposable *exposable, struct bar *bar,
@@ -46,7 +46,7 @@ struct exposable {
 
 struct particle *particle_common_new(
     int left_margin, int right_margin, const char *on_click_template,
-    struct font *font, struct rgba foreground, struct deco *deco);
+    struct font *font, pixman_color_t foreground, struct deco *deco);
 
 void particle_default_destroy(struct particle *particle);
 
@@ -54,7 +54,7 @@ struct exposable *exposable_common_new(
     const struct particle *particle, const char *on_click);
 void exposable_default_destroy(struct exposable *exposable);
 void exposable_render_deco(
-    const struct exposable *exposable, cairo_t *cr, int x, int y, int height);
+    const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height);
 
 void exposable_default_on_mouse(
     struct exposable *exposable, struct bar *bar,
