@@ -30,7 +30,7 @@ struct module {
 
 struct module *module_common_new(void);
 void module_default_destroy(struct module *mod);
-struct exposable *module_begin_expose(struct module *mod, cairo_t *cr);
+struct exposable *module_begin_expose(struct module *mod);
 
 /* List of attributes *all* modules implement */
 #define MODULE_COMMON_ATTRS                        \

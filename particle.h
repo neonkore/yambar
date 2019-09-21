@@ -36,7 +36,7 @@ struct exposable {
     char *on_click;
 
     void (*destroy)(struct exposable *exposable);
-    int (*begin_expose)(struct exposable *exposable, cairo_t *cr);
+    int (*begin_expose)(struct exposable *exposable);
     void (*expose)(const struct exposable *exposable, cairo_t *cr,
                    int x, int y, int height);
 

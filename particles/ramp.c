@@ -30,13 +30,13 @@ exposable_destroy(struct exposable *exposable)
 }
 
 static int
-begin_expose(struct exposable *exposable, cairo_t *cr)
+begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
 
     exposable->width = (
         exposable->particle->left_margin +
-        e->exposable->begin_expose(e->exposable, cr) +
+        e->exposable->begin_expose(e->exposable) +
         exposable->particle->right_margin);
 
     return exposable->width;

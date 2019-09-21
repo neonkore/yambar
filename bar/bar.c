@@ -97,7 +97,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
 
-        bar->left.exps[i] = module_begin_expose(m, bar->cairo);
+        bar->left.exps[i] = module_begin_expose(m);
     }
 
     for (size_t i = 0; i < bar->center.count; i++) {
@@ -107,7 +107,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
 
-        bar->center.exps[i] = module_begin_expose(m, bar->cairo);
+        bar->center.exps[i] = module_begin_expose(m);
     }
 
     for (size_t i = 0; i < bar->right.count; i++) {
@@ -117,7 +117,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
 
-        bar->right.exps[i] = module_begin_expose(m, bar->cairo);
+        bar->right.exps[i] = module_begin_expose(m);
     }
 
     int left_width, center_width, right_width;

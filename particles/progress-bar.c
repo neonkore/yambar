@@ -54,7 +54,7 @@ exposable_destroy(struct exposable *exposable)
 }
 
 static int
-begin_expose(struct exposable *exposable, cairo_t *cr)
+begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
 
@@ -64,7 +64,7 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 
     /* Sub-exposables */
     for (size_t i = 0; i < e->count; i++)
-        exposable->width += e->exposables[i]->begin_expose(e->exposables[i], cr);
+        exposable->width += e->exposables[i]->begin_expose(e->exposables[i]);
 
     return exposable->width;
 }
