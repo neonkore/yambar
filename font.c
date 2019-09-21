@@ -63,8 +63,6 @@ font_destroy_no_free(struct font *font)
         mtx_unlock(&ft_lock);
     }
 
-    mtx_destroy(&font->lock);
-
     if (font->fc_pattern != NULL)
         FcPatternDestroy(font->fc_pattern);
     if (font->fc_fonts != NULL)
@@ -235,7 +233,6 @@ from_font_set(FcPattern *pattern, FcFontSet *fonts, int start_idx,
     int descent = ft_face->size->metrics.descender / 64;
     int ascent = ft_face->size->metrics.ascender / 64;
 
-    mtx_init(&font->lock, mtx_plain);
     font->face = ft_face;
     font->load_flags = load_flags | FT_LOAD_COLOR;
     font->render_flags = render_flags;
@@ -522,18 +519,14 @@ err:
 const struct glyph *
 font_glyph_for_wc(struct font *font, wchar_t wc)
 {
-    mtx_lock(&font->lock);
-
     assert(font->cache != NULL);
     size_t hash_idx = hash_index(wc);
     hash_entry_t *hash_entry = font->cache[hash_idx];
 
     if (hash_entry != NULL) {
         tll_foreach(*hash_entry, it) {
-            if (it->item.wc == wc) {
-                mtx_unlock(&font->lock);
+            if (it->item.wc == wc)
                 return it->item.valid ? &it->item : NULL;
-            }
         }
     }
 
@@ -549,8 +542,6 @@ font_glyph_for_wc(struct font *font, wchar_t wc)
 
     assert(hash_entry != NULL);
     tll_push_back(*hash_entry, glyph);
-
-    mtx_unlock(&font->lock);
     return got_glyph ? &tll_back(*hash_entry) : NULL;
 }
 

@@ -59,7 +59,6 @@ struct font {
     } strikeout;
 
     hash_entry_t **cache;
-    mtx_t lock;
 
     bool is_fallback;
     int ref_counter;
