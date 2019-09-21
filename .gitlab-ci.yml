@@ -19,9 +19,6 @@ debug:
   stage: build
   script:
     - apk add gcovr
-    - python2 -m ensurepip --upgrade
-    - python2 -m pip install --upgrade pip
-    - python2 -m pip install --upgrade setuptools
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Db_coverage=true ../..
