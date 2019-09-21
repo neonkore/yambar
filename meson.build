@@ -36,7 +36,9 @@ endif
 cc = meson.get_compiler('c')
 dl = cc.find_library('dl')
 threads = dependency('threads')
+freetype = dependency('freetype2')
 fontconfig = dependency('fontconfig')
+pixman = dependency('pixman-1')
 cairo = dependency('cairo')
 cairo_ft = dependency('cairo-ft')
 yaml = dependency('yaml-0.1')
@@ -104,7 +106,7 @@ f00bar = executable(
   'tag.c', 'tag.h',
   'tllist.h',
   'yml.c', 'yml.h',
-  dependencies: [bar, cairo, cairo_ft, fontconfig, yaml, threads, dl] +
+  dependencies: [bar, freetype, fontconfig, pixman, cairo, cairo_ft, yaml, threads, dl] +
                 decorations + particles + modules,
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -122,6 +124,7 @@ install_headers(
   'log.h',
   'module.h',
   'particle.h',
+  'stride.h',
   'tag.h',
   'tllist.h',
   'yml.h',

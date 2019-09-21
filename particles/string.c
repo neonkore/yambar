@@ -19,13 +19,8 @@ struct eprivate {
     /* Set when instantiating */
     char *text;
 
-    /* Set in begin_expose() */
-    cairo_font_extents_t fextents;
-    cairo_glyph_t *glyphs;
-    cairo_text_cluster_t *clusters;
-    cairo_text_cluster_flags_t cluster_flags;
+    const struct glyph **glyphs;
     int num_glyphs;
-    int num_clusters;
 };
 
 static void
@@ -34,11 +29,7 @@ exposable_destroy(struct exposable *exposable)
     struct eprivate *e = exposable->private;
 
     free(e->text);
-    if (e->glyphs != NULL)
-        cairo_glyph_free(e->glyphs);
-    if (e->clusters != NULL)
-        cairo_text_cluster_free(e->clusters);
-
+    free(e->glyphs);
     free(e);
     exposable_default_destroy(exposable);
 }
@@ -48,38 +39,47 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 {
     struct eprivate *e = exposable->private;
 
-    cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
-
-    cairo_set_scaled_font(cr, scaled);
-    cairo_font_extents(cr, &e->fextents);
+    struct font *font = exposable->particle->font;
 
     LOG_DBG("%s: ascent=%f, descent=%f, height=%f",
-            font_face(exposable->particle->font),
-            e->fextents.ascent, e->fextents.descent, e->fextents.height);
+            font->name, font->fextents.ascent,
+            font->fextents.descent, font->fextents.height);
 
-    cairo_status_t status = cairo_scaled_font_text_to_glyphs(
-        scaled, 0, 0, e->text, -1, &e->glyphs, &e->num_glyphs,
-        &e->clusters, &e->num_clusters, &e->cluster_flags);
+    size_t chars = mbstowcs(NULL, e->text, 0);
+    wchar_t wtext[chars + 1];
+    mbstowcs(wtext, e->text, chars + 1);
 
-    if (status != CAIRO_STATUS_SUCCESS) {
-        LOG_WARN("failed to convert \"%s\" to glyphs: %s",
-                 e->text, cairo_status_to_string(status));
+    e->glyphs = malloc(chars * sizeof(e->glyphs[0]));
+    e->num_glyphs = 0;
 
-        e->num_glyphs = -1;
-        e->num_clusters = -1;
-        memset(&e->fextents, 0, sizeof(e->fextents));
-        exposable->width = 0;
-    } else {
-        cairo_text_extents_t extents;
-        cairo_scaled_font_glyph_extents(
-            scaled, e->glyphs, e->num_glyphs, &extents);
-
-        exposable->width = (exposable->particle->left_margin +
-                            extents.x_advance +
-                            exposable->particle->right_margin);
+    /* Convert text to glyph masks/images. */
+    for (size_t i = 0; i < chars; i++) {
+        const struct glyph *glyph = font_glyph_for_wc(font, wtext[i]);
+        if (glyph == NULL)
+            continue;
+        e->glyphs[e->num_glyphs++] = glyph;
     }
 
+    exposable->width = exposable->particle->left_margin +
+        exposable->particle->right_margin;
+
+    /* Calculate the size we need to render the glyphs */
+    for (int i = 0; i < e->num_glyphs; i++)
+        exposable->width += e->glyphs[i]->x_advance;
+
     return exposable->width;
+}
+
+static inline pixman_color_t
+color_hex_to_pixman_with_alpha(uint32_t color, uint16_t alpha)
+{
+    int alpha_div = 0xffff / alpha;
+    return (pixman_color_t){
+        .red =   ((color >> 16 & 0xff) | (color >> 8 & 0xff00)) / alpha_div,
+        .green = ((color >>  8 & 0xff) | (color >> 0 & 0xff00)) / alpha_div,
+        .blue =  ((color >>  0 & 0xff) | (color << 8 & 0xff00)) / alpha_div,
+        .alpha = alpha,
+    };
 }
 
 static void
@@ -88,8 +88,9 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
     exposable_render_deco(exposable, cr, x, y, height);
 
     const struct eprivate *e = exposable->private;
+    const struct font *font = exposable->particle->font;
 
-    if (e->num_glyphs == -1)
+    if (e->num_glyphs == 0)
         return;
 
     /*
@@ -108,63 +109,55 @@ expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
      * font family.
      */
     const double baseline = (double)y +
-      (double)(height + e->fextents.ascent + e->fextents.descent) / 2.0 -
-      (e->fextents.descent > 0 ? e->fextents.descent : 0);
+        (double)(height + font->fextents.ascent + font->fextents.descent) / 2.0 -
+        (font->fextents.descent > 0 ? font->fextents.descent : 0);
 
-    /* Adjust glyph offsets */
+    /* TODO: get rid of cairo?... */
+    cairo_surface_t *surf = cairo_get_target(cr);
+    cairo_surface_flush(surf);
+
+    pixman_image_t *pix = pixman_image_create_bits_no_clear(
+        PIXMAN_a8r8g8b8,
+        cairo_image_surface_get_width(surf),
+        cairo_image_surface_get_height(surf),
+        (uint32_t *)cairo_image_surface_get_data(surf),
+        cairo_image_surface_get_stride(surf));
+
+    uint32_t hex_color =
+        (uint32_t)(uint8_t)(exposable->particle->foreground.red * 255) << 16 |
+        (uint32_t)(uint8_t)(exposable->particle->foreground.green * 255) << 8 |
+        (uint32_t)(uint8_t)(exposable->particle->foreground.blue * 255) << 0;
+    uint16_t alpha = exposable->particle->foreground.alpha * 65535;
+    pixman_color_t fg = color_hex_to_pixman_with_alpha(hex_color, alpha);
+
+    x += exposable->particle->left_margin;
+
+    /* Loop glyphs and render them, one by one */
     for (int i = 0; i < e->num_glyphs; i++) {
-        e->glyphs[i].x += x + exposable->particle->left_margin;
-        e->glyphs[i].y += baseline;
+        const struct glyph *glyph = e->glyphs[i];
+        assert(glyph != NULL);
+
+        if (pixman_image_get_format(glyph->pix) == PIXMAN_a8r8g8b8) {
+            /* Glyph surface is a pre-rendered image (typically a color emoji...) */
+            pixman_image_composite32(
+                PIXMAN_OP_OVER, glyph->pix, NULL, pix, 0, 0, 0, 0,
+                x + glyph->x, baseline - glyph->y,
+                glyph->width, glyph->height);
+        } else {
+            /* Glyph surface is an alpha mask */
+            pixman_image_t *src = pixman_image_create_solid_fill(&fg);
+            pixman_image_composite32(
+                PIXMAN_OP_OVER, src, glyph->pix, pix, 0, 0, 0, 0,
+                x + glyph->x, baseline - glyph->y,
+                glyph->width, glyph->height);
+            pixman_image_unref(src);
+        }
+
+        x += glyph->x_advance;
     }
 
-    cairo_scaled_font_t *scaled = font_scaled_font(exposable->particle->font);
-    cairo_set_scaled_font(cr, scaled);
-    cairo_set_source_rgba(cr,
-                          exposable->particle->foreground.red,
-                          exposable->particle->foreground.green,
-                          exposable->particle->foreground.blue,
-                          exposable->particle->foreground.alpha);
-    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-
-    cairo_show_text_glyphs(
-        cr, e->text, -1, e->glyphs, e->num_glyphs,
-        e->clusters, e->num_clusters, e->cluster_flags);
-
-#if 0
-    cairo_text_extents_t extents;
-    cairo_scaled_font_glyph_extents(scaled, e->glyphs, e->num_glyphs, &extents);
-
-    /* Bar center */
-    cairo_set_line_width(cr, 1);
-    cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);
-    cairo_move_to(cr, x, (double)y + (double)height / 2 + 0.5);
-    cairo_line_to(cr, x + extents.x_advance, (double)y + (double)height / 2 + 0.5);
-    cairo_stroke(cr);
-
-    /* Ascent */
-    cairo_set_source_rgba(cr, 0.0, 1.0, 0.0, 1.0);
-    cairo_move_to(cr, x, baseline - e->fextents.ascent + 0.5);
-    cairo_line_to(cr, x + extents.x_advance, baseline - e->fextents.ascent + 0.5);
-    cairo_stroke(cr);
-
-    /* Descent */
-    cairo_set_source_rgba(cr, 0.0, 0.0, 1.0, 1.0);
-    cairo_move_to(cr, x, baseline + e->fextents.descent + 0.5);
-    cairo_line_to(cr, x + extents.x_advance, baseline + e->fextents.descent + 0.5);
-    cairo_stroke(cr);
-
-    /* Height (!= ascent + descent) */
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
-    cairo_move_to(cr, x - 3 + 0.5, (double)y + (double)(height - e->fextents.height) / 2);
-    cairo_line_to(cr, x - 3 + 0.5, (double)y + (double)(height + e->fextents.height) / 2);
-    cairo_stroke(cr);
-
-    /* Height (ascent + descent) */
-    cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 1.0);
-    cairo_move_to(cr, x - 1 + 0.5, (double)y + (double)(height - (e->fextents.ascent + e->fextents.descent)) / 2);
-    cairo_line_to(cr, x - 1 + 0.5, (double)y + (double)(height + (e->fextents.ascent + e->fextents.descent)) / 2);
-    cairo_stroke(cr);
-#endif
+    pixman_image_unref(pix);
+    cairo_surface_mark_dirty(surf);
 }
 
 static struct exposable *
@@ -174,8 +167,8 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     struct eprivate *e = calloc(1, sizeof(*e));
 
     e->text = tags_expand_template(p->text, tags);
-    e->num_glyphs = -1;
-    e->num_clusters = -1;
+    e->glyphs = NULL;
+    e->num_glyphs = 0;
 
     if (p->max_len > 0) {
         const size_t len = strlen(e->text);

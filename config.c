@@ -67,7 +67,7 @@ conf_to_color(const struct yml_node *node)
 struct font *
 conf_to_font(const struct yml_node *node)
 {
-    return font_new(yml_value_as_string(node));
+    return font_from_name(yml_value_as_string(node));;
 }
 
 struct deco *
@@ -263,7 +263,7 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
      * and particles. This allows us to specify a default font and
      * foreground color at top-level.
      */
-    struct font *font = font_new("sans");
+    struct font *font = font_from_name("sans");
     struct rgba foreground = (struct rgba){1.0, 1.0, 1.0, 1.0}; /* White */
 
     const struct yml_node *font_node = yml_get_value(bar, "font");
