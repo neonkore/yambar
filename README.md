@@ -1,9 +1,5 @@
 # F00bar
 
-[![builds.sr.ht status](https://builds.sr.ht/~dnkl/f00bar.svg)](https://builds.sr.ht/~dnkl/f00bar?)
-[![pipeline status](https://gitlab.com/dnkl/f00bar/badges/master/pipeline.svg)](https://gitlab.com/dnkl/f00bar/commits/master)
-[![coverage report](https://gitlab.com/dnkl/f00bar/badges/master/coverage.svg)](https://gitlab.com/dnkl/f00bar/commits/master)
-
 ## Index
 
 1. [Introduction](#introduction)
