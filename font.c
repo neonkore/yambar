@@ -326,6 +326,9 @@ glyph_for_wchar(const struct font *font, wchar_t wc, struct glyph *glyph)
 
     FT_UInt idx = FT_Get_Char_Index(font->face, wc);
     if (idx == 0) {
+        if (font->is_fallback)
+            return false;
+
         /* No glyph in this font, try fontconfig fallback fonts */
 
         /* Try fontconfig fallback fonts */
