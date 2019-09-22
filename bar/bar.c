@@ -239,7 +239,8 @@ run(struct bar *_bar)
 
     if (!bar->backend.iface->setup(_bar)) {
         bar->backend.iface->cleanup(_bar);
-        write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t));
+        if (write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t)) != sizeof(uint64_t))
+            LOG_ERRNO("failed to signal abort");
         return 1;
     }
 
