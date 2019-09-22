@@ -54,7 +54,7 @@ exposable_destroy(struct exposable *exposable)
 }
 
 static int
-begin_expose(struct exposable *exposable, cairo_t *cr)
+begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
 
@@ -64,21 +64,21 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 
     /* Sub-exposables */
     for (size_t i = 0; i < e->count; i++)
-        exposable->width += e->exposables[i]->begin_expose(e->exposables[i], cr);
+        exposable->width += e->exposables[i]->begin_expose(e->exposables[i]);
 
     return exposable->width;
 }
 
 static void
-expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
+expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height)
 {
     const struct eprivate *e = exposable->private;
 
-    exposable_render_deco(exposable, cr, x, y, height);
+    exposable_render_deco(exposable, pix, x, y, height);
 
     x += exposable->particle->left_margin;
     for (size_t i = 0; i < e->count; i++) {
-        e->exposables[i]->expose(e->exposables[i], cr, x, y, height);
+        e->exposables[i]->expose(e->exposables[i], pix, x, y, height);
         x += e->exposables[i]->width;
     }
 }

@@ -36,9 +36,9 @@ endif
 cc = meson.get_compiler('c')
 dl = cc.find_library('dl')
 threads = dependency('threads')
+freetype = dependency('freetype2')
 fontconfig = dependency('fontconfig')
-cairo = dependency('cairo')
-cairo_ft = dependency('cairo-ft')
+pixman = dependency('pixman-1')
 yaml = dependency('yaml-0.1')
 
 # X11/XCB dependencies
@@ -48,11 +48,9 @@ xcb_event = dependency('xcb-event', required: get_option('backend-x11'))
 xcb_ewmh = dependency('xcb-ewmh', required: get_option('backend-x11'))
 xcb_randr = dependency('xcb-randr', required: get_option('backend-x11'))
 xcb_render = dependency('xcb-render', required: get_option('backend-x11'))
-cairo_xcb = dependency('cairo-xcb', required: get_option('backend-x11'))
 xcb_errors = dependency('xcb-errors', required: false)
 backend_x11 = xcb_aux.found() and xcb_cursor.found() and xcb_event.found() and \
-              xcb_ewmh.found() and xcb_randr.found() and xcb_render.found() and \
-              cairo_xcb.found()
+              xcb_ewmh.found() and xcb_randr.found() and xcb_render.found()
 
 # Wayland dependencies
 wayland_client = dependency('wayland-client', required: get_option('backend-wayland'))
@@ -74,7 +72,7 @@ if backend_x11
   xcb_stuff_lib = static_library(
     'xcb-stuff', 'xcb.c', 'xcb.h',
     dependencies: [xcb_aux, xcb_cursor, xcb_event, xcb_ewmh, xcb_randr,
-                   xcb_render, cairo_xcb, xcb_errors],
+                   xcb_render, xcb_errors],
     c_args: xcb_errors.found() ? '-DHAVE_XCB_ERRORS' : [],
     pic: plugs_as_libs)
 
@@ -104,7 +102,7 @@ f00bar = executable(
   'tag.c', 'tag.h',
   'tllist.h',
   'yml.c', 'yml.h',
-  dependencies: [bar, cairo, cairo_ft, fontconfig, yaml, threads, dl] +
+  dependencies: [bar, freetype, fontconfig, pixman, yaml, threads, dl] +
                 decorations + particles + modules,
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -122,6 +120,7 @@ install_headers(
   'log.h',
   'module.h',
   'particle.h',
+  'stride.h',
   'tag.h',
   'tllist.h',
   'yml.h',

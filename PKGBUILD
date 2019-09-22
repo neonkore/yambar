@@ -9,7 +9,7 @@ makedepends=('meson' 'ninja' 'scdoc')
 depends=(
   'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
   'wayland' 'wlroots'
-  'freetype2' 'fontconfig' 'cairo'
+  'freetype2' 'fontconfig' 'pixman'
   'libyaml'
   'alsa-lib'
   'libudev.so'

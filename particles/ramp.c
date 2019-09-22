@@ -30,26 +30,26 @@ exposable_destroy(struct exposable *exposable)
 }
 
 static int
-begin_expose(struct exposable *exposable, cairo_t *cr)
+begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
 
     exposable->width = (
         exposable->particle->left_margin +
-        e->exposable->begin_expose(e->exposable, cr) +
+        e->exposable->begin_expose(e->exposable) +
         exposable->particle->right_margin);
 
     return exposable->width;
 }
 
 static void
-expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
+expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height)
 {
     struct eprivate *e = exposable->private;
 
-    exposable_render_deco(exposable, cr, x, y, height);
+    exposable_render_deco(exposable, pix, x, y, height);
     e->exposable->expose(
-        e->exposable, cr, x + exposable->particle->left_margin, y, height);
+        e->exposable, pix, x + exposable->particle->left_margin, y, height);
 }
 
 static void

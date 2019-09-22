@@ -26,11 +26,11 @@ struct bar_config {
     int left_spacing, right_spacing;
     int left_margin, right_margin;
 
-    struct rgba background;
+    pixman_color_t background;
 
     struct {
         int width;
-        struct rgba color;
+        pixman_color_t color;
         int left_margin, right_margin;
         int top_margin, bottom_margin;
     } border;

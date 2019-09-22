@@ -24,11 +24,11 @@ destroy(struct deco *deco)
 }
 
 static void
-expose(const struct deco *deco, cairo_t *cr, int x, int y, int width, int height)
+expose(const struct deco *deco, pixman_image_t *pix, int x, int y, int width, int height)
 {
     const struct private *d = deco->private;
     for (size_t i = 0; i < d->count; i++)
-        d->decos[i]->expose(d->decos[i], cr, x, y, width, height);
+        d->decos[i]->expose(d->decos[i], pix, x, y, width, height);
 }
 
 static struct deco *

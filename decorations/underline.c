@@ -7,7 +7,7 @@
 
 struct private {
     int size;
-    struct rgba color;
+    pixman_color_t color;
 };
 
 static void
@@ -19,17 +19,16 @@ destroy(struct deco *deco)
 }
 
 static void
-expose(const struct deco *deco, cairo_t *cr, int x, int y, int width, int height)
+expose(const struct deco *deco, pixman_image_t *pix, int x, int y, int width, int height)
 {
     const struct private *d = deco->private;
-    cairo_set_source_rgba(
-        cr, d->color.red, d->color.green, d->color.blue, d->color.alpha);
-    cairo_rectangle(cr, x, y + height - d->size, width, d->size);
-    cairo_fill(cr);
+    pixman_image_fill_rectangles(
+        PIXMAN_OP_OVER, pix, &d->color, 1,
+        &(pixman_rectangle16_t){x, y + height - d->size, width, d->size});
 }
 
 static struct deco *
-underline_new(int size, struct rgba color)
+underline_new(int size, pixman_color_t color)
 {
     struct private *priv = calloc(1, sizeof(*priv));
     priv->size = size;

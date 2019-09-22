@@ -395,6 +395,7 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         assert(bytes >= 0);
 
         application[bytes - 1] = '\0';
+        free(ws->window.application);
         ws->window.application = strdup(application);
         close(fd);
     }

@@ -6,7 +6,7 @@
 #include "../plugin.h"
 
 static int
-begin_expose(struct exposable *exposable, cairo_t *cr)
+begin_expose(struct exposable *exposable)
 {
     exposable->width = exposable->particle->left_margin +
         exposable->particle->right_margin;
@@ -14,9 +14,9 @@ begin_expose(struct exposable *exposable, cairo_t *cr)
 }
 
 static void
-expose(const struct exposable *exposable, cairo_t *cr, int x, int y, int height)
+expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height)
 {
-    exposable_render_deco(exposable, cr, x, y, height);
+    exposable_render_deco(exposable, pix, x, y, height);
 }
 
 static struct exposable *

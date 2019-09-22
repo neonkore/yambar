@@ -1,4 +1,4 @@
-particle_sdk = declare_dependency(dependencies: [cairo, cairo_ft])
+particle_sdk = declare_dependency(dependencies: [freetype, fontconfig, pixman])
 
 particles = []
 foreach particle : ['empty', 'list', 'map', 'progress-bar', 'ramp', 'string']
