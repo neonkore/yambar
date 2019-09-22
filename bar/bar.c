@@ -73,9 +73,9 @@ expose(const struct bar *_bar)
             PIXMAN_OP_OVER, pix, &bar->border.color, 4,
             (pixman_rectangle16_t[]){
                 {0, 0, bar->width, bar->border.width},
-                {0, 0, bar->border.width, bar->height},
-                {bar->width - bar->border.width, 0, bar->border.width, bar->height},
-                {0, bar->height - bar->border.width, bar->width, bar->border.width},
+                {0, 0, bar->border.width, bar->height_with_border},
+                {bar->width - bar->border.width, 0, bar->border.width, bar->height_with_border},
+                {0, bar->height_with_border - bar->border.width, bar->width, bar->border.width},
             });
     }
 
