@@ -10,7 +10,7 @@ provides=('f00bar')
 makedepends=('meson' 'ninja' 'scdoc')
 depends=(
   'wayland' 'wlroots'
-  'freetype2' 'fontconfig' 'cairo'
+  'freetype2' 'fontconfig' 'pixman'
   'libyaml'
   'alsa-lib'
   'libudev.so'

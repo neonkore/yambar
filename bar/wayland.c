@@ -10,7 +10,6 @@
 #include <sys/mman.h>
 #include <linux/memfd.h>
 
-//#include <cairo.h>
 #include <pixman.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
@@ -697,7 +696,7 @@ setup(struct bar *_bar)
     //wl_surface_commit(backend->surface);
     //wl_display_roundtrip(backend->display);
 
-    /* Prepare a buffer + cairo context for bar to draw to */
+    /* Prepare a buffer + pixman image for bar to draw to */
     backend->next_buffer = get_buffer(backend);
     assert(backend->next_buffer != NULL && backend->next_buffer->busy);
     bar->pix = backend->next_buffer->pix;
