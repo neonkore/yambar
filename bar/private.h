@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cairo.h>
-#include <cairo-xcb.h>
-
 #include "../bar/bar.h"
 #include "backend.h"
 
@@ -46,22 +43,10 @@ struct private {
     /* Name of currently active cursor */
     char *cursor_name;
 
-    cairo_t *cairo;
-    cairo_surface_t *cairo_surface;
+    pixman_image_t *pix;
 
     struct {
         void *data;
         const struct backend *iface;
     } backend;
-#if 0
-    /* Backend specifics */
-    xcb_connection_t *conn;
-
-    xcb_window_t win;
-    xcb_colormap_t colormap;
-    xcb_pixmap_t pixmap;
-    xcb_gc_t gc;
-    xcb_cursor_context_t *cursor_ctx;
-    xcb_cursor_t cursor;
-#endif
 };

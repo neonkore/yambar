@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <poll.h>
 
+#include <pixman.h>
 #include <xcb/xcb.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
@@ -18,6 +19,7 @@
 
 #define LOG_MODULE "bar:xcb"
 #include "../log.h"
+#include "../stride.h"
 #include "../xcb.h"
 
 struct xcb_backend {
@@ -27,10 +29,15 @@ struct xcb_backend {
 
     xcb_window_t win;
     xcb_colormap_t colormap;
-    xcb_pixmap_t pixmap;
     xcb_gc_t gc;
     xcb_cursor_context_t *cursor_ctx;
     xcb_cursor_t cursor;
+
+    uint8_t depth;
+    void *client_pixmap;
+    size_t client_pixmap_size;
+    pixman_image_t *pix;
+
 };
 
 void *
@@ -131,6 +138,7 @@ setup(struct bar *_bar)
 
     assert(depth == 32 || depth == 24);
     assert(vis != NULL);
+    backend->depth = depth;
     LOG_DBG("using a %hhu-bit visual", depth);
 
     backend->colormap = xcb_generate_id(backend->conn);
@@ -234,19 +242,20 @@ setup(struct bar *_bar)
         _NET_WM_STRUT_PARTIAL, XCB_ATOM_CARDINAL, 32,
         12, strut);
 
-    backend->pixmap = xcb_generate_id(backend->conn);
-    xcb_create_pixmap(backend->conn, depth, backend->pixmap, backend->win,
-                      bar->width, bar->height_with_border);
-
     backend->gc = xcb_generate_id(backend->conn);
-    xcb_create_gc(backend->conn, backend->gc, backend->pixmap,
+    xcb_create_gc(backend->conn, backend->gc, backend->win,
                   XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES,
                   (const uint32_t []){screen->white_pixel, 0});
 
-    LOG_DBG("cairo: %s", cairo_version_string());
-    bar->cairo_surface = cairo_xcb_surface_create(
-        backend->conn, backend->pixmap, vis, bar->width, bar->height_with_border);
-    bar->cairo = cairo_create(bar->cairo_surface);
+    const uint32_t stride = stride_for_format_and_width(
+        PIXMAN_a8r8g8b8, bar->width);
+
+    backend->client_pixmap_size = stride * bar->height_with_border;
+    backend->client_pixmap = malloc(backend->client_pixmap_size);
+    backend->pix = pixman_image_create_bits_no_clear(
+        PIXMAN_a8r8g8b8, bar->width, bar->height_with_border,
+        (uint32_t *)backend->client_pixmap, stride);
+    bar->pix = backend->pix;
 
     xcb_map_window(backend->conn, backend->win);
 
@@ -274,10 +283,12 @@ cleanup(struct bar *_bar)
     /* TODO: move to bar.c */
     free(bar->cursor_name);
 
+    if (backend->pix != NULL)
+        pixman_image_unref(backend->pix);
+    free(backend->client_pixmap);
+
     if (backend->gc != 0)
         xcb_free_gc(backend->conn, backend->gc);
-    if (backend->pixmap != 0)
-        xcb_free_pixmap(backend->conn, backend->pixmap);
     if (backend->win != 0)
         xcb_destroy_window(backend->conn, backend->win);
     if (backend->colormap != 0)
@@ -370,58 +381,15 @@ loop(struct bar *_bar,
 }
 
 static void
-free_pixman_bits(pixman_image_t *pix, void *data)
-{
-    free(data);
-}
-
-static pixman_image_t *
-get_pixman_image(const struct bar *_bar)
-{
-    const struct private *bar = _bar->private;
-    uint32_t *bits = malloc(
-        bar->width * bar->height_with_border * sizeof(uint32_t));
-
-    pixman_image_t *ret = pixman_image_create_bits_no_clear(
-        PIXMAN_a8r8g8b8,
-        bar->width,
-        bar->height_with_border,
-        bits,
-        bar->width * sizeof(uint32_t));
-
-    if (ret == NULL) {
-        free(bits);
-        return NULL;
-    }
-
-    pixman_image_set_destroy_function(ret, &free_pixman_bits, bits);
-    return ret;
-}
-
-static void
-commit_pixman(const struct bar *_bar, pixman_image_t *pix)
+commit(const struct bar *_bar)
 {
     const struct private *bar = _bar->private;
     const struct xcb_backend *backend = bar->backend.data;
 
-    /* Blit pixman image to our XCB surface */
-    cairo_surface_t *surf = cairo_image_surface_create_for_data(
-        (unsigned char *)pixman_image_get_data(pix),
-        CAIRO_FORMAT_ARGB32,
-        bar->width,
-        bar->height_with_border,
-        cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, bar->width));
-
-    cairo_set_source_surface(bar->cairo, surf, 0, 0);
-    cairo_set_operator(bar->cairo, CAIRO_OPERATOR_SOURCE);
-    cairo_paint(bar->cairo);
-
-    cairo_surface_flush(bar->cairo_surface);
-    cairo_surface_destroy(surf);
-    pixman_image_unref(pix);
-
-    xcb_copy_area(backend->conn, backend->pixmap, backend->win, backend->gc,
-                  0, 0, 0, 0, bar->width, bar->height_with_border);
+    xcb_put_image(
+        backend->conn, XCB_IMAGE_FORMAT_Z_PIXMAP, backend->win, backend->gc,
+        bar->width, bar->height_with_border, 0, 0, 0,
+        backend->depth, backend->client_pixmap_size, backend->client_pixmap);
     xcb_flush(backend->conn);
 }
 
@@ -476,8 +444,7 @@ const struct backend xcb_backend_iface = {
     .setup = &setup,
     .cleanup = &cleanup,
     .loop = &loop,
-    .get_pixman_image = &get_pixman_image,
-    .commit_pixman = &commit_pixman,
+    .commit = &commit,
     .refresh = &refresh,
     .set_cursor = &set_cursor,
 };

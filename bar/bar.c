@@ -61,7 +61,7 @@ static void
 expose(const struct bar *_bar)
 {
     const struct private *bar = _bar->private;
-    pixman_image_t *pix = bar->backend.iface->get_pixman_image(_bar);
+    pixman_image_t *pix = bar->pix;
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, &bar->background, 1,
@@ -138,7 +138,7 @@ expose(const struct bar *_bar)
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
-    bar->backend.iface->commit_pixman(_bar, pix);
+    bar->backend.iface->commit(_bar);
 }
 
 
@@ -299,14 +299,6 @@ run(struct bar *_bar)
 
     bar->backend.iface->cleanup(_bar);
 
-    if (bar->cairo)
-        cairo_destroy(bar->cairo);
-    if (bar->cairo_surface) {
-        cairo_device_finish(cairo_surface_get_device(bar->cairo_surface));
-        cairo_surface_finish(bar->cairo_surface);
-        cairo_surface_destroy(bar->cairo_surface);
-    }
-
     LOG_DBG("bar exiting");
     return ret;
 }
@@ -340,8 +332,6 @@ destroy(struct bar *bar)
             e->destroy(e);
         m->destroy(m);
     }
-
-    cairo_debug_reset_static_data();
 
     free(b->left.mods);
     free(b->left.exps);

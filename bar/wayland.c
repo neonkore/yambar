@@ -10,7 +10,8 @@
 #include <sys/mman.h>
 #include <linux/memfd.h>
 
-#include <cairo.h>
+//#include <cairo.h>
+#include <pixman.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 
@@ -21,6 +22,7 @@
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../tllist.h"
+#include "../stride.h"
 
 #include "private.h"
 
@@ -31,8 +33,7 @@ struct buffer {
 
     struct wl_buffer *wl_buf;
 
-    cairo_surface_t *cairo_surface;
-    cairo_t *cairo;
+    pixman_image_t *pix;
 };
 
 struct monitor {
@@ -448,11 +449,10 @@ get_buffer(struct wayland_backend *backend)
      * No existing buffer available. Create a new one by:
      *
      * 1. open a memory backed "file" with memfd_create()
-     * 2. mmap() the memory file, to be used by the cairo surface
+     * 2. mmap() the memory file, to be used by the pixman image
      * 3. create a wayland shm buffer for the same memory file
      *
-     * The cairo surface and the wayland buffer are now sharing
-     * memory.
+     * The pixman image and the wayland buffer are now sharing memory.
      */
 
     int pool_fd = -1;
@@ -462,8 +462,7 @@ get_buffer(struct wayland_backend *backend)
     struct wl_shm_pool *pool = NULL;
     struct wl_buffer *buf = NULL;
 
-    cairo_surface_t *cairo_surface = NULL;
-    cairo_t *cairo = NULL;
+    pixman_image_t *pix = NULL;
 
     /* Backing memory for SHM */
     pool_fd = memfd_create("f00bar-wayland-shm-buffer-pool", MFD_CLOEXEC);
@@ -473,8 +472,9 @@ get_buffer(struct wayland_backend *backend)
     }
 
     /* Total size */
-    const uint32_t stride = cairo_format_stride_for_width(
-        CAIRO_FORMAT_ARGB32, backend->width);
+    const uint32_t stride = stride_for_format_and_width(
+        PIXMAN_a8r8g8b8, backend->width);
+
     size = stride * backend->height;
     if (ftruncate(pool_fd, size) == -1) {
         LOG_ERR("failed to truncate SHM pool");
@@ -504,19 +504,10 @@ get_buffer(struct wayland_backend *backend)
     wl_shm_pool_destroy(pool); pool = NULL;
     close(pool_fd); pool_fd = -1;
 
-    /* Create a cairo surface around the mmapped memory */
-    cairo_surface = cairo_image_surface_create_for_data(
-        mmapped, CAIRO_FORMAT_ARGB32, backend->width, backend->height, stride);
-    if (cairo_surface_status(cairo_surface) != CAIRO_STATUS_SUCCESS) {
-        LOG_ERR("failed to create cairo surface: %s",
-                cairo_status_to_string(cairo_surface_status(cairo_surface)));
-        goto err;
-    }
-
-    cairo = cairo_create(cairo_surface);
-    if (cairo_status(cairo) != CAIRO_STATUS_SUCCESS) {
-        LOG_ERR("failed to create cairo context: %s",
-                cairo_status_to_string(cairo_status(cairo)));
+    pix = pixman_image_create_bits_no_clear(
+        PIXMAN_a8r8g8b8, backend->width, backend->height, (uint32_t *)mmapped, stride);
+    if (pix == NULL) {
+        LOG_ERR("failed to create pixman image");
         goto err;
     }
 
@@ -528,9 +519,8 @@ get_buffer(struct wayland_backend *backend)
             .size = size,
             .mmapped = mmapped,
             .wl_buf = buf,
-            .cairo_surface = cairo_surface,
-            .cairo = cairo}
-            )
+            .pix = pix,
+            })
         );
 
     struct buffer *ret = &tll_back(backend->buffers);
@@ -538,10 +528,8 @@ get_buffer(struct wayland_backend *backend)
     return ret;
 
 err:
-    if (cairo != NULL)
-        cairo_destroy(cairo);
-    if (cairo_surface != NULL)
-        cairo_surface_destroy(cairo_surface);
+    if (pix != NULL)
+        pixman_image_unref(pix);
     if (buf != NULL)
         wl_buffer_destroy(buf);
     if (pool != NULL)
@@ -712,9 +700,7 @@ setup(struct bar *_bar)
     /* Prepare a buffer + cairo context for bar to draw to */
     backend->next_buffer = get_buffer(backend);
     assert(backend->next_buffer != NULL && backend->next_buffer->busy);
-
-    bar->cairo_surface = backend->next_buffer->cairo_surface;
-    bar->cairo = backend->next_buffer->cairo;
+    bar->pix = backend->next_buffer->pix;
 
     return true;
 }
@@ -728,10 +714,8 @@ cleanup(struct bar *_bar)
     tll_foreach(backend->buffers, it) {
         if (it->item.wl_buf != NULL)
             wl_buffer_destroy(it->item.wl_buf);
-        if (it->item.cairo != NULL)
-            cairo_destroy(it->item.cairo);
-        if (it->item.cairo_surface != NULL)
-            cairo_surface_destroy(it->item.cairo_surface);
+        if (it->item.pix != NULL)
+            pixman_image_unref(it->item.pix);
 
         munmap(it->item.mmapped, it->item.size);
         tll_remove(backend->buffers, it);
@@ -778,8 +762,7 @@ cleanup(struct bar *_bar)
         wl_display_disconnect(backend->display);
 
     /* Destroyed when freeing buffer list */
-    bar->cairo_surface = NULL;
-    bar->cairo = NULL;
+    bar->pix = NULL;
 
 }
 
@@ -901,30 +884,11 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         ;//printf("nothing more to do\n");
 }
 
-static pixman_image_t *
-get_pixman_image(const struct bar *_bar)
-{
-    struct private *bar = _bar->private;
-
-    cairo_surface_t *surf = cairo_get_target(bar->cairo);
-    cairo_surface_flush(surf);
-
-    return pixman_image_create_bits_no_clear(
-        PIXMAN_a8r8g8b8,
-        cairo_image_surface_get_width(surf),
-        cairo_image_surface_get_height(surf),
-        (uint32_t *)cairo_image_surface_get_data(surf),
-        cairo_image_surface_get_stride(surf));
-}
-
 static void
-commit_pixman(const struct bar *_bar, pixman_image_t *pix)
+commit(const struct bar *_bar)
 {
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
-
-    pixman_image_unref(pix);
-    cairo_surface_mark_dirty(cairo_get_target(bar->cairo));
 
     //printf("commit: %dxl%d\n", backend->width, backend->height);
 
@@ -958,9 +922,7 @@ commit_pixman(const struct bar *_bar, pixman_image_t *pix)
 
     backend->next_buffer = get_buffer(backend);
     assert(backend->next_buffer != NULL && backend->next_buffer->busy);
-
-    bar->cairo_surface = backend->next_buffer->cairo_surface;
-    bar->cairo = backend->next_buffer->cairo;
+    bar->pix = backend->next_buffer->pix;
 }
 
 static void
@@ -992,8 +954,7 @@ const struct backend wayland_backend_iface = {
     .setup = &setup,
     .cleanup = &cleanup,
     .loop = &loop,
-    .get_pixman_image = &get_pixman_image,
-    .commit_pixman = &commit_pixman,
+    .commit = &commit,
     .refresh = &refresh,
     .set_cursor = &set_cursor,
 };
