@@ -51,6 +51,7 @@ struct monitor {
     int width_px;
     int height_px;
 
+    bool preferred;
     int scale;
 };
 
@@ -269,6 +270,8 @@ static void
 output_mode(void *data, struct wl_output *wl_output, uint32_t flags,
             int32_t width, int32_t height, int32_t refresh)
 {
+    struct monitor *mon = data;
+    mon->preferred = flags & WL_OUTPUT_MODE_PREFERRED;
 }
 
 static void
@@ -588,11 +591,15 @@ setup(struct bar *_bar)
                  mon->name, mon->width_px, mon->height_px,
                  mon->x, mon->y, mon->width_mm, mon->height_mm);
 
-        /* TODO: detect primary output when user hasn't specified a monitor */
-        if (bar->monitor == NULL)
+        if (bar->monitor == NULL && mon->preferred) {
+            /* User didn't specify a monitor, and this is the default one */
             backend->monitor = mon;
-        else if (strcmp(bar->monitor, mon->name) == 0)
+        }
+
+        else if (bar->monitor != NULL && strcmp(bar->monitor, mon->name) == 0) {
+            /* User specified a monitor, and this is one */
             backend->monitor = mon;
+        }
     }
 
     if (backend->monitor == NULL) {
