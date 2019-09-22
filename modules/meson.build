@@ -1,4 +1,4 @@
-module_sdk = declare_dependency(dependencies: [pixman, threads])
+module_sdk = declare_dependency(dependencies: [freetype, pixman, threads])
 
 modules = []
 
