@@ -595,6 +595,12 @@ setup(struct bar *_bar)
             backend->monitor = mon;
     }
 
+    if (backend->monitor == NULL) {
+        LOG_ERR("failed to find the specified monitor: %s",
+                bar->monitor != NULL ? bar->monitor : "default");
+        return false;
+    }
+
     backend->surface = wl_compositor_create_surface(backend->compositor);
     if (backend->surface == NULL) {
         LOG_ERR("failed to create panel surface");
