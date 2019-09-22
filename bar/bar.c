@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <threads.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include <sys/eventfd.h>
 
@@ -238,6 +239,7 @@ run(struct bar *_bar)
 
     if (!bar->backend.iface->setup(_bar)) {
         bar->backend.iface->cleanup(_bar);
+        write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t));
         return 1;
     }
 
