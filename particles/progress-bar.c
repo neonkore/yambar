@@ -147,25 +147,31 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
         return;
     }
 
-    long where = clickable_width > 0
-        ? 100 * (x - x_offset) / clickable_width
-        : 0;
-
-    struct tag_set tags = {
-        .tags = (struct tag *[]){tag_new_int(NULL, "where", where)},
-        .count = 1,
-    };
-
+    /* Remember the original handler, so that we can restore it */
     char *original = exposable->on_click;
-    exposable->on_click = tags_expand_template(exposable->on_click, &tags);
-    tag_set_destroy(&tags);
+
+    if (event == ON_MOUSE_CLICK) {
+        long where = clickable_width > 0
+            ? 100 * (x - x_offset) / clickable_width
+            : 0;
+
+        struct tag_set tags = {
+            .tags = (struct tag *[]){tag_new_int(NULL, "where", where)},
+            .count = 1,
+        };
+
+        exposable->on_click = tags_expand_template(exposable->on_click, &tags);
+        tag_set_destroy(&tags);
+    }
 
     /* Call default implementation, which will execute our handler */
     exposable_default_on_mouse(exposable, bar, event, x, y);
 
-    /* Reset handler string */
-    free(exposable->on_click);
-    exposable->on_click = original;
+    if (event == ON_MOUSE_CLICK) {
+        /* Reset handler string */
+        free(exposable->on_click);
+        exposable->on_click = original;
+    }
 }
 
 static struct exposable *
