@@ -103,13 +103,52 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
      *
      * Keep a reference to the un-expanded string, to be able to reset
      * it after executing the handler.
+     *
+     * Note that we only consider the actual progress bar to be
+     * clickable. This means we ignore the start and end markers.
      */
 
-    char *original = exposable->on_click;
+    const struct particle *p = exposable->particle;
+    const struct eprivate *e = exposable->private;
 
-    assert(x >= 0 && x < exposable->width);
-    long where = exposable->width > 0
-        ? 100 * x / exposable->width
+    /* Start of empty/fill cells */
+    int x_offset = p->left_margin + e->exposables[0]->width;
+
+    /* Mouse is *before* progress-bar? */
+    if (x < x_offset) {
+        if (x >= p->left_margin) {
+            /* Mouse is over the start-marker */
+            struct exposable *start = e->exposables[0];
+            if (start->on_mouse != NULL)
+                start->on_mouse(start, bar, event, x - p->left_margin, y);
+        } else {
+            /* Mouse if over left margin */
+            bar->set_cursor(bar, "left_ptr");
+        }
+        return;
+    }
+
+    /* Size of the clickable area (the empty/fill cells) */
+    int clickable_width = 0;
+    for (size_t i = 1; i < e->count - 1; i++)
+        clickable_width += e->exposables[i]->width;
+
+    /* Mouse is *after* progress-bar? */
+    if (x - x_offset > clickable_width) {
+        if (x - x_offset - clickable_width < e->exposables[e->count - 1]->width) {
+            /* Mouse is over the end-marker */
+            struct exposable *end = e->exposables[e->count - 1];
+            if (end->on_mouse != NULL)
+                end->on_mouse(end, bar, event, x - x_offset - clickable_width, y);
+        } else {
+            /* Mouse is over the right margin */
+            bar->set_cursor(bar, "left_ptr");
+        }
+        return;
+    }
+
+    long where = clickable_width > 0
+        ? 100 * (x - x_offset) / clickable_width
         : 0;
 
     struct tag_set tags = {
@@ -117,6 +156,7 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
         .count = 1,
     };
 
+    char *original = exposable->on_click;
     exposable->on_click = tags_expand_template(exposable->on_click, &tags);
     tag_set_destroy(&tags);
 
