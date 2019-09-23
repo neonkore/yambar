@@ -256,7 +256,7 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
                     _exit(0);
                 }
 
-                LOG_DBG("second pipe failed", _errno);
+                LOG_DBG("second pipe failed: %s (%d)", strerror(_errno), _errno);
                 _exit(_errno);
                 break;
             }
