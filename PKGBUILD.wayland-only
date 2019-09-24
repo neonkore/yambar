@@ -1,5 +1,5 @@
 pkgname=f00bar-wayland
-pkgver=1.0.3
+pkgver=1.1.0
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for Wayland"
 arch=('x86_64')
