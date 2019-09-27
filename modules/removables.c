@@ -159,10 +159,10 @@ find_mount_points(const char *dev_path, mount_point_list_t *mount_points)
     while (fgets(line, sizeof(line), f) != NULL) {
         char *dev = NULL, *path = NULL;
 
-        if (sscanf(line, "%*u %*u %*u:%*u %*s %ms %*s %*[^-] - %*s %ms %*s",
+        if (sscanf(line, "%*u %*u %*u:%*u %*s %ms %*[^-] - %*s %ms %*s",
                    &path, &dev) != 2)
         {
-            LOG_ERR("failed to parse /proc/mounts");
+            LOG_ERR("failed to parse /proc/self/mountinfo: %s", line);
             free(dev);
             free(path);
             break;
