@@ -1,7 +1,7 @@
 image: alpine:edge
 
 stages:
-  - build
+  - buil
 
 variables:
   GIT_SUBMODULE_STRATEGY: normal
