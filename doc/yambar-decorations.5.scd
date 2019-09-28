@@ -1,7 +1,7 @@
-f00bar-decorations(5)
+yambar-decorations(5)
 
 # NAME
-f00bar-decorations - configuration file
+yambar-decorations - configuration file
 
 # DESCRIPTION
 
@@ -27,7 +27,7 @@ This decoration sets the particles background color.
 |  color
 :  color
 :  yes
-:  The background color. See *f00bar*(5) for format.
+:  The background color. See *yambar*(5) for format.
 
 ## EXAMPLES
 
@@ -57,7 +57,7 @@ bottom of the particle.
 |  color
 :  color
 :  yes
-:  The color of the line. See *f00bar*(5) for format.
+:  The color of the line. See *yambar*(5) for format.
 
 ## EXAMPLES
 
@@ -92,4 +92,4 @@ content:
 
 # SEE ALSO
 
-*f00bar-particles*(5)
+*yambar-particles*(5)

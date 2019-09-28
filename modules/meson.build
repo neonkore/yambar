@@ -38,7 +38,7 @@ foreach mod, data : deps
                   dependencies: [module_sdk] + dep,
                   name_prefix: 'module_',
                   install: true,
-                  install_dir: join_paths(get_option('libdir'), 'f00bar'))
+                  install_dir: join_paths(get_option('libdir'), 'yambar'))
   else
     modules += [declare_dependency(
       sources: ['@0@.c'.format(mod)] + sources,

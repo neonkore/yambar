@@ -167,7 +167,7 @@ setup(struct bar *_bar)
             backend->colormap}
         );
 
-    const char *title = "f00bar";
+    const char *title = "yambar";
     xcb_change_property(
         backend->conn,
         XCB_PROP_MODE_REPLACE, backend->win,

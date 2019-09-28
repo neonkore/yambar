@@ -43,9 +43,9 @@ get_config_path_user_config(void)
     const char *home_dir = passwd->pw_dir;
     LOG_DBG("user's home directory: %s", home_dir);
 
-    int len = snprintf(NULL, 0, "%s/.config/f00bar/config.yml", home_dir);
+    int len = snprintf(NULL, 0, "%s/.config/yambar/config.yml", home_dir);
     char *path = malloc(len + 1);
-    snprintf(path, len + 1, "%s/.config/f00bar/config.yml", home_dir);
+    snprintf(path, len + 1, "%s/.config/yambar/config.yml", home_dir);
     return path;
 }
 
@@ -56,9 +56,9 @@ get_config_path_xdg(void)
     if (xdg_config_home == NULL)
         return NULL;
 
-    int len = snprintf(NULL, 0, "%s/f00bar/config.yml", xdg_config_home);
+    int len = snprintf(NULL, 0, "%s/yambar/config.yml", xdg_config_home);
     char *path = malloc(len + 1);
-    snprintf(path, len + 1, "%s/f00bar/config.yml", xdg_config_home);
+    snprintf(path, len + 1, "%s/yambar/config.yml", xdg_config_home);
     return path;
 }
 
@@ -185,7 +185,7 @@ main(int argc, char *const *argv)
             break;
 
         case 'v':
-            printf("f00bar version %s\n", F00BAR_VERSION);
+            printf("yambar version %s\n", YAMBAR_VERSION);
             return EXIT_SUCCESS;
 
         case 'h':
@@ -223,7 +223,7 @@ main(int argc, char *const *argv)
     if (config_path == NULL) {
         config_path = get_config_path();
         if (config_path == NULL) {
-            LOG_ERR("could not find a configuration (see man 5 f00bar)");
+            LOG_ERR("could not find a configuration (see man 5 yambar)");
             return 1;
         }
     }

@@ -1,7 +1,7 @@
-f00bar-modules(5)
+yambar-modules(5)
 
 # NAME
-f00bar-modules - configuration file
+yambar-modules - configuration file
 
 # DESCRIPTION
 
@@ -10,12 +10,12 @@ bar.
 
 All modules expose their data through *tags*. Each tag has a *name*,
 *type* and *value*. The name and type is fixed, while the value
-typically changes over time. See *f00bar-tags(5)*.
+typically changes over time. See *yambar-tags(5)*.
 
 The tags are rendered by _particles_. Each particle has its own way of
 representing tag values. The simplest one is the _string_ particle,
 which renders a text representation of the tag value. See
-*f00bar-particles*(5).
+*yambar-particles*(5).
 
 Note that all the examples showed below have been kept simple. Here
 are a couple of tips that will improve the looks:
@@ -27,10 +27,10 @@ the middle of its string. To do this, you need to wrap multiple
 _string_ particles in a _list_ particle.
 
 This is especially important if you want to use an icon font since
-f00bar does not do font fallback handling.
+yambar does not do font fallback handling.
 
 Also remember there is a short version for lists (see
-*f00bar-particles*(5))
+*yambar-particles*(5))
 
 For example, to render _backlight_ as " 20%", you could use:
 
@@ -115,7 +115,7 @@ following attributes are supported by all modules:
 |  content
 :  particle
 :  A particle describing how the module's information is to be rendered.
-   See *f00bar-particles*(5)
+   See *yambar-particles*(5)
 |  anchors
 :  associative array
 :  Free-to-use associative array, where you can put yaml anchor definitions
@@ -768,4 +768,4 @@ bar:
 
 # SEE ALSO
 
-*f00bar-particles*(5), *f00bar-tags*(5), *f00bar-decorations*(5)
+*yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)

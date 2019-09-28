@@ -1,15 +1,15 @@
-f00bar(5)
+yambar(5)
 
 # NAME
-f00bar - configuration file
+yambar - configuration file
 
 # DESCRIPTION
 
-A f00bar configuration file is a yaml formatted document containing an
+A yambar configuration file is a yaml formatted document containing an
 associative array named _bar_. You may define other top-level entities
 and reference them using anchors.
 
-Besides the normal yaml types, there are a couple of f00bar specific
+Besides the normal yaml types, there are a couple of yambar specific
 types that are frequently used:
 
 - *font*: this is a string in _fontconfig_ format. Example of valid values:
@@ -112,15 +112,15 @@ types that are frequently used:
 |  left
 :  list
 :  no
-:  Left-aligned modules (see *f00bar-modules*(5))
+:  Left-aligned modules (see *yambar-modules*(5))
 |  center
 :  list
 :  no
-:  Center-aligned modules (see *f00bar-modules*(5))
+:  Center-aligned modules (see *yambar-modules*(5))
 |  right
 :  list
 :  no
-:  Right-aligned modules (see *f00bar-modules*(5))
+:  Right-aligned modules (see *yambar-modules*(5))
 
 # EXAMPLES
 
@@ -142,10 +142,10 @@ bar:
 # FILES
 The configuration file is searched for (in this order):
 
-- _$XDG_CONFIG_HOME/f00bar/config.yml_
-- _$HOME/.config/f00bar/config.yml_
+- _$XDG_CONFIG_HOME/yambar/config.yml_
+- _$HOME/.config/yambar/config.yml_
 
 # SEE ALSO
 
-*f00bar-modules*(5), *f00bar-particles*(5), *f00bar-tags*(5),
-*f00bar-decorations*(5)
+*yambar-modules*(5), *yambar-particles*(5), *yambar-tags*(5),
+*yambar-decorations*(5)

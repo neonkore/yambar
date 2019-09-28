@@ -1,7 +1,7 @@
-f00bar-tags(5)
+yambar-tags(5)
 
 # NAME
-f00bar-tags - configuration file
+yambar-tags - configuration file
 
 # DESCRIPTION
 
@@ -31,7 +31,7 @@ The available tag *types* are:
 :  Value is an integer that changes in a predictable manner (in
    "realtime"). This allows the particle to update itself
    periodically. Only supported by the
-   *f00bar-particle-progress-bar*(5). Other particles can still render
+   *yambar-particle-progress-bar*(5). Other particles can still render
    the tag's value. And, the _string_ particle recognizes the _:unit_
    suffix, which will be translated to a "s" for a tag with "seconds"
    resolution, or "ms" for one with "milliseconds" resolution.

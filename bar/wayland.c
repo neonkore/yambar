@@ -467,7 +467,7 @@ get_buffer(struct wayland_backend *backend)
     pixman_image_t *pix = NULL;
 
     /* Backing memory for SHM */
-    pool_fd = memfd_create("f00bar-wayland-shm-buffer-pool", MFD_CLOEXEC);
+    pool_fd = memfd_create("yambar-wayland-shm-buffer-pool", MFD_CLOEXEC);
     if (pool_fd == -1) {
         LOG_ERRNO("failed to create SHM backing memory file");
         goto err;
@@ -643,7 +643,7 @@ setup(struct bar *_bar)
 
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         backend->layer_shell, backend->surface, backend->monitor->output,
-        ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "f00bar");
+        ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "yambar");
     if (backend->layer_surface == NULL) {
         LOG_ERR("failed to create layer shell surface");
         return false;

@@ -1,7 +1,7 @@
-f00bar-particles(5)
+yambar-particles(5)
 
 # NAME
-f00bar-particles - configuration file
+yambar-particles - configuration file
 
 # DESCRIPTION
 
@@ -43,7 +43,7 @@ following attributes are supported by all particles:
 |  deco
 :  decoration
 :  no
-:  Decoration to apply to the particle. See *f00bar-decorations*(5)
+:  Decoration to apply to the particle. See *yambar-decorations*(5)
 
 # STRING
 
@@ -61,7 +61,7 @@ of free text mixed with tag specifiers.
 :  yes
 :  Format string. Tags are spcified with _{tag_name}_. Some tag types
    have suffixes that can be appended (e.g. _{tag_name:suffix}_). See
-   *f00bar-modules*(5)).
+   *yambar-modules*(5)).
 |  max
 :  int
 :  no
@@ -306,4 +306,4 @@ content:
 
 # SEE ALSO
 
-*f00bar-tags*(5), *f00bar-decorations*(5)
+*yambar-tags*(5), *yambar-decorations*(5)

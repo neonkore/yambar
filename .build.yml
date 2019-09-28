@@ -23,7 +23,7 @@ packages:
   - gcovr
 
 sources:
-  - https://git.sr.ht/~dnkl/f00bar
+  - https://git.sr.ht/~dnkl/yambar
 
 triggers:
   - action: email
@@ -37,11 +37,11 @@ tasks:
       python2 -m pip install --user --upgrade setuptools
   - setup: |
       mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
-      meson --buildtype=debug -Db_coverage=true f00bar bld/debug
-      meson --buildtype=minsize f00bar bld/release
-      meson --buildtype=debug -Dbackend-x11=enabled -Dbackend-wayland=disabled f00bar bld/x11-only
-      meson --buildtype=debug -Dbackend-x11=disabled -Dbackend-wayland=enabled f00bar bld/wayland-only
-      meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true f00bar bld/plugs-are-shared
+      meson --buildtype=debug -Db_coverage=true yambar bld/debug
+      meson --buildtype=minsize yambar bld/release
+      meson --buildtype=debug -Dbackend-x11=enabled -Dbackend-wayland=disabled yambar bld/x11-only
+      meson --buildtype=debug -Dbackend-x11=disabled -Dbackend-wayland=enabled yambar bld/wayland-only
+      meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true yambar bld/plugs-are-shared
   - build: |
       ninja -C bld/debug -k0
       ninja -C bld/release -k0

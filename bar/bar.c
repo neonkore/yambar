@@ -379,7 +379,7 @@ bar_new(const struct bar_config *config)
         backend_data = bar_backend_xcb_new();
         backend_iface = &xcb_backend_iface;
 #else
-        LOG_ERR("f00bar was compiled without the XCB backend");
+        LOG_ERR("yambar was compiled without the XCB backend");
         return NULL;
 #endif
         break;
@@ -389,7 +389,7 @@ bar_new(const struct bar_config *config)
         backend_data = bar_backend_wayland_new();
         backend_iface = &wayland_backend_iface;
 #else
-        LOG_ERR("f00bar was compiled without the Wayland backend");
+        LOG_ERR("yambar was compiled without the Wayland backend");
         return NULL;
 #endif
         break;

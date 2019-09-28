@@ -7,7 +7,7 @@ foreach particle : ['empty', 'list', 'map', 'progress-bar', 'ramp', 'string']
                   dependencies: particle_sdk,
                   name_prefix: 'particle_',
                   install: true,
-                  install_dir: join_paths(get_option('libdir'), 'f00bar'))
+                  install_dir: join_paths(get_option('libdir'), 'yambar'))
   else
     particles += [declare_dependency(
       sources: '@0@.c'.format(particle),
@@ -21,7 +21,7 @@ dynlist_lib = build_target(
   target_type: plugs_as_libs ? 'shared_library' : 'static_library',
   override_options : ['b_lundef=false'],
   install: plugs_as_libs,
-  install_dir: get_option('libdir') + '/f00bar',
+  install_dir: get_option('libdir') + '/yambar',
 )
 
 dynlist = declare_dependency(link_with: dynlist_lib)

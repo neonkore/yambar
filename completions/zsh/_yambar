@@ -1,4 +1,4 @@
-#compdef f00bar
+#compdef yambar
 
 _arguments \
     -s \

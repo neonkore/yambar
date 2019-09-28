@@ -1,4 +1,4 @@
-project('f00bar', 'c',
+project('yambar', 'c',
         version: '1.1.1',
         license: 'MIT',
         meson_version: '>=0.48.0',
@@ -60,7 +60,7 @@ backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.
 
 add_project_arguments(
   ['-D_GNU_SOURCE',
-   '-DF00BAR_VERSION=@0@'.format(version)] +
+   '-DYAMBAR_VERSION=@0@'.format(version)] +
   (is_debug_build ? ['-D_DEBUG'] : []) +
   (backend_x11 ? ['-DENABLE_X11'] : []) +
   (backend_wayland ? ['-DENABLE_WAYLAND'] : []) +
@@ -77,7 +77,7 @@ if backend_x11
     pic: plugs_as_libs)
 
   xcb_stuff = declare_dependency(link_with: xcb_stuff_lib)
-  install_headers('xcb.h', subdir: 'f00bar')
+  install_headers('xcb.h', subdir: 'yambar')
 endif
 
 subdir('completions')
@@ -87,8 +87,8 @@ subdir('decorations')
 subdir('particles')
 subdir('modules')
 
-f00bar = executable(
-  'f00bar',
+yambar = executable(
+  'yambar',
   'color.h',
   'config-verify.c', 'config-verify.h',
   'config.c', 'config.h',
@@ -107,7 +107,7 @@ f00bar = executable(
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
   install: true,
-  install_rpath: '$ORIGIN/../' + get_option('libdir') + '/f00bar')
+  install_rpath: '$ORIGIN/../' + get_option('libdir') + '/yambar')
 
 subdir('test')
 
@@ -124,7 +124,7 @@ install_headers(
   'tag.h',
   'tllist.h',
   'yml.h',
-  subdir: 'f00bar')
+  subdir: 'yambar')
 
 message('')
 message('Build type:              @0@'.format(get_option('buildtype')))

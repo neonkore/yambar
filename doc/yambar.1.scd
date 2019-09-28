@@ -1,15 +1,15 @@
-f00bar(1)
+yambar(1)
 
 # NAME
-f00bar - modular status panel for X11 and Wayland
+yambar - modular status panel for X11 and Wayland
 
 # SYNOPSIS
-*f00bar* [_OPTIONS_]...
+*yambar* [_OPTIONS_]...
 
 # OPTIONS
 
 *-b, --backend={xcb,wayland,auto}*
-	Backend to use. The default is *auto*. In this mode, f00bar will
+	Backend to use. The default is *auto*. In this mode, yambar will
 	look for the environment variable _WAYLAND\_DISPLAY_, and if
 	available, use the *Wayland* backend. If not, the *XCB* backend is
 	used.
@@ -26,7 +26,7 @@ f00bar - modular status panel for X11 and Wayland
 	Show the version number and quit
 
 # DESCRIPTION
-*f00bar* is a light-weight and configurable status panel (_bar_, for
+*yambar* is a light-weight and configurable status panel (_bar_, for
 short) for *X* and *Wayland*.
 
 It has a number of _modules_ that provide information in the form of
@@ -48,4 +48,4 @@ There are a number of modules and particles builtin. More can be added
 as plugins. You can even write your own!
 
 # CONFIGURATION
-See *f00bar*(5)
+See *yambar*(5)

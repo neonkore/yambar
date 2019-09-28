@@ -45,4 +45,4 @@ bar = declare_dependency(
   sources: ['bar.c', 'bar.h', 'private.h', 'backend.h'],
   dependencies: bar_backends + [threads])
 
-install_headers('bar.h', subdir: 'f00bar/bar')
+install_headers('bar.h', subdir: 'yambar/bar')

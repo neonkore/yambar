@@ -1,4 +1,4 @@
-# F00bar
+# Yambar
 
 ## Index
 
@@ -11,7 +11,7 @@
 
 ![screenshot](screenshot.png "Example configuration")
 
-**f00bar** is a light-weight and configurable status panel (_bar_, for
+**yambar** is a light-weight and configurable status panel (_bar_, for
 short) for X and Wayland.
 
 It has a number of _modules_ that provide information in the form of
@@ -38,7 +38,7 @@ using _particles_ and _decorations_. **How** is configured by you.
 
 ## Configuration
 
-F00bar is configured using YAML, in `~/.config/f00bar/config.yml`. It
+Yambar is configured using YAML, in `~/.config/yambar/config.yml`. It
 must define a top-level dictionary named **bar**:
 
     bar:
@@ -55,7 +55,7 @@ must define a top-level dictionary named **bar**:
               - string: {text: "{time}"}
 
 
-For details, see the man pages (**f00bar**(5) is a good start).
+For details, see the man pages (**yambar**(5) is a good start).
 
 
 ## Modules

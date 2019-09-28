@@ -1,9 +1,9 @@
-pkgname=f00bar
+pkgname=yambar
 pkgver=1.1.1
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
-url=https://gitlab.com/dnkl/f00bar
+url=https://gitlab.com/dnkl/yambar
 license=(mit)
 makedepends=('meson' 'ninja' 'scdoc')
 depends=(
