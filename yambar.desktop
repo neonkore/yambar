@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Exec=yambar
+Icon=panel
+Terminal=false
+Categories=System;Monitor;Core
+
+Name=Yambar
+GenericName=Panel
+Comment=Configurable statusbar to show time, battery capacity and much more
