@@ -10,28 +10,6 @@ project('yambar', 'c',
 is_debug_build = get_option('buildtype').startswith('debug')
 plugs_as_libs = get_option('core-plugins-as-shared-libraries')
 
-version = '"@0@"'.format(meson.project_version())
-
-sh = find_program('sh', native: true)
-git = find_program('git', required: false, native: true)
-
-if git.found()
-  commit_hash = run_command(
-    [sh.path(), '-c',
-     '@0@ --git-dir="$MESON_SOURCE_ROOT/.git" describe --always --tags'.format(
-       git.path())])
-
-  branch = run_command(
-    [sh.path(), '-c',
-     '@0@ "--git-dir=$MESON_SOURCE_ROOT/.git" rev-parse --abbrev-ref HEAD'.format(
-       git.path())])
-
-  if commit_hash.returncode() == 0 and branch.returncode() == 0
-    version = '"@0@ (" __DATE__ ", branch \'@1@\')"'.format(
-      commit_hash.stdout().strip(), branch.stdout().strip())
-  endif
-endif
-
 # Common dependencies
 cc = meson.get_compiler('c')
 dl = cc.find_library('dl')
@@ -59,8 +37,7 @@ wlroots = dependency('wlroots', required: get_option('backend-wayland'))
 backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.found()
 
 add_project_arguments(
-  ['-D_GNU_SOURCE',
-   '-DYAMBAR_VERSION=@0@'.format(version)] +
+  ['-D_GNU_SOURCE'] +
   (is_debug_build ? ['-D_DEBUG'] : []) +
   (backend_x11 ? ['-DENABLE_X11'] : []) +
   (backend_wayland ? ['-DENABLE_WAYLAND'] : []) +
@@ -87,6 +64,13 @@ subdir('decorations')
 subdir('particles')
 subdir('modules')
 
+generate_version_sh = files('generate-version.sh')
+version = custom_target(
+  'generate_version',
+  build_always_stale: true,
+  output: 'version.h',
+  command: [generate_version_sh, meson.project_version(), '@SOURCE_DIR@', '@OUTPUT@'])
+
 yambar = executable(
   'yambar',
   'color.h',
@@ -102,6 +86,7 @@ yambar = executable(
   'tag.c', 'tag.h',
   'tllist.h',
   'yml.c', 'yml.h',
+  version,
   dependencies: [bar, freetype, fontconfig, pixman, yaml, threads, dl] +
                 decorations + particles + modules,
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',

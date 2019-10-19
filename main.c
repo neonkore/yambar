@@ -22,6 +22,7 @@
 
 #define LOG_MODULE "main"
 #include "log.h"
+#include "version.h"
 
 static volatile sig_atomic_t aborted = 0;
 
