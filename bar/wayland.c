@@ -340,25 +340,49 @@ static struct zxdg_output_v1_listener xdg_output_listener = {
     .description = xdg_output_handle_description,
 };
 
+static bool
+verify_iface_version(const char *iface, uint32_t version, uint32_t wanted)
+{
+    if (version >= wanted)
+        return true;
+
+    LOG_ERR("%s: need interface version %u, but compositor only implements %u",
+            iface, wanted, version);
+    return false;
+}
+
 static void
 handle_global(void *data, struct wl_registry *registry,
               uint32_t name, const char *interface, uint32_t version)
 {
     struct wayland_backend *backend = data;
     if (strcmp(interface, wl_compositor_interface.name) == 0) {
+        const uint32_t required = 4;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
         backend->compositor = wl_registry_bind(
-            registry, name, &wl_compositor_interface, 4);
+            registry, name, &wl_compositor_interface, required);
     }
 
     else if (strcmp(interface, wl_shm_interface.name) == 0) {
-        backend->shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
+        const uint32_t required = 1;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
+        backend->shm = wl_registry_bind(
+            registry, name, &wl_shm_interface, required);
         wl_shm_add_listener(backend->shm, &shm_listener, backend);
         wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, wl_output_interface.name) == 0) {
+        const uint32_t required = 3;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
         struct wl_output *output = wl_registry_bind(
-            registry, name, &wl_output_interface, 3);
+            registry, name, &wl_output_interface, required);
 
         tll_push_back(backend->monitors, ((struct monitor){
                     .backend  = backend,
@@ -374,27 +398,41 @@ handle_global(void *data, struct wl_registry *registry,
          */
 
         assert(backend->xdg_output_manager != NULL);
-        mon->xdg = zxdg_output_manager_v1_get_xdg_output(
-            backend->xdg_output_manager, mon->output);
+        if (backend->xdg_output_manager != NULL) {
+            mon->xdg = zxdg_output_manager_v1_get_xdg_output(
+                backend->xdg_output_manager, mon->output);
 
-        zxdg_output_v1_add_listener(mon->xdg, &xdg_output_listener, mon);
+            zxdg_output_v1_add_listener(mon->xdg, &xdg_output_listener, mon);
+        }
         wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
+        const uint32_t required = 1;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
         backend->layer_shell = wl_registry_bind(
-            registry, name, &zwlr_layer_shell_v1_interface, 1);
+            registry, name, &zwlr_layer_shell_v1_interface, required);
     }
 
     else if (strcmp(interface, wl_seat_interface.name) == 0) {
-        backend->seat = wl_registry_bind(registry, name, &wl_seat_interface, 3);
+        const uint32_t required = 3;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
+        backend->seat = wl_registry_bind(registry, name, &wl_seat_interface, required);
         wl_seat_add_listener(backend->seat, &seat_listener, backend);
         wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
+        const uint32_t required = 2;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
         backend->xdg_output_manager = wl_registry_bind(
-            registry, name, &zxdg_output_manager_v1_interface, 2);
+            registry, name, &zxdg_output_manager_v1_interface, required);
     }
 }
 
