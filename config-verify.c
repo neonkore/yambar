@@ -3,11 +3,12 @@
 #include <string.h>
 #include <assert.h>
 
+#include <tllist.h>
+
 #define LOG_MODULE "config:verify"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "plugin.h"
-#include "tllist.h"
 
 const char *
 conf_err_prefix(const keychain_t *chain, const struct yml_node *node)

@@ -12,6 +12,8 @@
 
 #include <libudev.h>
 
+#include <tllist.h>
+
 #define LOG_MODULE "removables"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
@@ -20,7 +22,6 @@
 #include "../config-verify.h"
 #include "../particles/dynlist.h"
 #include "../plugin.h"
-#include "../tllist.h"
 
 typedef tll(char *) mount_point_list_t;
 

@@ -3,11 +3,12 @@
 #include <string.h>
 #include <dlfcn.h>
 
+#include <tllist.h>
+
 #define LOG_MODULE "plugin"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "config.h"
-#include "tllist.h"
 
 #if !defined(CORE_PLUGINS_AS_SHARED_LIBRARIES)
 

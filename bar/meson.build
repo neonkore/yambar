@@ -36,7 +36,7 @@ if backend_wayland
 
   bar_wayland = declare_dependency(
     sources: ['wayland.c', 'wayland.h'] + wl_proto_src + wl_proto_headers,
-    dependencies: [wayland_client, wayland_cursor])
+    dependencies: [wayland_client, wayland_cursor, tllist])
 
   bar_backends += [bar_wayland]
 endif

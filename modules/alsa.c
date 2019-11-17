@@ -3,6 +3,8 @@
 
 #include <alsa/asoundlib.h>
 
+#include <tllist.h>
+
 #define LOG_MODULE "alsa"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
@@ -10,7 +12,6 @@
 #include "../config-verify.h"
 #include "../config.h"
 #include "../plugin.h"
-#include "../tllist.h"
 
 struct private {
     char *card;

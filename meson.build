@@ -57,6 +57,8 @@ if backend_x11
   install_headers('xcb.h', subdir: 'yambar')
 endif
 
+tllist = subproject('tllist').get_variable('tllist')
+
 subdir('completions')
 subdir('doc')
 subdir('bar')
@@ -84,10 +86,9 @@ yambar = executable(
   'particle.c', 'particle.h',
   'plugin.c', 'plugin.h',
   'tag.c', 'tag.h',
-  'tllist.h',
   'yml.c', 'yml.h',
   version,
-  dependencies: [bar, freetype, fontconfig, pixman, yaml, threads, dl] +
+  dependencies: [bar, freetype, fontconfig, pixman, yaml, threads, dl, tllist] +
                 decorations + particles + modules,
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -109,7 +110,6 @@ install_headers(
   'particle.h',
   'stride.h',
   'tag.h',
-  'tllist.h',
   'yml.h',
   subdir: 'yambar')
 

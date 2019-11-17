@@ -7,8 +7,7 @@
 #include <assert.h>
 
 #include <yaml.h>
-
-#include "tllist.h"
+#include <tllist.h>
 
 enum yml_error {
     YML_ERR_NONE,

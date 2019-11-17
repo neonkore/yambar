@@ -14,13 +14,13 @@
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 
+#include <tllist.h>
 #include <xdg-output-unstable-v1.h>
 #include <wlr-layer-shell-unstable-v1.h>
 
 #define LOG_MODULE "bar:wayland"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
-#include "../tllist.h"
 #include "../stride.h"
 
 #include "private.h"

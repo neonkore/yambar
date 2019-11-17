@@ -13,6 +13,8 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
+#include <tllist.h>
+
 #define LOG_MODULE "network"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
@@ -21,7 +23,6 @@
 #include "../config-verify.h"
 #include "../module.h"
 #include "../plugin.h"
-#include "../tllist.h"
 
 struct af_addr {
     int family;
