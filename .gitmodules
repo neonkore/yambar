@@ -4,4 +4,4 @@
 	branch = master
 [submodule "subprojects/tllist"]
 	path = subprojects/tllist
-	url = https://gitlab.com/dnkl/tllist.git
+	url = https://codeberg.org/dnkl/tllist.git
