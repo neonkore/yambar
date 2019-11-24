@@ -1,5 +1,5 @@
 pkgname=yambar
-pkgver=1.1.1
+pkgver=1.2.0
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
