@@ -572,6 +572,7 @@ glyph_for_wchar(const struct font *font, wchar_t wc, struct glyph *glyph)
             pixman_double_to_fixed(1. / font->pixel_size_fixup),
             pixman_double_to_fixed(1. / font->pixel_size_fixup));
         pixman_image_set_transform(pix, &scale);
+        pixman_image_set_filter(pix, PIXMAN_FILTER_BEST, NULL, 0);
     }
 
     *glyph = (struct glyph){
