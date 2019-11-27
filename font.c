@@ -177,8 +177,8 @@ from_font_set(FcPattern *pattern, FcFontSet *fonts, int start_idx,
     if (FcPatternGetDouble(final_pattern, FC_DPI, 0, &dpi) != FcResultMatch)
         dpi = 96;
 
-    double size;
-    if (FcPatternGetDouble(final_pattern, FC_PIXEL_SIZE, 0, &size)) {
+    double pixel_size;
+    if (FcPatternGetDouble(final_pattern, FC_PIXEL_SIZE, 0, &pixel_size)) {
         LOG_ERR("%s: failed to get size", face_file);
         FcPatternDestroy(final_pattern);
         return false;
@@ -201,7 +201,7 @@ from_font_set(FcPattern *pattern, FcFontSet *fonts, int start_idx,
     if (ft_err != 0)
         LOG_ERR("%s: failed to create FreeType face", face_file);
 
-    if ((ft_err = FT_Set_Char_Size(ft_face, size * 64, 0, 0, 0)) != 0)
+    if ((ft_err = FT_Set_Char_Size(ft_face, pixel_size * 64, 0, 0, 0)) != 0)
         LOG_WARN("failed to set character size");
 
     FcBool fc_hinting;
