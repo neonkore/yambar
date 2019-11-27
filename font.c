@@ -285,13 +285,13 @@ from_font_set(FcPattern *pattern, FcFontSet *fonts, int start_idx,
     font->is_fallback = is_fallback;
     font->ref_counter = 1;
 
-    font->fextents.height = height * font->pixel_size_fixup;
-    font->fextents.descent = -descent * font->pixel_size_fixup;
-    font->fextents.ascent = ascent * font->pixel_size_fixup;
-    font->fextents.max_x_advance = max_x_advance * font->pixel_size_fixup;
+    font->height = height * font->pixel_size_fixup;
+    font->descent = -descent * font->pixel_size_fixup;
+    font->ascent = ascent * font->pixel_size_fixup;
+    font->max_x_advance = max_x_advance * font->pixel_size_fixup;
 
     LOG_DBG("metrics: height: %d, descent: %d, ascent: %d, x-advance: %d",
-            height, descent, ascent, max_x_advance);
+            font->height, font->descent, font->ascent, font->max_x_advance);
 
     if (!is_fallback) {
         font->fc_pattern = pattern;

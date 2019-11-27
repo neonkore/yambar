@@ -97,8 +97,8 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
      * font family.
      */
     const double baseline = (double)y +
-        (double)(height + font->fextents.ascent + font->fextents.descent) / 2.0 -
-        (font->fextents.descent > 0 ? font->fextents.descent : 0);
+        (double)(height + font->ascent + font->descent) / 2.0 -
+        (font->descent > 0 ? font->descent : 0);
 
     x += exposable->particle->left_margin;
 
