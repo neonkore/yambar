@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <wchar.h>
-//#include <math.h>
+#include <math.h>
 #include <assert.h>
 #include <threads.h>
 
@@ -581,7 +581,7 @@ glyph_for_wchar(const struct font *font, wchar_t wc, struct glyph *glyph)
         .pix = pix,
         .x = font->face->glyph->bitmap_left * font->pixel_size_fixup,
         .y = font->face->glyph->bitmap_top * font->pixel_size_fixup,
-        .x_advance = font->face->glyph->advance.x / 64,
+        .x_advance = ceil(font->face->glyph->advance.x / 64) * font->pixel_size_fixup,
         .width = width,
         .height = rows,
         .valid = true,
