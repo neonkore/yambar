@@ -303,11 +303,6 @@ from_font_set(FcPattern *pattern, FcFontSet *fonts, int start_idx,
 
     FcPatternDestroy(final_pattern);
 
-    int max_x_advance = ft_face->size->metrics.max_advance / 64;
-    int height = ft_face->size->metrics.height / 64;
-    int descent = ft_face->size->metrics.descender / 64;
-    int ascent = ft_face->size->metrics.ascender / 64;
-
     font->face = ft_face;
     font->load_flags = load_flags | FT_LOAD_COLOR;
     font->render_flags = render_flags;
@@ -316,6 +311,11 @@ from_font_set(FcPattern *pattern, FcFontSet *fonts, int start_idx,
     font->fc_idx = font_idx;
     font->is_fallback = is_fallback;
     font->ref_counter = 1;
+
+    double max_x_advance = ft_face->size->metrics.max_advance / 64.;
+    double height = ft_face->size->metrics.height / 64.;
+    double descent = ft_face->size->metrics.descender / 64.;
+    double ascent = ft_face->size->metrics.ascender / 64.;
 
     font->height = height * font->pixel_size_fixup;
     font->descent = -descent * font->pixel_size_fixup;
