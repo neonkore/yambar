@@ -45,19 +45,23 @@ begin_expose(struct exposable *exposable)
             font->name, font->fextents.ascent,
             font->fextents.descent, font->fextents.height);
 
-    size_t chars = mbstowcs(NULL, e->text, 0);
-    wchar_t wtext[chars + 1];
-    mbstowcs(wtext, e->text, chars + 1);
-
-    e->glyphs = malloc(chars * sizeof(e->glyphs[0]));
+    e->glyphs = NULL;
     e->num_glyphs = 0;
 
-    /* Convert text to glyph masks/images. */
-    for (size_t i = 0; i < chars; i++) {
-        const struct glyph *glyph = font_glyph_for_wc(font, wtext[i]);
-        if (glyph == NULL)
-            continue;
-        e->glyphs[e->num_glyphs++] = glyph;
+    size_t chars = mbstowcs(NULL, e->text, 0);
+    if (chars != (size_t)-1) {
+        wchar_t wtext[chars + 1];
+        mbstowcs(wtext, e->text, chars + 1);
+
+        e->glyphs = malloc(chars * sizeof(e->glyphs[0]));
+
+        /* Convert text to glyph masks/images. */
+        for (size_t i = 0; i < chars; i++) {
+            const struct glyph *glyph = font_glyph_for_wc(font, wtext[i]);
+            if (glyph == NULL)
+                continue;
+            e->glyphs[e->num_glyphs++] = glyph;
+        }
     }
 
     exposable->width = exposable->particle->left_margin +
