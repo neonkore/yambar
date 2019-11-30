@@ -580,7 +580,7 @@ glyph_for_wchar(const struct font *font, wchar_t wc, struct glyph *glyph)
         .cols = wcwidth(wc),
         .pix = pix,
         .x = font->face->glyph->bitmap_left * font->pixel_size_fixup,
-        .y = font->face->glyph->bitmap_top * font->pixel_size_fixup,
+        .y = ceil(font->face->glyph->bitmap_top * font->pixel_size_fixup),
         .x_advance = ceil(font->face->glyph->advance.x / 64) * font->pixel_size_fixup,
         .width = width,
         .height = rows,
