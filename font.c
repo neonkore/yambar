@@ -110,36 +110,36 @@ static void
 underline_strikeout_metrics(struct font *font)
 {
     FT_Face ft_face = font->face;
-    double x_scale = ft_face->size->metrics.x_scale / 65526.;
-    double height = ft_face->size->metrics.height / 64;
-    double descent = ft_face->size->metrics.descender / 64;
+    double y_scale = ft_face->size->metrics.y_scale / 65526.;
+    double height = ft_face->size->metrics.height / 64.;
+    double descent = ft_face->size->metrics.descender / 64.;
 
-    LOG_DBG("ft: x-scale: %f, height: %f, descent: %f",
-            x_scale, height, descent);
+    LOG_DBG("ft: y-scale: %f, height: %f, descent: %f",
+            y_scale, height, descent);
 
-    font->underline.position = round(ft_face->underline_position * x_scale / 64.);
-    font->underline.thickness = ceil(ft_face->underline_thickness * x_scale / 64.);
+    font->underline.position = ft_face->underline_position * y_scale / 64.;
+    font->underline.thickness = ft_face->underline_thickness * y_scale / 64.;
 
     if (font->underline.position == 0.) {
-        font->underline.position =  round(descent / 2.);
-        font->underline.thickness =  fabs(round(descent / 5.));
+        font->underline.position = descent / 2.;
+        font->underline.thickness = descent / 5.;
     }
 
-    LOG_DBG("underline: pos=%d, thick=%d",
+    LOG_DBG("underline: pos=%f, thick=%f",
             font->underline.position, font->underline.thickness);
 
     TT_OS2 *os2 = FT_Get_Sfnt_Table(ft_face, ft_sfnt_os2);
     if (os2 != NULL) {
-        font->strikeout.position = round(os2->yStrikeoutPosition * x_scale / 64.);
-        font->strikeout.thickness = ceil(os2->yStrikeoutSize * x_scale / 64.);
+        font->strikeout.position = os2->yStrikeoutPosition * y_scale / 64.;
+        font->strikeout.thickness = os2->yStrikeoutSize * y_scale / 64.;
     }
 
     if (font->strikeout.position == 0.) {
-        font->strikeout.position = round(height / 2. + descent);
+        font->strikeout.position = height / 2. + descent;
         font->strikeout.thickness = font->underline.thickness;
     }
 
-    LOG_DBG("strikeout: pos=%d, thick=%d",
+    LOG_DBG("strikeout: pos=%f, thick=%f",
             font->strikeout.position, font->strikeout.thickness);
 }
 #endif
@@ -203,17 +203,17 @@ from_font_set(FcPattern *pattern, FcFontSet *fonts, int start_idx,
          *   requested-pixel-size / actual-pixels-size
          */
         if (scalable && !outline) {
-            double original_pixel_size;
-            if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &original_pixel_size) != FcResultMatch) {
-                double original_size;
-                if (FcPatternGetDouble(pattern, FC_SIZE, 0, &original_size) != FcResultMatch)
-                    original_size = size;
-                original_pixel_size = original_size * dpi / 72;
+            double requested_pixel_size;
+            if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &requested_pixel_size) != FcResultMatch) {
+                double requested_size;
+                if (FcPatternGetDouble(pattern, FC_SIZE, 0, &requested_size) != FcResultMatch)
+                    requested_size = size;
+                requested_pixel_size = requested_size * dpi / 72;
             }
-            pixel_fixup = original_pixel_size / pixel_size;
+            pixel_fixup = requested_pixel_size / pixel_size;
 
             LOG_DBG("estimated fixup factor to %f (requested pixel size: %f, actual: %f)",
-                    pixel_fixup, original_pixel_size, pixel_size);
+                    pixel_fixup, requested_pixel_size, pixel_size);
         } else
             pixel_fixup = 1.;
     }
