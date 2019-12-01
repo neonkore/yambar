@@ -55,19 +55,8 @@ if backend_x11
   install_headers('xcb.h', subdir: 'yambar')
 endif
 
-tllist_proj = subproject('tllist', required: false)
-if tllist_proj.found()
-  tllist = tllist_proj.get_variable('tllist')
-else
-  tllist = dependency('tllist')
-endif
-
-fcft_proj = subproject('fcft', required: false)
-if fcft_proj.found()
-  fcft = fcft_proj.get_variable('fcft')
-else
-  fcft = dependency('fcft')
-endif
+tllist = dependency('tllist', fallback: ['tllist', 'tllist'])
+fcft = dependency('fcft', fallback: ['fcft', 'fcft'])
 
 subdir('completions')
 subdir('doc')
