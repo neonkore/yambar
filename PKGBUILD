@@ -9,12 +9,13 @@ makedepends=('meson' 'ninja' 'scdoc')
 depends=(
   'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
   'wayland' 'wlroots'
-  'freetype2' 'fontconfig' 'pixman'
+  'pixman'
   'libyaml'
   'alsa-lib'
   'libudev.so'
   'json-c'
-  'libmpdclient')
+  'libmpdclient'
+  'tllist' 'fcft')
 optdepends=('xcb-util-errors: better X error messages')
 source=()
 
