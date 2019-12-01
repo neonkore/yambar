@@ -25,7 +25,7 @@ pkgver() {
 }
 
 build() {
-  meson --buildtype=release --prefix=/usr -Db_lto=true -Dbackend-x11=enabled -Dbackend-wayland=enabled ../
+  meson --buildtype=release --prefix=/usr --wrap-mode=nofallback -Db_lto=true -Dbackend-x11=enabled -Dbackend-wayland=enabled ../
   ninja
 }
 
