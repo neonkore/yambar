@@ -57,7 +57,12 @@ if backend_x11
   install_headers('xcb.h', subdir: 'yambar')
 endif
 
-tllist = subproject('tllist').get_variable('tllist')
+tllist_proj = subproject('tllist', required: false)
+if tllist_proj.found()
+  tllist = tllist_proj.get_variable('tllist')
+else
+  tllist = dependency('tllist')
+endif
 
 subdir('completions')
 subdir('doc')
