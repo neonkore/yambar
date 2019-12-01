@@ -34,6 +34,10 @@ wayland_cursor = dependency('wayland-cursor', required: get_option('backend-wayl
 wlroots = dependency('wlroots', required: get_option('backend-wayland'))
 backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.found()
 
+# "My" dependencies, fallback to subproject
+tllist = dependency('tllist', fallback: ['tllist', 'tllist'])
+fcft = dependency('fcft', fallback: ['fcft', 'fcft'])
+
 add_project_arguments(
   ['-D_GNU_SOURCE'] +
   (is_debug_build ? ['-D_DEBUG'] : []) +
@@ -54,9 +58,6 @@ if backend_x11
   xcb_stuff = declare_dependency(link_with: xcb_stuff_lib)
   install_headers('xcb.h', subdir: 'yambar')
 endif
-
-tllist = dependency('tllist', fallback: ['tllist', 'tllist'])
-fcft = dependency('fcft', fallback: ['fcft', 'fcft'])
 
 subdir('completions')
 subdir('doc')
