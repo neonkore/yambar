@@ -35,8 +35,8 @@ wlroots = dependency('wlroots', required: get_option('backend-wayland'))
 backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.found()
 
 # "My" dependencies, fallback to subproject
-tllist = dependency('tllist', fallback: ['tllist', 'tllist'])
-fcft = dependency('fcft', fallback: ['fcft', 'fcft'])
+tllist = dependency('tllist', version: '>=1.0.0', fallback: ['tllist', 'tllist'])
+fcft = dependency('fcft', version: '>=0.1.0', fallback: ['fcft', 'fcft'])
 
 add_project_arguments(
   ['-D_GNU_SOURCE'] +
