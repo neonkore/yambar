@@ -38,12 +38,7 @@ static int
 begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
-
     struct font *font = exposable->particle->font;
-
-    LOG_DBG("%s: ascent=%f, descent=%f, height=%f",
-            font->name, font->fextents.ascent,
-            font->fextents.descent, font->fextents.height);
 
     e->glyphs = NULL;
     e->num_glyphs = 0;
