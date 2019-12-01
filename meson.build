@@ -14,8 +14,6 @@ plugs_as_libs = get_option('core-plugins-as-shared-libraries')
 cc = meson.get_compiler('c')
 dl = cc.find_library('dl')
 threads = dependency('threads')
-freetype = dependency('freetype2')
-fontconfig = dependency('fontconfig')
 pixman = dependency('pixman-1')
 yaml = dependency('yaml-0.1')
 
@@ -64,6 +62,13 @@ else
   tllist = dependency('tllist')
 endif
 
+fcft_proj = subproject('fcft', required: false)
+if fcft_proj.found()
+  fcft = fcft_proj.get_variable('fcft')
+else
+  fcft = dependency('fcft')
+endif
+
 subdir('completions')
 subdir('doc')
 subdir('bar')
@@ -84,7 +89,6 @@ yambar = executable(
   'config-verify.c', 'config-verify.h',
   'config.c', 'config.h',
   'decoration.h',
-  'font.c', 'font.h',
   'log.c', 'log.h',
   'main.c',
   'module.c', 'module.h',
@@ -93,7 +97,7 @@ yambar = executable(
   'tag.c', 'tag.h',
   'yml.c', 'yml.h',
   version,
-  dependencies: [bar, freetype, fontconfig, pixman, yaml, threads, dl, tllist] +
+  dependencies: [bar, pixman, yaml, threads, dl, tllist, fcft] +
                 decorations + particles + modules,
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -109,7 +113,6 @@ install_headers(
   'config.h',
   'config-verify.h',
   'decoration.h',
-  'font.h',
   'log.h',
   'module.h',
   'particle.h',

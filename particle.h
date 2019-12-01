@@ -1,9 +1,10 @@
 #pragma once
 #include <pixman.h>
 
+#include <fcft/fcft.h>
+
 #include "color.h"
 #include "decoration.h"
-#include "font.h"
 #include "tag.h"
 
 struct bar;

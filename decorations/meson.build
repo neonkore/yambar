@@ -1,4 +1,4 @@
-deco_sdk = declare_dependency(dependencies: [freetype, pixman, tllist])
+deco_sdk = declare_dependency(dependencies: [pixman, tllist])
 
 decorations = []
 foreach deco : ['background', 'stack', 'underline']

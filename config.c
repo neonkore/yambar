@@ -67,7 +67,13 @@ conf_to_color(const struct yml_node *node)
 struct font *
 conf_to_font(const struct yml_node *node)
 {
-    return font_from_name(yml_value_as_string(node));
+    font_list_t font_list = tll_init();
+    tll_push_back(font_list, yml_value_as_string(node));
+
+    struct font *font = font_from_name(font_list, NULL);
+
+    tll_free(font_list);
+    return font;
 }
 
 struct deco *
@@ -263,7 +269,11 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
      * and particles. This allows us to specify a default font and
      * foreground color at top-level.
      */
-    struct font *font = font_from_name("sans");
+    font_list_t font_list = tll_init();
+    tll_push_back(font_list, "sans");
+    struct font *font = font_from_name(font_list, NULL);
+    tll_free(font_list);
+
     pixman_color_t foreground = {0xffff, 0xffff, 0xffff, 0xffff}; /* White */
 
     const struct yml_node *font_node = yml_get_value(bar, "font");
