@@ -2,6 +2,3 @@
 	path = external/wlr-protocols
 	url = https://github.com/swaywm/wlr-protocols.git
 	branch = master
-[submodule "external/tllist"]
-	path = external/tllist
-	url = https://codeberg.org/dnkl/tllist.git
