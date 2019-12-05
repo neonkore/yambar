@@ -15,7 +15,7 @@ depends=(
   'libudev.so'
   'json-c'
   'libmpdclient'
-  'fcft>=0.3.0')
+  'fcft>=0.4.0')
 optdepends=('xcb-util-errors: better X error messages')
 source=()
 
