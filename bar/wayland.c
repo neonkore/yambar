@@ -81,6 +81,8 @@ struct wayland_backend {
     tll(struct monitor) monitors;
     const struct monitor *monitor;
 
+    int scale;
+
     struct zxdg_output_manager_v1 *xdg_output_manager;
 
     /* TODO: set directly in bar instead */
@@ -122,18 +124,17 @@ update_cursor_surface(struct wayland_backend *backend)
     if (backend->pointer.cursor == NULL)
         return;
 
-    const int scale = backend->monitor->scale;
-
     struct wl_cursor_image *image = backend->pointer.cursor->images[0];
 
-    wl_surface_set_buffer_scale(backend->pointer.surface, scale);
+    wl_surface_set_buffer_scale(backend->pointer.surface, backend->scale);
 
     wl_surface_attach(
         backend->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
 
     wl_pointer_set_cursor(
         backend->pointer.pointer, backend->pointer.serial,
-        backend->pointer.surface, image->hotspot_x / scale, image->hotspot_y / scale);
+        backend->pointer.surface,
+        image->hotspot_x / backend->scale, image->hotspot_y / backend->scale);
 
 
     wl_surface_damage_buffer(
@@ -149,8 +150,8 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
 {
     struct wayland_backend *backend = data;
     backend->pointer.serial = serial;
-    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->monitor->scale;
-    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->monitor->scale;
+    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->scale;
+    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->scale;
 
     update_cursor_surface(backend);
 }
@@ -167,8 +168,8 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 {
     struct wayland_backend *backend = data;
 
-    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->monitor->scale;
-    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->monitor->scale;
+    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->scale;
+    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->scale;
 
     backend->bar_on_mouse(
         backend->bar, ON_MOUSE_MOTION, backend->pointer.x, backend->pointer.y);
@@ -449,8 +450,8 @@ layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *surface,
                         uint32_t serial, uint32_t w, uint32_t h)
 {
     struct wayland_backend *backend = data;
-    backend->width = w * backend->monitor->scale;
-    backend->height = h * backend->monitor->scale;
+    backend->width = w * backend->scale;
+    backend->height = h * backend->scale;
 
     zwlr_layer_surface_v1_ack_configure(surface, serial);
 }
@@ -626,22 +627,13 @@ setup(struct bar *_bar)
                  mon->name, mon->width_px, mon->height_px,
                  mon->x, mon->y, mon->width_mm, mon->height_mm);
 
-        if (bar->monitor == NULL) {
-            /* User didn't specify a monitor */
-            backend->monitor = mon;
-        }
-
-        else if (bar->monitor != NULL && strcmp(bar->monitor, mon->name) == 0) {
+        if (bar->monitor != NULL && strcmp(bar->monitor, mon->name) == 0) {
             /* User specified a monitor, and this is one */
             backend->monitor = mon;
         }
     }
 
-    if (backend->monitor == NULL) {
-        LOG_ERR("failed to find the specified monitor: %s",
-                bar->monitor != NULL ? bar->monitor : "default");
-        return false;
-    }
+    backend->scale = backend->monitor != NULL ? backend->monitor->scale : 1;
 
     backend->surface = wl_compositor_create_surface(backend->compositor);
     if (backend->surface == NULL) {
@@ -670,14 +662,15 @@ setup(struct bar *_bar)
     LOG_INFO("cursor theme: %s, size: %u", cursor_theme, cursor_size);
 
     backend->pointer.theme = wl_cursor_theme_load(
-        cursor_theme, cursor_size * backend->monitor->scale, backend->shm);
+        cursor_theme, cursor_size * backend->scale, backend->shm);
     if (backend->pointer.theme == NULL) {
         LOG_ERR("failed to load cursor theme");
         return false;
     }
 
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
-        backend->layer_shell, backend->surface, backend->monitor->output,
+        backend->layer_shell, backend->surface,
+        backend->monitor != NULL ? backend->monitor->output : NULL,
         ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "yambar");
     if (backend->layer_surface == NULL) {
         LOG_ERR("failed to create layer shell surface");
@@ -696,26 +689,26 @@ setup(struct bar *_bar)
         top_or_bottom);
 
     int height = bar->height_with_border;
-    height /= backend->monitor->scale;
-    height *= backend->monitor->scale;
+    height /= backend->scale;
+    height *= backend->scale;
     bar->height = height - 2 * bar->border.width;
     bar->height_with_border = height;
 
     zwlr_layer_surface_v1_set_size(
-        backend->layer_surface, 0, bar->height_with_border / backend->monitor->scale);
+        backend->layer_surface, 0, bar->height_with_border / backend->scale);
     zwlr_layer_surface_v1_set_exclusive_zone(
         backend->layer_surface,
         (bar->height_with_border + (bar->location == BAR_TOP
                                     ? bar->border.bottom_margin
                                     : bar->border.top_margin))
-        / backend->monitor->scale);
+        / backend->scale);
 
     zwlr_layer_surface_v1_set_margin(
         backend->layer_surface,
-        bar->border.top_margin / backend->monitor->scale,
-        bar->border.right_margin / backend->monitor->scale,
-        bar->border.bottom_margin / backend->monitor->scale,
-        bar->border.left_margin / backend->monitor->scale
+        bar->border.top_margin / backend->scale,
+        bar->border.right_margin / backend->scale,
+        bar->border.bottom_margin / backend->scale,
+        bar->border.left_margin / backend->scale
         );
 
     zwlr_layer_surface_v1_add_listener(
@@ -731,7 +724,8 @@ setup(struct bar *_bar)
         return false;
     }
 
-    assert(backend->width / backend->monitor->scale <= backend->monitor->width_px);
+    assert(backend->monitor == NULL ||
+           backend->width / backend->monitor->scale <= backend->monitor->width_px);
     bar->width = backend->width;
 
     if (pipe(backend->pipe_fds) == -1) {
@@ -917,7 +911,7 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         struct buffer *buffer = backend->pending_buffer;
         assert(buffer->busy);
 
-        wl_surface_set_buffer_scale(backend->surface, backend->monitor->scale);
+        wl_surface_set_buffer_scale(backend->surface, backend->scale);
         wl_surface_attach(backend->surface, buffer->wl_buf, 0, 0);
         wl_surface_damage(backend->surface, 0, 0, backend->width, backend->height);
 
@@ -956,7 +950,7 @@ commit(const struct bar *_bar)
         struct buffer *buffer = backend->next_buffer;
         assert(buffer->busy);
 
-        wl_surface_set_buffer_scale(backend->surface, backend->monitor->scale);
+        wl_surface_set_buffer_scale(backend->surface, backend->scale);
         wl_surface_attach(backend->surface, buffer->wl_buf, 0, 0);
         wl_surface_damage(backend->surface, 0, 0, backend->width, backend->height);
 
