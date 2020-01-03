@@ -141,6 +141,7 @@ update_cursor_surface(struct wayland_backend *backend)
         backend->pointer.surface, 0, 0, INT32_MAX, INT32_MAX);
 
     wl_surface_commit(backend->pointer.surface);
+    wl_display_flush(backend->display);
 }
 
 static void
@@ -735,9 +736,6 @@ setup(struct bar *_bar)
 
     backend->render_scheduled = false;
 
-    //wl_surface_commit(backend->surface);
-    //wl_display_roundtrip(backend->display);
-
     /* Prepare a buffer + pixman image for bar to draw to */
     backend->next_buffer = get_buffer(backend);
     assert(backend->next_buffer != NULL && backend->next_buffer->busy);
@@ -818,15 +816,8 @@ loop(struct bar *_bar,
     backend->bar_expose = expose;
     backend->bar_on_mouse = on_mouse;
 
-#if 0
-    while (wl_display_prepare_read(backend->display) != 0){
-        //printf("initial wayland event\n");
+    while (wl_display_prepare_read(backend->display) != 0)
         wl_display_dispatch_pending(backend->display);
-    }
-    wl_display_flush(backend->display);
-#endif
-
-    wl_display_dispatch_pending(backend->display);
     wl_display_flush(backend->display);
 
     while (true) {
@@ -836,12 +827,8 @@ loop(struct bar *_bar,
             {.fd = backend->pipe_fds[0], .events = POLLIN},
         };
 
-        wl_display_flush(backend->display);
-
-        //printf("polling\n");
         poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
         if (fds[0].revents & POLLIN) {
-            //wl_display_cancel_read(backend->display);
             break;
         }
 
@@ -857,7 +844,6 @@ loop(struct bar *_bar,
 
         if (fds[2].revents & POLLIN) {
             uint8_t command;
-            //wl_display_cancel_read(backend->display);
             if (read(backend->pipe_fds[0], &command, sizeof(command))
                 != sizeof(command))
             {
@@ -866,27 +852,19 @@ loop(struct bar *_bar,
             }
 
             assert(command == 1);
-            //printf("refresh\n");
             expose(_bar);
-#if 0
-            while (wl_display_prepare_read(backend->display) != 0) {
-                //printf("queued wayland events\n");
-                wl_display_dispatch_pending(backend->display);
-            }
-            wl_display_flush(backend->display);
-#endif
         }
 
         if (fds[1].revents & POLLIN) {
-#if 0
-            //printf("wayland events\n");
             wl_display_read_events(backend->display);
-            wl_display_dispatch_pending(backend->display);
-#endif
-            //printf("wayland events\n");
-            wl_display_dispatch(backend->display);
+
+            while (wl_display_prepare_read(backend->display) != 0)
+                wl_display_dispatch_pending(backend->display);
+            wl_display_flush(backend->display);
         }
     }
+
+    wl_display_cancel_read(backend->display);
 }
 
 static void frame_callback(
@@ -918,6 +896,7 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         struct wl_callback *cb = wl_surface_frame(backend->surface);
         wl_callback_add_listener(cb, &frame_listener, bar);
         wl_surface_commit(backend->surface);
+        wl_display_flush(backend->display);
 
         backend->pending_buffer = NULL;
         backend->render_scheduled = true;
@@ -957,6 +936,7 @@ commit(const struct bar *_bar)
         struct wl_callback *cb = wl_surface_frame(backend->surface);
         wl_callback_add_listener(cb, &frame_listener, bar);
         wl_surface_commit(backend->surface);
+        wl_display_flush(backend->display);
 
         backend->render_scheduled = true;
     }
