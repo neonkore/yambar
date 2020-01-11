@@ -49,9 +49,9 @@ must define a top-level dictionary named **bar**:
       right:
         - clock:
             content:
-              - string: {text: , font: *awesome}
+              - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
               - string: {text: "{date}", right-margin: 5}
-              - string: {text: , font: *awesome}
+              - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
               - string: {text: "{time}"}
 
 
@@ -73,3 +73,39 @@ Available modules:
 * removables
 * xkb (_XCB backend only_)
 * xwindow (_XCB backend only_)
+
+
+## Installation
+
+If you have not installed [tllist](https://codeberg.org/dnkl/tllist)
+and [fcft](https://codeberg.org/dnkl/fcft) as system libraries, clone
+them into the `subprojects` directory:
+
+```sh
+mkdir -p subprojects
+pushd subprojects
+git clone https://codeberg.org/dnkl/tllist.git
+git clone https://codeberg.org/dnkl/fcft.git
+popd
+```
+
+To build, first, create a build directory, and switch to it:
+```sh
+mkdir -p bld/release && cd bld/release
+```
+
+Second, configure the build (if you intend to install it globally, you
+might also want `--prefix=/usr`):
+```sh
+meson --buildtype=release ../..
+```
+
+Three, build it:
+```sh
+ninja
+```
+
+Optionally, install it:
+```sh
+ninja install
+```
