@@ -41,19 +41,20 @@ using _particles_ and _decorations_. **How** is configured by you.
 Yambar is configured using YAML, in `~/.config/yambar/config.yml`. It
 must define a top-level dictionary named **bar**:
 
-    bar:
-      height: 26
-      location: top
-      background: 000000ff
+```yaml
+bar:
+  height: 26
+  location: top
+  background: 000000ff
 
-      right:
-        - clock:
-            content:
-              - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
-              - string: {text: "{date}", right-margin: 5}
-              - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
-              - string: {text: "{time}"}
-
+  right:
+    - clock:
+        content:
+          - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
+          - string: {text: "{date}", right-margin: 5}
+          - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
+          - string: {text: "{time}"}
+```
 
 For details, see the man pages (**yambar**(5) is a good start).
 
