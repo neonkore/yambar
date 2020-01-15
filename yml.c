@@ -12,6 +12,7 @@
 enum yml_error {
     YML_ERR_NONE,
     YML_ERR_DUPLICATE_KEY,
+    YML_ERR_INVALID_ANCHOR,
     YML_ERR_UNKNOWN,
 };
 
@@ -273,7 +274,8 @@ post_process(struct yml_node *node)
 static const char *
 format_error(enum yml_error err,
              const struct yml_node *parent,
-             const struct yml_node *node)
+             const struct yml_node *node,
+             const char *anchor)
 {
     static char err_str[512];
 
@@ -313,6 +315,26 @@ format_error(enum yml_error err,
             snprintf(err_str, sizeof(err_str), "duplicate key");
         break;
     }
+
+    case YML_ERR_INVALID_ANCHOR:
+        if (parent->parent != NULL && parent->parent->type == DICT) {
+            tll_foreach(parent->parent->dict.pairs, pair) {
+                if (pair->item.value != parent)
+                    continue;
+                if (pair->item.key->type != SCALAR)
+                    break;
+
+                snprintf(err_str, sizeof(err_str),
+                         "%s: invalid anchor: %s",
+                         pair->item.key->scalar.value,
+                         anchor != NULL ? anchor : "<unknown>");
+                return err_str;
+            }
+        }
+
+        snprintf(err_str, sizeof(err_str), "invalid anchor: %s",
+                 anchor != NULL ? anchor : "<unknown>");
+        break;
 
     case YML_ERR_UNKNOWN:
         snprintf(err_str, sizeof(err_str), "unknown error");
@@ -385,7 +407,8 @@ yml_load(FILE *yml, char **error)
             indent -= 2;
             break;
 
-        case YAML_ALIAS_EVENT:
+        case YAML_ALIAS_EVENT: {
+            bool got_match = false;
             for (size_t i = 0; i < root->root.anchor_count; i++) {
                 const struct anchor_map *map = &root->root.anchors[i];
 
@@ -397,14 +420,23 @@ yml_load(FILE *yml, char **error)
 
                 enum yml_error err = add_node(n, clone, event.start_mark);
                 if (err != YML_ERR_NONE) {
-                    error_str = format_error(err, n, clone);
+                    error_str = format_error(err, n, clone, NULL);
                     yml_destroy(clone);
                     goto err;
                 }
 
+                got_match = true;
                 break;
             }
+
+            if (!got_match) {
+                error_str = format_error(
+                    YML_ERR_INVALID_ANCHOR, n, NULL,
+                    (const char *)event.data.alias.anchor);
+                goto err;
+            }
             break;
+        }
 
         case YAML_SCALAR_EVENT: {
             struct yml_node *new_scalar = calloc(1, sizeof(*new_scalar));
@@ -414,7 +446,7 @@ yml_load(FILE *yml, char **error)
 
             enum yml_error err = add_node(n, new_scalar, event.start_mark);
             if (err != YML_ERR_NONE) {
-                error_str = format_error(err, n, new_scalar);
+                error_str = format_error(err, n, new_scalar, NULL);
                 yml_destroy(new_scalar);
                 goto err;
             }
@@ -434,7 +466,7 @@ yml_load(FILE *yml, char **error)
 
             enum yml_error err = add_node(n, new_list, event.start_mark);
             if (err != YML_ERR_NONE) {
-                error_str = format_error(err, n, new_list);
+                error_str = format_error(err, n, new_list, NULL);
                 yml_destroy(new_list);
                 goto err;
             }
@@ -462,7 +494,7 @@ yml_load(FILE *yml, char **error)
 
             enum yml_error err = add_node(n, new_dict, event.start_mark);
             if (err != YML_ERR_NONE) {
-                error_str = format_error(err, n, new_dict);
+                error_str = format_error(err, n, new_dict, NULL);
                 yml_destroy(new_dict);
                 goto err;
             }
@@ -477,6 +509,7 @@ yml_load(FILE *yml, char **error)
         }
 
         case YAML_MAPPING_END_EVENT:
+            assert(!n->dict.next_is_value);
             indent -= 2;
             assert(n->parent != NULL);
             n = n->parent;
