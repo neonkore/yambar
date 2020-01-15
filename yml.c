@@ -422,6 +422,7 @@ yml_load(FILE *yml, char **error)
                 if (err != YML_ERR_NONE) {
                     error_str = format_error(err, n, clone, NULL);
                     yml_destroy(clone);
+                    yaml_event_delete(&event);
                     goto err;
                 }
 
@@ -433,6 +434,7 @@ yml_load(FILE *yml, char **error)
                 error_str = format_error(
                     YML_ERR_INVALID_ANCHOR, n, NULL,
                     (const char *)event.data.alias.anchor);
+                yaml_event_delete(&event);
                 goto err;
             }
             break;
@@ -448,6 +450,7 @@ yml_load(FILE *yml, char **error)
             if (err != YML_ERR_NONE) {
                 error_str = format_error(err, n, new_scalar, NULL);
                 yml_destroy(new_scalar);
+                yaml_event_delete(&event);
                 goto err;
             }
 
@@ -468,6 +471,7 @@ yml_load(FILE *yml, char **error)
             if (err != YML_ERR_NONE) {
                 error_str = format_error(err, n, new_list, NULL);
                 yml_destroy(new_list);
+                yaml_event_delete(&event);
                 goto err;
             }
 
@@ -496,6 +500,7 @@ yml_load(FILE *yml, char **error)
             if (err != YML_ERR_NONE) {
                 error_str = format_error(err, n, new_dict, NULL);
                 yml_destroy(new_dict);
+                yaml_event_delete(&event);
                 goto err;
             }
 
