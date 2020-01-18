@@ -20,6 +20,7 @@ struct eprivate {
     char *text;
 
     const struct glyph **glyphs;
+    long *kern_x;
     int num_glyphs;
 };
 
@@ -30,6 +31,7 @@ exposable_destroy(struct exposable *exposable)
 
     free(e->text);
     free(e->glyphs);
+    free(e->kern_x);
     free(e);
     exposable_default_destroy(exposable);
 }
@@ -49,6 +51,7 @@ begin_expose(struct exposable *exposable)
         mbstowcs(wtext, e->text, chars + 1);
 
         e->glyphs = malloc(chars * sizeof(e->glyphs[0]));
+        e->kern_x = calloc(chars, sizeof(e->kern_x[0]));
 
         /* Convert text to glyph masks/images. */
         for (size_t i = 0; i < chars; i++) {
@@ -56,6 +59,11 @@ begin_expose(struct exposable *exposable)
             if (glyph == NULL)
                 continue;
             e->glyphs[e->num_glyphs++] = glyph;
+
+            if (i == 0)
+                continue;
+
+            font_kerning(font, wtext[i - 1], wtext[i], &e->kern_x[i], NULL);
         }
     }
 
@@ -64,7 +72,7 @@ begin_expose(struct exposable *exposable)
 
     /* Calculate the size we need to render the glyphs */
     for (int i = 0; i < e->num_glyphs; i++)
-        exposable->width += e->glyphs[i]->x_advance;
+        exposable->width += e->kern_x[i] + e->glyphs[i]->x_advance;
 
     return exposable->width;
 }
@@ -105,6 +113,8 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
     for (int i = 0; i < e->num_glyphs; i++) {
         const struct glyph *glyph = e->glyphs[i];
         assert(glyph != NULL);
+
+        x += e->kern_x[i];
 
         if (pixman_image_get_format(glyph->pix) == PIXMAN_a8r8g8b8) {
             /* Glyph surface is a pre-rendered image (typically a color emoji...) */
