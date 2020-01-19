@@ -55,7 +55,7 @@ begin_expose(struct exposable *exposable)
 
         /* Convert text to glyph masks/images. */
         for (size_t i = 0; i < chars; i++) {
-            const struct glyph *glyph = font_glyph_for_wc(font, wtext[i]);
+            const struct glyph *glyph = font_glyph_for_wc(font, wtext[i], false);
             if (glyph == NULL)
                 continue;
             e->glyphs[e->num_glyphs++] = glyph;
