@@ -112,13 +112,16 @@ following attributes are supported by all modules:
 
 [[ *Name*
 :[ *Type*
+:[ *Req*
 :[ *Description*
 |  content
 :  particle
+:  yes
 :  A particle describing how the module's information is to be rendered.
    See *yambar-particles*(5)
 |  anchors
 :  associative array
+:  no
 :  Free-to-use associative array, where you can put yaml anchor definitions
 |  font
 :  font
