@@ -350,11 +350,10 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
 
     }
 
-    struct json_object *container, *id, *name, *pid;
+    struct json_object *container, *id, *name;
     if (!json_object_object_get_ex(json, "container", &container) ||
         !json_object_object_get_ex(container, "id", &id) ||
-        !json_object_object_get_ex(container, "name", &name) ||
-        !json_object_object_get_ex(container, "pid", &pid))
+        !json_object_object_get_ex(container, "name", &name))
     {
         mtx_unlock(&mod->lock);
         return false;
@@ -382,6 +381,8 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
      */
 
     struct json_object *app_id;
+    struct json_object *pid;
+
     if (json_object_object_get_ex(container, "app_id", &app_id) &&
         json_object_get_string(app_id) != NULL)
     {
@@ -391,7 +392,9 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     }
 
     /* If PID has changed, update application name from /proc/<pid>/comm */
-    else if (ws->window.pid != json_object_get_int(pid)) {
+    else if (json_object_object_get_ex(container, "pid", &pid) &&
+             ws->window.pid != json_object_get_int(pid))
+    {
         ws->window.pid = json_object_get_int(pid);
 
         char path[64];
