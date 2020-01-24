@@ -582,8 +582,6 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
         {"spacing", false, &conf_verify_int},
         {"left-spacing", false, &conf_verify_int},
         {"right-spacing", false, &conf_verify_int},
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
         MODULE_COMMON_ATTRS,
     };
 

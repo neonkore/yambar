@@ -302,8 +302,6 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"card", true, &conf_verify_string},
         {"mixer", true, &conf_verify_string},
-        {"content", true, &conf_verify_particle},
-        {"anchors", false, NULL},
         MODULE_COMMON_ATTRS,
     };
 
