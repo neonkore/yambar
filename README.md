@@ -11,8 +11,10 @@
 
 ![screenshot](screenshot.png "Example configuration")
 
-**yambar** is a light-weight and configurable status panel (_bar_, for
-short) for X and Wayland.
+**yambar** is a lightweight and configurable status panel (_bar_, for
+short) for X and Wayland, that goes to great lengths to be both CPU
+and battery efficient - polling is only done when **absolutely**
+necessary.
 
 It has a number of _modules_ that provide information in the form of
 _tags_. For example, the _clock_ module has a _date_ tag that contains
