@@ -322,11 +322,14 @@ Unlike other modules where the _content_ attribute is just a single
 *particle*, the i3 module's _content_ is an associative array mapping
 i3/sway workspace names to a particle.
 
-You can specify a default particle to use with an empty workspace
-name, *""*.
+You can add an empty workspace name, *""*, as a catch-all workspace
+particle. The *i3* module will fallback to this entry if it cannot
+find the workspace name in the _content_ map.
 
 It also recognizes the special name *current*, which always represents
-the currently focused workspace.
+the currently focused workspace. On Sway, this can be used together
+with the _application_ and _title_ tags to replace the X11-only
+*xwindow* module.
 
 ## TAGS
 
@@ -351,7 +354,7 @@ the currently focused workspace.
    *unfocused* is when it is visible, but neither focused nor urgent).
 |  application
 :  string
-:  Name of application currently focused on this workspace (Sway only)
+:  Name of application currently focused on this workspace (Sway only - use the *xwindow* module in i3)
 |  title
 :  string
 :  This workspace's focused window's title
@@ -741,7 +744,8 @@ This module provides the application name and window title of the
 currently focused window.
 
 Note: this module is X11 only. It does not work in Wayland. If you are
-running Sway, take a look at the _i3_ module and its _current_ tag.
+running Sway, take a look at the *i3* module and its _application_ and
+_title_ tags.
 
 ## TAGS
 
