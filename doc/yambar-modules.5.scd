@@ -10,7 +10,7 @@ bar.
 
 All modules expose their data through *tags*. Each tag has a *name*,
 *type* and *value*. The name and type is fixed, while the value
-typically changes over time. See *yambar-tags(5)*.
+typically changes over time. See *yambar-tags*(5).
 
 The tags are rendered by _particles_. Each particle has its own way of
 representing tag values. The simplest one is the _string_ particle,
