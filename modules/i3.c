@@ -64,6 +64,7 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
     if (!json_object_object_get_ex(json, "name", &name) ||
         !json_object_object_get_ex(json, "output", &output))
     {
+        LOG_ERR("workspace reply/event without 'name' and/or 'output' property");
         return false;
     }
 
@@ -152,8 +153,10 @@ static bool
 handle_get_version_reply(int type, const struct json_object *json, void *_m)
 {
     struct json_object *version;
-    if (!json_object_object_get_ex(json, "human_readable", &version))
+    if (!json_object_object_get_ex(json, "human_readable", &version)) {
+        LOG_ERR("version reply without 'humand_readable' property");
         return false;
+    }
 
     LOG_INFO("i3: %s", json_object_get_string(version));
     return true;
@@ -163,8 +166,10 @@ static bool
 handle_subscribe_reply(int type, const struct json_object *json, void *_m)
 {
     struct json_object *success;
-    if (!json_object_object_get_ex(json, "success", &success))
+    if (!json_object_object_get_ex(json, "success", &success)) {
+        LOG_ERR("subscribe reply without 'success' property");
         return false;
+    }
 
     if (!json_object_get_boolean(success)) {
         LOG_ERR("failed to subscribe");
@@ -211,8 +216,10 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     struct private *m = mod->private;
 
     struct json_object *change;
-    if (!json_object_object_get_ex(json, "change", &change))
+    if (!json_object_object_get_ex(json, "change", &change)) {
+        LOG_ERR("workspace event without 'change' property");
         return false;
+    }
 
     const char *change_str = json_object_get_string(change);
 
@@ -230,7 +237,10 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     struct json_object *current, *_current_name;
     if (!json_object_object_get_ex(json, "current", &current) ||
         !json_object_object_get_ex(current, "name", &_current_name))
+    {
+        LOG_ERR("workspace event without 'current' and/or 'name' properties");
         return false;
+    }
 
     const char *current_name = json_object_get_string(_current_name);
 
@@ -257,6 +267,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
             !json_object_object_get_ex(old, "name", &_old_name) ||
             !json_object_object_get_ex(current, "urgent", &urgent))
         {
+            LOG_ERR("workspace 'focused' event without 'old', 'name' and/or 'urgent' property");
             mtx_unlock(&mod->lock);
             return false;
         }
@@ -287,6 +298,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     else if (is_urgent) {
         struct json_object *urgent;
         if (!json_object_object_get_ex(current, "urgent", &urgent)) {
+            LOG_ERR("workspace 'urgent' event without 'urgent' property");
             mtx_unlock(&mod->lock);
             return false;
         }
@@ -311,8 +323,10 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     struct private *m = mod->private;
 
     struct json_object *change;
-    if (!json_object_object_get_ex(json, "change", &change))
+    if (!json_object_object_get_ex(json, "change", &change)) {
+        LOG_ERR("window event without 'change' property");
         return false;
+    }
 
     const char *change_str = json_object_get_string(change);
     bool is_focus = strcmp(change_str, "focus") == 0;
@@ -350,13 +364,13 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
 
     }
 
-    struct json_object *container, *id, *name, *pid;
+    struct json_object *container, *id, *name;
     if (!json_object_object_get_ex(json, "container", &container) ||
         !json_object_object_get_ex(container, "id", &id) ||
-        !json_object_object_get_ex(container, "name", &name) ||
-        !json_object_object_get_ex(container, "pid", &pid))
+        !json_object_object_get_ex(container, "name", &name))
     {
         mtx_unlock(&mod->lock);
+        LOG_ERR("window event without 'container' with 'id' and 'name'");
         return false;
     }
 
@@ -382,6 +396,8 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
      */
 
     struct json_object *app_id;
+    struct json_object *pid;
+
     if (json_object_object_get_ex(container, "app_id", &app_id) &&
         json_object_get_string(app_id) != NULL)
     {
@@ -391,7 +407,9 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     }
 
     /* If PID has changed, update application name from /proc/<pid>/comm */
-    else if (ws->window.pid != json_object_get_int(pid)) {
+    else if (json_object_object_get_ex(container, "pid", &pid) &&
+             ws->window.pid != json_object_get_int(pid))
+    {
         ws->window.pid = json_object_get_int(pid);
 
         char path[64];

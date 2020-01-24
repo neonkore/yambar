@@ -351,7 +351,7 @@ the currently focused workspace.
    *unfocused* is when it is visible, but neither focused nor urgent).
 |  application
 :  string
-:  Name of application currently focused on this workspace
+:  Name of application currently focused on this workspace (Sway only)
 |  title
 :  string
 :  This workspace's focused window's title

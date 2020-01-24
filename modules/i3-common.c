@@ -204,6 +204,8 @@ i3_receive_loop(int abort_fd, int sock,
                 break;
             }
 
+            LOG_DBG("header: type=%x", hdr->type);
+
             /* Json-c expects a NULL-terminated string */
             char json_str[hdr->size + 1];
             memcpy(json_str, &buf[sizeof(*hdr)], hdr->size);
@@ -219,7 +221,6 @@ i3_receive_loop(int abort_fd, int sock,
                 break;
             }
 
-            //err = pkt_handler(hdr, json, data);
             i3_ipc_callback_t pkt_handler = NULL;
             switch (hdr->type) {
             case I3_IPC_REPLY_TYPE_COMMAND:
