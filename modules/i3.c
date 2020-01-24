@@ -372,8 +372,26 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     ws->window.title = title != NULL ? strdup(title) : NULL;
     ws->window.id = json_object_get_int(id);
 
+    /*
+     * Sway only!
+     *
+     * Use 'app_id' for 'application' tag, if it exists.
+     *
+     * Otherwise, use 'pid' if it exists, and read application name
+     * from /proc/zpid>/comm
+     */
+
+    struct json_object *app_id;
+    if (json_object_object_get_ex(container, "app_id", &app_id) &&
+        json_object_get_string(app_id) != NULL)
+    {
+        free(ws->window.application);
+        ws->window.application = strdup(json_object_get_string(app_id));
+        LOG_DBG("application: \"%s\", via 'app_id'", ws->window.application);
+    }
+
     /* If PID has changed, update application name from /proc/<pid>/comm */
-    if (ws->window.pid != json_object_get_int(pid)) {
+    else if (ws->window.pid != json_object_get_int(pid)) {
         ws->window.pid = json_object_get_int(pid);
 
         char path[64];
@@ -398,6 +416,7 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         free(ws->window.application);
         ws->window.application = strdup(application);
         close(fd);
+        LOG_DBG("application: \"%s\", via 'pid'", ws->window.application);
     }
 
     m->dirty = true;
