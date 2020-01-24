@@ -26,8 +26,9 @@ The _string_ particle, for example, cannot change font or colors in
 the middle of its string. To do this, you need to wrap multiple
 _string_ particles in a _list_ particle.
 
-This is especially important if you want to use an icon font since
-yambar does not do font fallback handling.
+This can be useful if you want to use an icon font for a glyph since
+the default fallback fonts provided by fontconfig may not favor your
+icon font.
 
 Also remember there is a short version for lists (see
 *yambar-particles*(5))
