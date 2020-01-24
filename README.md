@@ -12,7 +12,7 @@
 ![screenshot](screenshot.png "Example configuration")
 
 **yambar** is a lightweight and configurable status panel (_bar_, for
-short) for X and Wayland, that goes to great lengths to be both CPU
+short) for X11 and Wayland, that goes to great lengths to be both CPU
 and battery efficient - polling is only done when **absolutely**
 necessary.
 

@@ -26,8 +26,8 @@ yambar - modular status panel for X11 and Wayland
 	Show the version number and quit
 
 # DESCRIPTION
-*yambar* is a light-weight and configurable status panel (_bar_, for
-short) for *X* and *Wayland*.
+*yambar* is a lightweight and configurable status panel (_bar_, for
+short) for *X11* and *Wayland*.
 
 It has a number of _modules_ that provide information in the form of
 _tags_. For example, the _clock_ module has a _date_ tag that contains
