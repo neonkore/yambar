@@ -24,8 +24,8 @@ The modules do not know _how_ to present the information though. This
 is instead done by _particles_. And the user, you, decides _which_
 particles (and thus _how_ to present the data) to use.
 
-Furthermore, each particle can have a _decoration_. These are things
-like a different background, or an graphical underline.
+Furthermore, each particle can have a _decoration_ - a background
+color or a graphical underline, for example.
 
 There is **no** support for images or icons. use an icon font
 (e.g. _Font Awesome_, or _Material Icons_) if you want a graphical
