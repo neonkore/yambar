@@ -6,4 +6,5 @@ _arguments \
     '(-h --help)'{-h,--help}'[show help message and quit]' \
     '(-b --backend)'{-b,--backend}'[backend to use (default: auto)]:backend:(xcb wayland auto)' \
     '(-c --config)'{-c,--config}'[alternative configuration file]:filename:_files' \
-    '(-C --validate)'{-C,--validate}'[verify configuration then quit]'
+    '(-C --validate)'{-C,--validate}'[verify configuration then quit]' \
+    '(-p --print-pid)'{-p,--print-pid}'[print PID to this file or FD when up and running]:pidfile:_files'

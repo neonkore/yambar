@@ -10,10 +10,12 @@
 #include <threads.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/eventfd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <pwd.h>
 
 #include "bar/bar.h"
@@ -128,7 +130,45 @@ print_usage(const char *prog_name)
     printf("  -b,--backend={xcb,wayland,auto}  backend to use (default: auto)\n"
            "  -c,--config=FILE                 alternative configuration file\n"
            "  -C,--validate                    verify configuration then quit\n"
+           "  -p,--print-pid=FILE|FD           print PID to file or FD\n"
            "  -v,--version                     print f00sel version and quit\n");
+}
+
+static bool
+print_pid(const char *pid_file, bool *unlink_at_exit)
+{
+    LOG_DBG("printing PID to %s", pid_file);
+
+    errno = 0;
+    char *end;
+    int pid_fd = strtoul(pid_file, &end, 10);
+
+    if (errno != 0 || *end != '\0') {
+        if ((pid_fd = open(pid_file,
+                           O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC,
+                           S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+            LOG_ERRNO("%s: failed to open", pid_file);
+            return false;
+        } else
+            *unlink_at_exit = true;
+    }
+
+    if (pid_fd >= 0) {
+        char pid[32];
+        snprintf(pid, sizeof(pid), "%u\n", getpid());
+
+        ssize_t bytes __attribute((unused)) = write(pid_fd, pid, strlen(pid));
+        close(pid_fd);
+
+        if (bytes < 0) {
+            LOG_ERRNO("failed to write PID to FD=%u", pid_fd);
+            return false;
+        }
+
+        LOG_DBG("wrote %zd bytes to FD=%d", bytes, pid_fd);
+        return true;
+    } else
+        return false;
 }
 
 int
@@ -140,17 +180,21 @@ main(int argc, char *const *argv)
         {"backend",          required_argument, 0, 'b'},
         {"config",           required_argument, 0, 'c'},
         {"validate",         no_argument,       0, 'C'},
+        {"print-pid",        required_argument, 0, 'p'},
         {"version",          no_argument,       0, 'v'},
         {"help",             no_argument,       0, 'h'},
         {NULL,               no_argument,       0, 0},
     };
+
+    bool unlink_pid_file = false;
+    const char *pid_file = NULL;
 
     bool verify_config = false;
     char *config_path = NULL;
     enum bar_backend backend = BAR_BACKEND_AUTO;
 
     while (true) {
-        int c = getopt_long(argc, argv, ":b:c:Cvh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":b:c:Cp:vh", longopts, NULL);
         if (c == -1)
             break;
 
@@ -183,6 +227,10 @@ main(int argc, char *const *argv)
 
         case 'C':
             verify_config = true;
+            break;
+
+        case 'p':
+            pid_file = optarg;
             break;
 
         case 'v':
@@ -251,6 +299,11 @@ main(int argc, char *const *argv)
     /* Now unblock. We should be only thread receiving SIGINT */
     pthread_sigmask(SIG_UNBLOCK, &signal_mask, NULL);
 
+    if (pid_file != NULL) {
+        if (!print_pid(pid_file, &unlink_pid_file))
+            goto done;
+    }
+
     while (!aborted) {
         struct pollfd fds[] = {{.fd = abort_fd, .events = POLLIN}};
         int r __attribute__((unused)) = poll(fds, 1, -1);
@@ -267,6 +320,7 @@ main(int argc, char *const *argv)
     if (aborted)
         LOG_INFO("aborted: %s (%d)", strsignal(aborted), aborted);
 
+done:
     /* Signal abort to other threads */
     if (write(abort_fd, &(uint64_t){1}, sizeof(uint64_t)) != sizeof(uint64_t))
         LOG_ERRNO("failed to signal abort to threads");
@@ -278,5 +332,8 @@ main(int argc, char *const *argv)
 
     bar->destroy(bar);
     close(abort_fd);
+
+    if (unlink_pid_file)
+        unlink(pid_file);
     return res;
 }

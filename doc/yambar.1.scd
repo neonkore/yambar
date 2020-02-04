@@ -8,21 +8,26 @@ yambar - modular status panel for X11 and Wayland
 
 # OPTIONS
 
-*-b, --backend={xcb,wayland,auto}*
+*-b*,*--backend*={*xcb*,*wayland*,*auto*}
 	Backend to use. The default is *auto*. In this mode, yambar will
 	look for the environment variable _WAYLAND\_DISPLAY_, and if
 	available, use the *Wayland* backend. If not, the *XCB* backend is
 	used.
 
-*-c, --config=FILE*
+*-c*,*--config*=_FILE_
 	Use an alternative configuration file instead of the default one.
 
-*-C, --validate*
+*-C*,*--validate*
 	Verify the configuration and then quit. If no errors are detected,
 	nothing is printed and the exit code is 0. If there are errors,
 	these are printed on stdout and the exit code is non-zero.
 
-*-v, --version*
+*-p*,*--print-pid*=_FILE_|_FD_
+	Print PID to this file, or FD, when successfully started. The file
+	(or FD) is closed immediately after writing the PID. When a _FILE_
+	as been specified, the file is unlinked when yambar exits.
+
+*-v*,*--version*
 	Show the version number and quit
 
 # DESCRIPTION
