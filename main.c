@@ -157,7 +157,7 @@ print_pid(const char *pid_file, bool *unlink_at_exit)
         char pid[32];
         snprintf(pid, sizeof(pid), "%u\n", getpid());
 
-        ssize_t bytes __attribute((unused)) = write(pid_fd, pid, strlen(pid));
+        ssize_t bytes = write(pid_fd, pid, strlen(pid));
         close(pid_fd);
 
         if (bytes < 0) {
