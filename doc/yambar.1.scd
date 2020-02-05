@@ -27,6 +27,12 @@ yambar - modular status panel for X11 and Wayland
 	(or FD) is closed immediately after writing the PID. When a _FILE_
 	as been specified, the file is unlinked when yambar exits.
 
+*-l*,*--log-colorize*=[{*never*,*always*,*auto*}]
+	Enables or disables colorization of log output on stderr.
+
+*-s*,*--log-no-syslog*
+	Disables syslog logging. Logging is only done on stderr.
+
 *-v*,*--version*
 	Show the version number and quit
 

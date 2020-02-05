@@ -7,4 +7,6 @@ _arguments \
     '(-b --backend)'{-b,--backend}'[backend to use (default: auto)]:backend:(xcb wayland auto)' \
     '(-c --config)'{-c,--config}'[alternative configuration file]:filename:_files' \
     '(-C --validate)'{-C,--validate}'[verify configuration then quit]' \
-    '(-p --print-pid)'{-p,--print-pid}'[print PID to this file or FD when up and running]:pidfile:_files'
+    '(-p --print-pid)'{-p,--print-pid}'[print PID to this file or FD when up and running]:pidfile:_files' \
+    '(-l --log-colorize)'{-l,--log-colorize}'[enable or disable colorization of log output on stderr]:logcolor:(never always auto)' \
+    '(-s --log-no-syslog)'{-s,--log-no-syslog}'[disable syslog logging]'

@@ -1,6 +1,12 @@
 #pragma once
 
+#include <stdbool.h>
+
+enum log_colorize { LOG_COLORIZE_NEVER, LOG_COLORIZE_ALWAYS, LOG_COLORIZE_AUTO };
 enum log_class { LOG_CLASS_ERROR, LOG_CLASS_WARNING, LOG_CLASS_INFO, LOG_CLASS_DEBUG };
+
+void log_init(enum log_colorize colorize, bool do_syslog);
+void log_deinit(void);
 
 void log_msg(enum log_class log_class, const char *module,
                const char *file, int lineno,

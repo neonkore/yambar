@@ -127,11 +127,13 @@ print_usage(const char *prog_name)
     printf("Usage: %s [OPTION]...\n", prog_name);
     printf("\n");
     printf("Options:\n");
-    printf("  -b,--backend={xcb,wayland,auto}  backend to use (default: auto)\n"
-           "  -c,--config=FILE                 alternative configuration file\n"
-           "  -C,--validate                    verify configuration then quit\n"
-           "  -p,--print-pid=FILE|FD           print PID to file or FD\n"
-           "  -v,--version                     print f00sel version and quit\n");
+    printf("  -b,--backend={xcb,wayland,auto}       backend to use (default: auto)\n"
+           "  -c,--config=FILE                      alternative configuration file\n"
+           "  -C,--validate                         verify configuration then quit\n"
+           "  -p,--print-pid=FILE|FD                print PID to file or FD\n"
+           "  -l,--log-colorize=[never|always|auto] enable/disable colorization of log output on stderr\n"
+           "  -s,--log-no-syslog                    disable syslog logging\n"
+           "  -v,--version                          show the version number and quit\n");
 }
 
 static bool
@@ -181,6 +183,8 @@ main(int argc, char *const *argv)
         {"config",           required_argument, 0, 'c'},
         {"validate",         no_argument,       0, 'C'},
         {"print-pid",        required_argument, 0, 'p'},
+        {"log-colorize",     optional_argument, 0, 'l'},
+        {"log-no-syslog",    no_argument,       0, 's'},
         {"version",          no_argument,       0, 'v'},
         {"help",             no_argument,       0, 'h'},
         {NULL,               no_argument,       0, 0},
@@ -193,8 +197,11 @@ main(int argc, char *const *argv)
     char *config_path = NULL;
     enum bar_backend backend = BAR_BACKEND_AUTO;
 
+    enum log_colorize log_colorize = LOG_COLORIZE_AUTO;
+    bool log_syslog = true;
+
     while (true) {
-        int c = getopt_long(argc, argv, ":b:c:Cp:vh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":b:c:Cp:l::svh", longopts, NULL);
         if (c == -1)
             break;
 
@@ -205,7 +212,7 @@ main(int argc, char *const *argv)
             else if (strcmp(optarg, "wayland") == 0)
                 backend = BAR_BACKEND_WAYLAND;
             else {
-                LOG_ERR("%s: invalid backend", optarg);
+                fprintf(stderr, "%s: invalid backend\n", optarg);
                 return EXIT_FAILURE;
             }
             break;
@@ -213,10 +220,10 @@ main(int argc, char *const *argv)
         case 'c': {
             struct stat st;
             if (stat(optarg, &st) == -1) {
-                LOG_ERRNO("%s: invalid configuration file", optarg);
+                fprintf(stderr, "%s: invalid configuration file: %s\n", optarg, strerror(errno));
                 return EXIT_FAILURE;
             } else if (!S_ISREG(st.st_mode)) {
-                LOG_ERR("%s: invalid configuration file: not a regular file",
+                fprintf(stderr, "%s: invalid configuration file: not a regular file\n",
                         optarg);
                 return EXIT_FAILURE;
             }
@@ -231,6 +238,23 @@ main(int argc, char *const *argv)
 
         case 'p':
             pid_file = optarg;
+            break;
+
+        case 'l':
+            if (optarg == NULL || strcmp(optarg, "auto") == 0)
+                log_colorize = LOG_COLORIZE_AUTO;
+            else if (strcmp(optarg, "never") == 0)
+                log_colorize = LOG_COLORIZE_NEVER;
+            else if (strcmp(optarg, "always") == 0)
+                log_colorize = LOG_COLORIZE_ALWAYS;
+            else {
+                fprintf(stderr, "%s: argument must be one of 'never', 'always' or 'auto'\n", optarg);
+                return EXIT_FAILURE;
+            }
+            break;
+
+        case 's':
+            log_syslog = false;
             break;
 
         case 'v':
@@ -251,6 +275,8 @@ main(int argc, char *const *argv)
         }
     }
 
+    log_init(log_colorize, log_syslog);
+
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
@@ -266,6 +292,7 @@ main(int argc, char *const *argv)
     int abort_fd = eventfd(0, EFD_CLOEXEC);
     if (abort_fd == -1) {
         LOG_ERRNO("failed to create eventfd (for abort signalling)");
+        log_deinit();
         return 1;
     }
 
@@ -273,6 +300,7 @@ main(int argc, char *const *argv)
         config_path = get_config_path();
         if (config_path == NULL) {
             LOG_ERR("could not find a configuration (see man 5 yambar)");
+            log_deinit();
             return 1;
         }
     }
@@ -282,12 +310,14 @@ main(int argc, char *const *argv)
 
     if (bar == NULL) {
         close(abort_fd);
+        log_deinit();
         return 1;
     }
 
     if (verify_config) {
         bar->destroy(bar);
         close(abort_fd);
+        log_deinit();
         return 0;
     }
 
@@ -335,5 +365,6 @@ done:
 
     if (unlink_pid_file)
         unlink(pid_file);
+    log_deinit();
     return res;
 }
