@@ -672,7 +672,7 @@ setup(struct bar *_bar)
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         backend->layer_shell, backend->surface,
         backend->monitor != NULL ? backend->monitor->output : NULL,
-        ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "yambar");
+        ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "panel");
     if (backend->layer_surface == NULL) {
         LOG_ERR("failed to create layer shell surface");
         return false;
