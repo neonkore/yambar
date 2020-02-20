@@ -10,8 +10,37 @@ project('yambar', 'c',
 is_debug_build = get_option('buildtype').startswith('debug')
 plugs_as_libs = get_option('core-plugins-as-shared-libraries')
 
-# Common dependencies
 cc = meson.get_compiler('c')
+
+# Compute the relative path used by compiler invocations.
+source_root = meson.current_source_dir().split('/')
+build_root = meson.build_root().split('/')
+relative_dir_parts = []
+i = 0
+in_prefix = true
+foreach p : build_root
+  if i >= source_root.length() or not in_prefix or p != source_root[i]
+    in_prefix = false
+    relative_dir_parts += '..'
+  endif
+  i += 1
+endforeach
+i = 0
+in_prefix = true
+foreach p : source_root
+  if i >= build_root.length() or not in_prefix or build_root[i] != p
+    in_prefix = false
+    relative_dir_parts += p
+  endif
+  i += 1
+endforeach
+relative_dir = join_paths(relative_dir_parts) + '/'
+
+if cc.has_argument('-fmacro-prefix-map=/foo=')
+  add_project_arguments('-fmacro-prefix-map=@0@='.format(relative_dir), language: 'c')
+endif
+
+# Common dependencies
 dl = cc.find_library('dl')
 threads = dependency('threads')
 pixman = dependency('pixman-1')
