@@ -15,14 +15,27 @@ static bool colorize = false;
 static bool do_syslog = true;
 
 void
-log_init(enum log_colorize _colorize, bool _do_syslog)
+log_init(enum log_colorize _colorize, bool _do_syslog,
+         enum log_facility syslog_facility, enum log_class syslog_level)
 {
+    static const int facility_map[] = {
+        [LOG_FACILITY_USER] = LOG_USER,
+        [LOG_FACILITY_DAEMON] = LOG_DAEMON,
+    };
+
+    static const int level_map[] = {
+        [LOG_CLASS_ERROR] = LOG_ERR,
+        [LOG_CLASS_WARNING] = LOG_WARNING,
+        [LOG_CLASS_INFO] = LOG_INFO,
+        [LOG_CLASS_DEBUG] = LOG_DEBUG,
+    };
+
     colorize = _colorize == LOG_COLORIZE_NEVER ? false : _colorize == LOG_COLORIZE_ALWAYS ? true : isatty(STDERR_FILENO);
     do_syslog = _do_syslog;
 
     if (do_syslog) {
-        openlog(NULL, /*LOG_PID*/0, LOG_USER);
-        setlogmask(LOG_UPTO(LOG_WARNING));
+        openlog(NULL, /*LOG_PID*/0, facility_map[syslog_facility]);
+        setlogmask(LOG_UPTO(level_map[syslog_level]));
     }
 }
 
@@ -52,11 +65,7 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
 
     if (colorize)
         fprintf(stderr, "\e[2m");
-#if defined(_DEBUG)
     fprintf(stderr, "%s:%d: ", file, lineno);
-#else
-    fprintf(stderr, "%s: ", module);
-#endif
     if (colorize)
         fprintf(stderr, "\e[0m");
 
@@ -69,8 +78,10 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
 }
 
 static void
-_sys_log(enum log_class log_class, const char *module, const char *file,
-         int lineno, const char *fmt, int sys_errno, va_list va)
+_sys_log(enum log_class log_class, const char *module,
+         const char *file __attribute__((unused)),
+         int lineno __attribute__((unused)),
+         const char *fmt, int sys_errno, va_list va)
 {
     if (!do_syslog)
         return;
@@ -94,8 +105,7 @@ _sys_log(enum log_class log_class, const char *module, const char *file,
     /* Calculate required size of buffer holding the entire log message */
     int required_len = 0;
     required_len += strlen(module) + 2;  /* "%s: " */
-    required_len += vsnprintf(NULL, 0, fmt, va2);
-    va_end(va2);
+    required_len += vsnprintf(NULL, 0, fmt, va2); va_end(va2);
 
     if (sys_errno != 0)
         required_len += strlen(sys_err) + 2; /* ": %s" */
@@ -108,7 +118,7 @@ _sys_log(enum log_class log_class, const char *module, const char *file,
     idx += vsnprintf(&msg[idx], required_len + 1 - idx, fmt, va);
 
     if (sys_errno != 0) {
-        idx += snprintf(
+        snprintf(
             &msg[idx], required_len + 1 - idx, ": %s", strerror(sys_errno));
     }
 
