@@ -25,7 +25,7 @@ yambar - modular status panel for X11 and Wayland
 *-p*,*--print-pid*=_FILE_|_FD_
 	Print PID to this file, or FD, when successfully started. The file
 	(or FD) is closed immediately after writing the PID. When a _FILE_
-	as been specified, the file is unlinked when yambar exits.
+	as been specified, the file is unlinked exit.
 
 *-l*,*--log-colorize*=[{*never*,*always*,*auto*}]
 	Enables or disables colorization of log output on stderr.
