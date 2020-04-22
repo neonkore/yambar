@@ -64,10 +64,10 @@ conf_to_color(const struct yml_node *node)
     };
 }
 
-struct font *
+struct fcft_font *
 conf_to_font(const struct yml_node *node)
 {
-    return font_from_name(1, &(const char *){yml_value_as_string(node)}, NULL);
+    return fcft_from_name(1, &(const char *){yml_value_as_string(node)}, NULL);
 }
 
 struct deco *
@@ -113,7 +113,7 @@ particle_simple_list_from_config(const struct yml_node *node,
     }
 
     struct particle *common = particle_common_new(
-        0, 0, NULL, font_clone(inherited.font), inherited.foreground, NULL);
+        0, 0, NULL, fcft_clone(inherited.font), inherited.foreground, NULL);
 
     return particle_list_new(common, parts, count, 0, 2);
 }
@@ -153,8 +153,8 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
      * clone the font, since each particle takes ownership of its own
      * font.
      */
-    struct font *font = font_node != NULL
-        ? conf_to_font(font_node) : font_clone(inherited.font);
+    struct fcft_font *font = font_node != NULL
+        ? conf_to_font(font_node) : fcft_clone(inherited.font);
     pixman_color_t foreground = foreground_node != NULL
         ? conf_to_color(foreground_node) : inherited.foreground;
 
@@ -263,12 +263,12 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
      * and particles. This allows us to specify a default font and
      * foreground color at top-level.
      */
-    struct font *font = font_from_name(1, &(const char *){"sans"}, NULL);
+    struct fcft_font *font = fcft_from_name(1, &(const char *){"sans"}, NULL);
     pixman_color_t foreground = {0xffff, 0xffff, 0xffff, 0xffff}; /* White */
 
     const struct yml_node *font_node = yml_get_value(bar, "font");
     if (font_node != NULL) {
-        font_destroy(font);
+        fcft_destroy(font);
         font = conf_to_font(font_node);
     }
 
@@ -339,7 +339,7 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
     free(conf.left.mods);
     free(conf.center.mods);
     free(conf.right.mods);
-    font_destroy(font);
+    fcft_destroy(font);
 
     return ret;
 }

@@ -15,10 +15,10 @@ struct bar *conf_to_bar(const struct yml_node *bar, enum bar_backend backend);
  */
 
 pixman_color_t conf_to_color(const struct yml_node *node);
-struct font *conf_to_font(const struct yml_node *node);
+struct fcft_font *conf_to_font(const struct yml_node *node);
 
 struct conf_inherit {
-    const struct font *font;
+    const struct fcft_font *font;
     pixman_color_t foreground;
 };
 

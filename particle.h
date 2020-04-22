@@ -16,7 +16,7 @@ struct particle {
     char *on_click_template;
 
     pixman_color_t foreground;
-    struct font *font;
+    struct fcft_font *font;
     struct deco *deco;
 
     void (*destroy)(struct particle *particle);
@@ -47,7 +47,7 @@ struct exposable {
 
 struct particle *particle_common_new(
     int left_margin, int right_margin, const char *on_click_template,
-    struct font *font, pixman_color_t foreground, struct deco *deco);
+    struct fcft_font *font, pixman_color_t foreground, struct deco *deco);
 
 void particle_default_destroy(struct particle *particle);
 

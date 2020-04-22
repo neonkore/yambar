@@ -21,7 +21,7 @@ particle_default_destroy(struct particle *particle)
 {
     if (particle->deco != NULL)
         particle->deco->destroy(particle->deco);
-    font_destroy(particle->font);
+    fcft_destroy(particle->font);
     free(particle->on_click_template);
     free(particle);
 }
@@ -29,7 +29,7 @@ particle_default_destroy(struct particle *particle)
 struct particle *
 particle_common_new(int left_margin, int right_margin,
                     const char *on_click_template,
-                    struct font *font, pixman_color_t foreground,
+                    struct fcft_font *font, pixman_color_t foreground,
                     struct deco *deco)
 {
     struct particle *p = calloc(1, sizeof(*p));
