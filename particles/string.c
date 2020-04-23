@@ -75,7 +75,7 @@ begin_expose(struct exposable *exposable)
 
     /* Calculate the size we need to render the glyphs */
     for (int i = 0; i < e->num_glyphs; i++)
-        exposable->width += e->kern_x[i] + e->glyphs[i]->x_advance;
+        exposable->width += e->kern_x[i] + e->glyphs[i]->advance.x;
 
     return exposable->width;
 }
@@ -135,7 +135,7 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
             pixman_image_unref(src);
         }
 
-        x += glyph->x_advance;
+        x += glyph->advance.x;
     }
 }
 
