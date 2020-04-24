@@ -1,7 +1,7 @@
 project('yambar', 'c',
         version: '1.4.0',
         license: 'MIT',
-        meson_version: '>=0.48.0',
+        meson_version: '>=0.53.0',
         default_options: ['c_std=c11',
                           'warning_level=1',
                           'werror=true',
@@ -64,8 +64,8 @@ wlroots = dependency('wlroots', required: get_option('backend-wayland'))
 backend_wayland = wayland_client.found() and wayland_cursor.found() and wlroots.found()
 
 # "My" dependencies, fallback to subproject
-tllist = dependency('tllist', version: '>=1.0.0', fallback: ['tllist', 'tllist'])
-fcft = dependency('fcft', version: ['>=1.1.0', '<1.2.0'], fallback: ['fcft', 'fcft'])
+tllist = dependency('tllist', version: '>=1.0.1', fallback: 'tllist')
+fcft = dependency('fcft', version: ['>=2.0.0', '<2.1.0'], fallback: 'fcft')
 
 add_project_arguments(
   ['-D_GNU_SOURCE'] +

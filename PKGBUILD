@@ -5,7 +5,7 @@ pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
 arch=('x86_64')
 url=https://codeberg.org/dnkl/yambar
 license=(mit)
-makedepends=('meson' 'ninja' 'scdoc' 'tllist>=1.0.0')
+makedepends=('meson' 'ninja' 'scdoc' 'tllist>=1.0.1')
 depends=(
   'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
   'wayland' 'wlroots'
@@ -15,7 +15,7 @@ depends=(
   'libudev.so'
   'json-c'
   'libmpdclient'
-  'fcft>=1.1.0')
+  'fcft>=2.0.0')
 optdepends=('xcb-util-errors: better X error messages')
 source=()
 

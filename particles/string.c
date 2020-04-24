@@ -19,7 +19,7 @@ struct eprivate {
     /* Set when instantiating */
     char *text;
 
-    const struct glyph **glyphs;
+    const struct fcft_glyph **glyphs;
     long *kern_x;
     int num_glyphs;
 };
@@ -40,7 +40,7 @@ static int
 begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
-    struct font *font = exposable->particle->font;
+    struct fcft_font *font = exposable->particle->font;
 
     e->glyphs = NULL;
     e->num_glyphs = 0;
@@ -55,15 +55,18 @@ begin_expose(struct exposable *exposable)
 
         /* Convert text to glyph masks/images. */
         for (size_t i = 0; i < chars; i++) {
-            const struct glyph *glyph = font_glyph_for_wc(font, wtext[i], false);
+            const struct fcft_glyph *glyph = fcft_glyph_rasterize(
+                font, wtext[i], FCFT_SUBPIXEL_NONE);
+
             if (glyph == NULL)
                 continue;
+
             e->glyphs[e->num_glyphs++] = glyph;
 
             if (i == 0)
                 continue;
 
-            font_kerning(font, wtext[i - 1], wtext[i], &e->kern_x[i], NULL);
+            fcft_kerning(font, wtext[i - 1], wtext[i], &e->kern_x[i], NULL);
         }
     }
 
@@ -72,7 +75,7 @@ begin_expose(struct exposable *exposable)
 
     /* Calculate the size we need to render the glyphs */
     for (int i = 0; i < e->num_glyphs; i++)
-        exposable->width += e->kern_x[i] + e->glyphs[i]->x_advance;
+        exposable->width += e->kern_x[i] + e->glyphs[i]->advance.x;
 
     return exposable->width;
 }
@@ -83,7 +86,7 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
     exposable_render_deco(exposable, pix, x, y, height);
 
     const struct eprivate *e = exposable->private;
-    const struct font *font = exposable->particle->font;
+    const struct fcft_font *font = exposable->particle->font;
 
     if (e->num_glyphs == 0)
         return;
@@ -111,7 +114,7 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
 
     /* Loop glyphs and render them, one by one */
     for (int i = 0; i < e->num_glyphs; i++) {
-        const struct glyph *glyph = e->glyphs[i];
+        const struct fcft_glyph *glyph = e->glyphs[i];
         assert(glyph != NULL);
 
         x += e->kern_x[i];
@@ -132,7 +135,7 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
             pixman_image_unref(src);
         }
 
-        x += glyph->x_advance;
+        x += glyph->advance.x;
     }
 }
 
