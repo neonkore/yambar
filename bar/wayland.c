@@ -591,7 +591,7 @@ setup(struct bar *_bar)
 
     backend->display = wl_display_connect(NULL);
     if (backend->display == NULL) {
-        LOG_ERR("failed to connect to wayland; no compistor running?");
+        LOG_ERR("failed to connect to wayland; no compositor running?");
         return false;
     }
 
