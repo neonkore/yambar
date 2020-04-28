@@ -235,14 +235,16 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
 {
     struct wayland_backend *backend = data;
 
-    if (backend->pointer.pointer != NULL) {
-        wl_pointer_release(backend->pointer.pointer);
-        backend->pointer.pointer = NULL;
-    }
-
-    if ((caps & WL_SEAT_CAPABILITY_POINTER)) {
-        backend->pointer.pointer = wl_seat_get_pointer(wl_seat);
-        wl_pointer_add_listener(backend->pointer.pointer, &pointer_listener, backend);
+    if (caps & WL_SEAT_CAPABILITY_POINTER) {
+        if (backend->pointer.pointer == NULL) {
+            backend->pointer.pointer = wl_seat_get_pointer(wl_seat);
+            wl_pointer_add_listener(backend->pointer.pointer, &pointer_listener, backend);
+        }
+    } else {
+        if (backend->pointer.pointer != NULL) {
+            wl_pointer_release(backend->pointer.pointer);
+            backend->pointer.pointer = NULL;
+        }
     }
 }
 
