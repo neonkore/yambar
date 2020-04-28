@@ -247,13 +247,19 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     mtx_lock(&mod->lock);
 
     if (is_init) {
-        assert(workspace_lookup(m, current_name) == NULL);
+        struct workspace *already_exists = workspace_lookup(m, current_name);
+        if (already_exists != NULL) {
+            LOG_WARN("workspace 'init' event for already existing workspace: %s", current_name);
+            workspace_free(*already_exists);
+            if (!workspace_from_json(current, already_exists))
+                goto err;
+        } else {
+            struct workspace ws;
+            if (!workspace_from_json(current, &ws))
+                goto err;
 
-        struct workspace ws;
-        if (!workspace_from_json(current, &ws))
-            goto err;
-
-        workspace_add(m, ws);
+            workspace_add(m, ws);
+        }
     }
 
     else if (is_empty) {
