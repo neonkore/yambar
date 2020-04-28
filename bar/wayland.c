@@ -461,8 +461,30 @@ layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *surface,
     zwlr_layer_surface_v1_ack_configure(surface, serial);
 }
 
+static void
+layer_surface_closed(void *data, struct zwlr_layer_surface_v1 *surface)
+{
+    struct wayland_backend *backend = data;
+
+    /*
+     * Called e.g. when an output is disabled. We don't get a
+     * corresponding event if/when that same output re-appears. So,
+     * for now, we simply shut down. In the future, we _could_ maybe
+     * destroy the surface, listen for output events and re-create the
+     * surface if the same output re-appears.
+     */
+    LOG_WARN("compositor requested surface be closed - shutting down");
+
+    if (write(backend->bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t))
+        != sizeof(uint64_t))
+    {
+        LOG_ERRNO("failed to signal abort to modules");
+    }
+}
+
 static const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
-    .configure = layer_surface_configure,
+    .configure = &layer_surface_configure,
+    .closed = &layer_surface_closed,
 };
 
 static void
