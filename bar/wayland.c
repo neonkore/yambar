@@ -356,7 +356,9 @@ static void
 handle_global(void *data, struct wl_registry *registry,
               uint32_t name, const char *interface, uint32_t version)
 {
+    LOG_DBG("global: 0x%08x, interface=%s, version=%u", name, interface, version);
     struct wayland_backend *backend = data;
+
     if (strcmp(interface, wl_compositor_interface.name) == 0) {
         const uint32_t required = 4;
         if (!verify_iface_version(interface, version, required))
@@ -440,7 +442,7 @@ handle_global(void *data, struct wl_registry *registry,
 static void
 handle_global_remove(void *data, struct wl_registry *registry, uint32_t name)
 {
-    LOG_WARN("global removed: %u", name);
+    LOG_WARN("global removed: 0x%08x", name);
 }
 
 static const struct wl_registry_listener registry_listener = {
