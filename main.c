@@ -176,8 +176,6 @@ print_pid(const char *pid_file, bool *unlink_at_exit)
 int
 main(int argc, char *const *argv)
 {
-    setlocale(LC_ALL, "");
-
     static const struct option longopts[] = {
         {"backend",          required_argument, 0, 'b'},
         {"config",           required_argument, 0, 'c'},
@@ -320,6 +318,8 @@ main(int argc, char *const *argv)
         log_deinit();
         return 0;
     }
+
+    setlocale(LC_ALL, "");
 
     bar->abort_fd = abort_fd;
 
