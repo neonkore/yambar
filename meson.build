@@ -140,9 +140,12 @@ install_headers(
   'yml.h',
   subdir: 'yambar')
 
-message('')
-message('Build type:              @0@'.format(get_option('buildtype')))
-message('XCB backend:             @0@'.format(backend_x11))
-message('Wayland backend:         @0@'.format(backend_wayland))
-message('Core modules as plugins: @0@'.format(plugs_as_libs))
-message('')
+summary(
+  {
+    'Build type': get_option('buildtype'),
+    'XCB backend': backend_x11,
+    'Wayland backend': backend_wayland,
+    'Core modules as plugins': plugs_as_libs,
+  },
+  bool_yn: true
+)
