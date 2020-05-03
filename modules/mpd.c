@@ -559,7 +559,7 @@ refresh_in(struct module *mod, long milli_seconds)
     /* Create thread */
     int r = thrd_create(&m->refresh_thread_id, &refresh_in_thread, ctx);
 
-    if (r != 0) {
+    if (r != thrd_success) {
         LOG_ERR("failed to create refresh thread");
         close(m->refresh_abort_fd);
         m->refresh_abort_fd = -1;
