@@ -63,13 +63,13 @@ content(struct module *mod)
            m->state == STATE_CHARGING ||
            m->state == STATE_DISCHARGING);
 
-    unsigned long energy = m->state == STATE_CHARGING
-        ? m->energy_full - m->energy : m->energy;
-
     unsigned long hours;
     unsigned long minutes;
 
     if (m->time_to_empty < 0) {
+        unsigned long energy = m->state == STATE_CHARGING
+            ? m->energy_full - m->energy : m->energy;
+
         double hours_as_float;
         if (m->state == STATE_FULL)
             hours_as_float = 0.0;
