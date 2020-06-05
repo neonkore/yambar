@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <poll.h>
 
@@ -159,23 +160,25 @@ initialize(struct private *m)
     {
         int fd = openat(base_dir_fd, "manufacturer", O_RDONLY);
         if (fd == -1) {
-            LOG_ERRNO("/sys/class/power_supply/%s/manufacturer", m->battery);
-            goto err;
+            LOG_WARN("/sys/class/power_supply/%s/manufacturer: %s",
+                     m->battery, strerror(errno));
+            m->manufacturer = NULL;
+        } else {
+            m->manufacturer = strdup(readline_from_fd(fd));
+            close(fd);
         }
-
-        m->manufacturer = strdup(readline_from_fd(fd));
-        close(fd);
     }
 
     {
         int fd = openat(base_dir_fd, "model_name", O_RDONLY);
         if (fd == -1) {
-            LOG_ERRNO("/sys/class/power_supply/%s/model_name", m->battery);
-            goto err;
+            LOG_WARN("/sys/class/power_supply/%s/model_name: %s",
+                     m->battery, strerror(errno));
+            m->model = NULL;
+        } else {
+            m->model = strdup(readline_from_fd(fd));
+            close(fd);
         }
-
-        m->model = strdup(readline_from_fd(fd));
-        close(fd);
     }
 
     {
