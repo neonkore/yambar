@@ -30,6 +30,8 @@ struct private {
     char *model;
     long energy_full_design;
     long energy_full;
+    long charge_full_design;
+    long charge_full;
 
     enum state state;
     long capacity;
@@ -190,26 +192,60 @@ initialize(struct private *m)
         }
     }
 
+    if (faccessat(base_dir_fd, "energy_full_design", O_RDONLY, 0) == 0 &&
+        faccessat(base_dir_fd, "energy_full", O_RDONLY, 0) == 0)
     {
-        int fd = openat(base_dir_fd, "energy_full_design", O_RDONLY);
-        if (fd == -1) {
-            LOG_ERRNO("/sys/class/power_supply/%s/energy_full_design", m->battery);
-            goto err;
+        {
+            int fd = openat(base_dir_fd, "energy_full_design", O_RDONLY);
+            if (fd == -1) {
+                LOG_ERRNO("/sys/class/power_supply/%s/energy_full_design", m->battery);
+                goto err;
+            }
+
+            m->energy_full_design = readint_from_fd(fd);
+            close(fd);
         }
 
-        m->energy_full_design = readint_from_fd(fd);
-        close(fd);
+        {
+            int fd = openat(base_dir_fd, "energy_full", O_RDONLY);
+            if (fd == -1) {
+                LOG_ERRNO("/sys/class/power_supply/%s/energy_full", m->battery);
+                goto err;
+            }
+
+            m->energy_full = readint_from_fd(fd);
+            close(fd);
+        }
+    } else {
+        m->energy_full = m->energy_full_design = -1;
     }
 
+    if (faccessat(base_dir_fd, "charge_full_design", O_RDONLY, 0) == 0 &&
+        faccessat(base_dir_fd, "charge_full", O_RDONLY, 0) == 0)
     {
-        int fd = openat(base_dir_fd, "energy_full", O_RDONLY);
-        if (fd == -1) {
-            LOG_ERRNO("/sys/class/power_supply/%s/energy_full", m->battery);
-            goto err;
+        {
+            int fd = openat(base_dir_fd, "charge_full_design", O_RDONLY);
+            if (fd == -1) {
+                LOG_ERRNO("/sys/class/power_supply/%s/charge_full_design", m->battery);
+                goto err;
+            }
+
+            m->charge_full_design = readint_from_fd(fd);
+            close(fd);
         }
 
-        m->energy_full = readint_from_fd(fd);
-        close(fd);
+        {
+            int fd = openat(base_dir_fd, "charge_full", O_RDONLY);
+            if (fd == -1) {
+                LOG_ERRNO("/sys/class/power_supply/%s/charge_full", m->battery);
+                goto err;
+            }
+
+            m->charge_full = readint_from_fd(fd);
+            close(fd);
+        }
+    } else {
+        m->charge_full = m->charge_full_design = -1;
     }
 
     return base_dir_fd;
@@ -246,7 +282,8 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
         state = STATE_DISCHARGING;
     }
 
-    LOG_DBG("capacity: %ld, energy: %ld, power: %ld", capacity, energy, power);
+    LOG_DBG("capacity: %ld, energy: %ld, power: %ld, time-to-empty: %ld",
+            capacity, energy, power, time_to_empty);
 
     mtx_lock(&mod->lock);
     m->state = state;
@@ -269,7 +306,11 @@ run(struct module *mod)
 
     LOG_INFO("%s: %s %s (at %.1f%% of original capacity)",
              m->battery, m->manufacturer, m->model,
-             100.0 * m->energy_full / m->energy_full_design);
+             (m->energy_full > 0
+              ? 100.0 * m->energy_full / m->energy_full_design
+              : m->charge_full > 0
+              ? 100.0 * m->charge_full / m->charge_full_design
+              : 0.0));
 
     int ret = 1;
     int status_fd = openat(base_dir_fd, "status", O_RDONLY);
@@ -281,20 +322,14 @@ run(struct module *mod)
     struct udev *udev = udev_new();
     struct udev_monitor *mon = udev_monitor_new_from_netlink(udev, "udev");
 
-#if 0
-    if (status_fd == -1 || capacity_fd == -1 || energy_fd == -1 ||
-        power_fd == -1 || udev == NULL || mon == NULL)
-    {
-        goto out;
-    }
-#endif
     if (status_fd < 0 || capacity_fd < 0 || udev == NULL || mon == NULL)
         goto out;
 
     udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
     udev_monitor_enable_receiving(mon);
 
-    update_status(mod, capacity_fd, energy_fd, power_fd, status_fd, time_to_empty_fd);
+    update_status(mod, capacity_fd, energy_fd, power_fd, status_fd,
+                  time_to_empty_fd);
     bar->refresh(bar);
 
     while (true) {
@@ -320,7 +355,8 @@ run(struct module *mod)
                 continue;
         }
 
-        update_status(mod, capacity_fd, energy_fd, power_fd, status_fd, time_to_empty_fd);
+        update_status(mod, capacity_fd, energy_fd, power_fd, status_fd,
+                      time_to_empty_fd);
         bar->refresh(bar);
     }
 
@@ -338,6 +374,8 @@ out:
         close(capacity_fd);
     if (status_fd != -1)
         close(status_fd);
+    if (time_to_empty_fd != -1)
+        close(time_to_empty_fd);
 
     close(base_dir_fd);
     return ret;
