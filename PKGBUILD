@@ -2,7 +2,7 @@ pkgname=yambar
 pkgver=1.4.0
 pkgrel=1
 pkgdesc="Simplistic and highly configurable status panel for X and Wayland"
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 url=https://codeberg.org/dnkl/yambar
 license=(mit)
 makedepends=('meson' 'ninja' 'scdoc' 'tllist>=1.0.1')
