@@ -292,6 +292,15 @@ add_device(struct module *mod, struct udev_device *dev)
 {
     struct private *m = mod->private;
 
+    const char *_removable = udev_device_get_sysattr_value(dev, "removable");
+    bool removable = _removable != NULL && strcmp(_removable, "1") == 0;
+
+    const char *_sd = udev_device_get_property_value(dev, "ID_DRIVE_FLASH_SD");
+    bool sd = _sd != NULL && strcmp(_sd, "1") == 0;
+
+    if (!removable && !sd)
+        return NULL;
+
     const char *_size = udev_device_get_sysattr_value(dev, "size");
     uint64_t size = 0;
     if (_size != NULL)
@@ -385,7 +394,7 @@ change_device(struct module *mod, struct udev_device *dev)
                              it->item.dev_path, media ? "inserted" : "removed");
 
                     if (media)
-                        return add_partition(mod, &it->item, dev);
+                        return add_partition(mod, &it->item, dev) != NULL;
                     else
                         return del_partition(mod, &it->item, dev);
                 }
@@ -416,7 +425,7 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
 
     if (strcmp(devtype, "disk") == 0) {
         if (add)
-            return add_device(mod, dev);
+            return add_device(mod, dev) != NULL;
         else if (del)
             return del_device(mod, dev);
         else
@@ -432,7 +441,7 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
                 continue;
 
             if (add)
-                return add_partition(mod, &it->item, dev);
+                return add_partition(mod, &it->item, dev) != NULL;
             else if (del)
                 return del_partition(mod, &it->item, dev);
             else {
@@ -474,16 +483,11 @@ run(struct module *mod)
         struct udev_device *dev = udev_device_new_from_syspath(
             udev, udev_list_entry_get_name(entry));
 
-        const char *_removable = udev_device_get_sysattr_value(dev, "removable");
-        bool removable = _removable != NULL && strcmp(_removable, "1") == 0;
-
-        const char *_sd = udev_device_get_property_value(dev, "ID_DRIVE_FLASH_SD");
-        bool sd = _sd != NULL && strcmp(_sd, "1") == 0;
-
-        if (!removable && !sd)
-            continue;
-
         struct block_device *block = add_device(mod, dev);
+        if (block == NULL) {
+            udev_device_unref(dev);
+            continue;
+        }
 
         struct udev_enumerate *part_enum = udev_enumerate_new(udev);
         assert(dev_enum != NULL);
