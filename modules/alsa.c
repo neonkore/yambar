@@ -117,6 +117,7 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
         if (r < 0) {
             LOG_WARN("%s,%s: %s: failed to get muted state",
                      m->card, m->mixer, snd_mixer_selem_channel_name(it->item));
+            unmuted[idx] = 1;
         }
 
         LOG_DBG("%s,%s: %s: muted: %d", m->card, m->mixer,
