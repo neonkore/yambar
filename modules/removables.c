@@ -310,8 +310,8 @@ add_device(struct module *mod, struct udev_device *dev)
     const char *_optical = udev_device_get_property_value(dev, "ID_CDROM");
     bool optical = _optical != NULL && strcmp(_optical, "1") == 0;
 
-    const char *_media = udev_device_get_property_value(dev, "ID_FS_USAGE");
-    bool media = _media != NULL && strcmp(_media, "filesystem") == 0;
+    const char *_fs_usage = udev_device_get_property_value(dev, "ID_FS_USAGE");
+    bool media = _fs_usage != NULL && strcmp(_fs_usage, "filesystem") == 0;
 
     LOG_DBG("device: add: %s: vendor=%s, model=%s, optical=%d, size=%"PRIu64,
             udev_device_get_devnode(dev), vendor, model, optical, size);
@@ -464,7 +464,7 @@ run(struct module *mod)
     udev_enumerate_add_match_subsystem(dev_enum, "block");
 
     /* TODO: verify how an optical presents itself */
-    udev_enumerate_add_match_sysattr(dev_enum, "removable", "1");
+    //udev_enumerate_add_match_sysattr(dev_enum, "removable", "1");
     udev_enumerate_add_match_property(dev_enum, "DEVTYPE", "disk");
     udev_enumerate_scan_devices(dev_enum);
 
@@ -473,6 +473,15 @@ run(struct module *mod)
     udev_list_entry_foreach(entry, udev_enumerate_get_list_entry(dev_enum)) {
         struct udev_device *dev = udev_device_new_from_syspath(
             udev, udev_list_entry_get_name(entry));
+
+        const char *_removable = udev_device_get_sysattr_value(dev, "removable");
+        bool removable = _removable != NULL && strcmp(_removable, "1") == 0;
+
+        const char *_sd = udev_device_get_property_value(dev, "ID_DRIVE_FLASH_SD");
+        bool sd = _sd != NULL && strcmp(_sd, "1") == 0;
+
+        if (!removable && !sd)
+            continue;
 
         struct block_device *block = add_device(mod, dev);
 
