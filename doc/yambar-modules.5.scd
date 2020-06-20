@@ -258,7 +258,7 @@ uses *udev* to monitor for changes.
 |  poll-interval
 :  int
 :  no
-:  How often, in seconds, to poll for capacity changes (default=*60*)
+:  How often, in seconds, to poll for capacity changes (default=*60*). Set to `0` to disable polling (*warning*: many batteries do not support asynchronous reporting).
 
 ## EXAMPLES
 
