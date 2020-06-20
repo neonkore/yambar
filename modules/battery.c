@@ -337,7 +337,7 @@ run(struct module *mod)
             {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
         };
-        poll(fds, 2, m->poll_interval * 1000);
+        poll(fds, 2, m->poll_interval > 0 ? m->poll_interval * 1000 : -1);
 
         if (fds[0].revents & POLLIN) {
             ret = 0;
