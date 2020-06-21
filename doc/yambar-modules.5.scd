@@ -612,6 +612,10 @@ instantiates the provided _content_ particle for each detected drive.
 :  int
 :  no
 :  Short-hand for setting both _left-spacing_ and _right-spacing_
+|  ignore
+:  list of strings
+:  no
+:  List of device paths that should be ignored (e.g. /dev/mmcblk0, or /dev/mmcblk0p1)
 
 ## EXAMPLES
 
