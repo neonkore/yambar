@@ -56,6 +56,7 @@ struct private {
     int left_spacing;
     int right_spacing;
 
+    tll(char *) ignore;
     tll(struct block_device) devices;
 };
 
@@ -90,6 +91,7 @@ destroy(struct module *mod)
     tll_foreach(m->devices, it)
         free_device(&it->item);
     tll_free(m->devices);
+    tll_free_and_free(m->ignore, free);
 
     free(m);
     module_default_destroy(mod);
@@ -227,6 +229,7 @@ static struct partition *
 add_partition(struct module *mod, struct block_device *block,
               struct udev_device *dev)
 {
+    struct private *m = mod->private;
     const char *_size = udev_device_get_sysattr_value(dev, "size");
     uint64_t size = 0;
     if (_size != NULL)
@@ -238,6 +241,16 @@ add_partition(struct module *mod, struct block_device *block,
         LOG_DBG("%s -> %s", udev_list_entry_get_name(e), udev_list_entry_get_value(e));
     }
 #endif
+
+    const char *devname = udev_device_get_property_value(dev, "DEVNAME");
+    if (devname != NULL) {
+        tll_foreach(m->ignore, it) {
+            if (strcmp(it->item, devname) == 0) {
+                LOG_DBG("ignoring %s because it is on the ignore list", devname);
+                return NULL;
+            }
+        }
+    }
 
     const char *label = udev_device_get_property_value(dev, "ID_FS_LABEL");
     if (label == NULL)
@@ -292,6 +305,25 @@ add_device(struct module *mod, struct udev_device *dev)
 {
     struct private *m = mod->private;
 
+    const char *_removable = udev_device_get_sysattr_value(dev, "removable");
+    bool removable = _removable != NULL && strcmp(_removable, "1") == 0;
+
+    const char *_sd = udev_device_get_property_value(dev, "ID_DRIVE_FLASH_SD");
+    bool sd = _sd != NULL && strcmp(_sd, "1") == 0;
+
+    if (!removable && !sd)
+        return NULL;
+
+    const char *devname = udev_device_get_property_value(dev, "DEVNAME");
+    if (devname != NULL) {
+        tll_foreach(m->ignore, it) {
+            if (strcmp(it->item, devname) == 0) {
+                LOG_DBG("ignoring %s because it is on the ignore list", devname);
+                return NULL;
+            }
+        }
+    }
+
     const char *_size = udev_device_get_sysattr_value(dev, "size");
     uint64_t size = 0;
     if (_size != NULL)
@@ -310,8 +342,8 @@ add_device(struct module *mod, struct udev_device *dev)
     const char *_optical = udev_device_get_property_value(dev, "ID_CDROM");
     bool optical = _optical != NULL && strcmp(_optical, "1") == 0;
 
-    const char *_media = udev_device_get_property_value(dev, "ID_FS_USAGE");
-    bool media = _media != NULL && strcmp(_media, "filesystem") == 0;
+    const char *_fs_usage = udev_device_get_property_value(dev, "ID_FS_USAGE");
+    bool media = _fs_usage != NULL && strcmp(_fs_usage, "filesystem") == 0;
 
     LOG_DBG("device: add: %s: vendor=%s, model=%s, optical=%d, size=%"PRIu64,
             udev_device_get_devnode(dev), vendor, model, optical, size);
@@ -385,7 +417,7 @@ change_device(struct module *mod, struct udev_device *dev)
                              it->item.dev_path, media ? "inserted" : "removed");
 
                     if (media)
-                        return add_partition(mod, &it->item, dev);
+                        return add_partition(mod, &it->item, dev) != NULL;
                     else
                         return del_partition(mod, &it->item, dev);
                 }
@@ -416,7 +448,7 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
 
     if (strcmp(devtype, "disk") == 0) {
         if (add)
-            return add_device(mod, dev);
+            return add_device(mod, dev) != NULL;
         else if (del)
             return del_device(mod, dev);
         else
@@ -432,7 +464,7 @@ handle_udev_event(struct module *mod, struct udev_device *dev)
                 continue;
 
             if (add)
-                return add_partition(mod, &it->item, dev);
+                return add_partition(mod, &it->item, dev) != NULL;
             else if (del)
                 return del_partition(mod, &it->item, dev);
             else {
@@ -464,7 +496,7 @@ run(struct module *mod)
     udev_enumerate_add_match_subsystem(dev_enum, "block");
 
     /* TODO: verify how an optical presents itself */
-    udev_enumerate_add_match_sysattr(dev_enum, "removable", "1");
+    //udev_enumerate_add_match_sysattr(dev_enum, "removable", "1");
     udev_enumerate_add_match_property(dev_enum, "DEVTYPE", "disk");
     udev_enumerate_scan_devices(dev_enum);
 
@@ -475,6 +507,10 @@ run(struct module *mod)
             udev, udev_list_entry_get_name(entry));
 
         struct block_device *block = add_device(mod, dev);
+        if (block == NULL) {
+            udev_device_unref(dev);
+            continue;
+        }
 
         struct udev_enumerate *part_enum = udev_enumerate_new(udev);
         assert(dev_enum != NULL);
@@ -544,12 +580,16 @@ run(struct module *mod)
 }
 
 static struct module *
-removables_new(struct particle *label, int left_spacing, int right_spacing)
+removables_new(struct particle *label, int left_spacing, int right_spacing,
+               size_t ignore_count, const char *ignore[static ignore_count])
 {
     struct private *priv = calloc(1, sizeof(*priv));
     priv->label = label;
     priv->left_spacing = left_spacing;
     priv->right_spacing = right_spacing;
+
+    for (size_t i = 0; i < ignore_count; i++)
+        tll_push_back(priv->ignore, strdup(ignore[i]));
 
     struct module *mod = module_common_new();
     mod->private = priv;
@@ -566,13 +606,34 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *spacing = yml_get_value(node, "spacing");
     const struct yml_node *left_spacing = yml_get_value(node, "left-spacing");
     const struct yml_node *right_spacing = yml_get_value(node, "right-spacing");
+    const struct yml_node *ignore_list = yml_get_value(node, "ignore");
 
     int left = spacing != NULL ? yml_value_as_int(spacing) :
         left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
     int right = spacing != NULL ? yml_value_as_int(spacing) :
         right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
 
-    return removables_new(conf_to_particle(content, inherited), left, right);
+    size_t ignore_count = ignore_list != NULL ? yml_list_length(ignore_list) : 0;
+    const char *ignore[ignore_count];
+
+    if (ignore_list != NULL) {
+        size_t i = 0;
+        for (struct yml_list_iter iter = yml_list_iter(ignore_list);
+             iter.node != NULL;
+             yml_list_next(&iter), i++)
+        {
+            ignore[i] = yml_value_as_string(iter.node);
+        }
+    }
+
+    return removables_new(
+        conf_to_particle(content, inherited), left, right, ignore_count, ignore);
+}
+
+static bool
+verify_ignore(keychain_t *chain, const struct yml_node *node)
+{
+    return conf_verify_list(chain, node, &conf_verify_string);
 }
 
 static bool
@@ -582,6 +643,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
         {"spacing", false, &conf_verify_int},
         {"left-spacing", false, &conf_verify_int},
         {"right-spacing", false, &conf_verify_int},
+        {"ignore", false, &verify_ignore},
         MODULE_COMMON_ATTRS,
     };
 

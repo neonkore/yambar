@@ -51,6 +51,26 @@ conf_verify_int(keychain_t *chain, const struct yml_node *node)
 }
 
 bool
+conf_verify_list(keychain_t *chain, const struct yml_node *node,
+                 bool (*verify)(keychain_t *chain, const struct yml_node *node))
+{
+    if (!yml_is_list(node)) {
+        LOG_ERR("%s: value is not a list", conf_err_prefix(chain, node));
+        return false;
+    }
+
+    for (struct yml_list_iter iter = yml_list_iter(node);
+         iter.node != NULL;
+         yml_list_next(&iter))
+    {
+        if (!verify(chain, iter.node))
+            return false;
+    }
+
+    return true;
+}
+
+bool
 conf_verify_enum(keychain_t *chain, const struct yml_node *node,
                  const char *values[], size_t count)
 {
