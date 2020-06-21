@@ -13,6 +13,7 @@
 #include <libudev.h>
 
 #define LOG_MODULE "battery"
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar/bar.h"
 #include "../config.h"
@@ -37,6 +38,8 @@ struct private {
     long capacity;
     long energy;
     long power;
+    long charge;
+    long current;
     long time_to_empty;
 };
 
@@ -68,7 +71,10 @@ content(struct module *mod)
     unsigned long hours;
     unsigned long minutes;
 
-    if (m->time_to_empty < 0) {
+    if (m->time_to_empty >= 0) {
+        hours = m->time_to_empty / 60;
+        minutes = m->time_to_empty % 60;
+    } else if  (m->energy_full >= 0 && m->charge && m->power >= 0) {
         unsigned long energy = m->state == STATE_CHARGING
             ? m->energy_full - m->energy : m->energy;
 
@@ -82,9 +88,23 @@ content(struct module *mod)
 
         hours = hours_as_float;
         minutes = (hours_as_float - (double)hours) * 60;
+    } else if (m->charge_full >= 0 && m->charge >= 0 && m->current >= 0) {
+        unsigned long charge = m->state == STATE_CHARGING
+            ? m->charge_full - m->charge : m->charge;
+
+        double hours_as_float;
+        if (m->state == STATE_FULL)
+            hours_as_float = 0.0;
+        else if (m->current > 0)
+            hours_as_float = (double)charge / m->current;
+        else
+            hours_as_float = 99.0;
+
+        hours = hours_as_float;
+        minutes = (hours_as_float - (double)hours) * 60;
     } else {
-        hours = m->time_to_empty / 60;
-        minutes = m->time_to_empty % 60;
+        hours = 99;
+        minutes = 0;
     }
 
     char estimate[64];
@@ -257,13 +277,15 @@ err:
 
 static void
 update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
-              int status_fd, int time_to_empty_fd)
+              int charge_fd, int current_fd, int status_fd, int time_to_empty_fd)
 {
     struct private *m = mod->private;
 
     long capacity = readint_from_fd(capacity_fd);
     long energy = energy_fd >= 0 ? readint_from_fd(energy_fd) : -1;
     long power = power_fd >= 0 ? readint_from_fd(power_fd) : -1;
+    long charge = charge_fd >= 0 ? readint_from_fd(charge_fd) : -1;
+    long current = current_fd >= 0 ? readint_from_fd(current_fd) : -1;
     long time_to_empty = time_to_empty_fd >= 0 ? readint_from_fd(time_to_empty_fd) : -1;
 
     const char *status = readline_from_fd(status_fd);
@@ -282,14 +304,17 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
         state = STATE_DISCHARGING;
     }
 
-    LOG_DBG("capacity: %ld, energy: %ld, power: %ld, time-to-empty: %ld",
-            capacity, energy, power, time_to_empty);
+    LOG_DBG("capacity: %ld, energy: %ld, power: %ld, charge=%ld, current=%ld, "
+            "time-to-empty: %ld", capacity, energy, power, charge, current,
+            time_to_empty);
 
     mtx_lock(&mod->lock);
     m->state = state;
     m->capacity = capacity;
     m->energy = energy;
     m->power = power;
+    m->charge = charge;
+    m->current = current;
     m->time_to_empty = time_to_empty;
     mtx_unlock(&mod->lock);
 }
@@ -317,6 +342,8 @@ run(struct module *mod)
     int capacity_fd = openat(base_dir_fd, "capacity", O_RDONLY);
     int energy_fd = openat(base_dir_fd, "energy_now", O_RDONLY);
     int power_fd = openat(base_dir_fd, "power_now", O_RDONLY);
+    int charge_fd = openat(base_dir_fd, "charge_now", O_RDONLY);
+    int current_fd = openat(base_dir_fd, "current_now", O_RDONLY);
     int time_to_empty_fd = openat(base_dir_fd, "time_to_empty_now", O_RDONLY);
 
     struct udev *udev = udev_new();
@@ -328,8 +355,9 @@ run(struct module *mod)
     udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
     udev_monitor_enable_receiving(mon);
 
-    update_status(mod, capacity_fd, energy_fd, power_fd, status_fd,
-                  time_to_empty_fd);
+    update_status(
+        mod, capacity_fd, energy_fd, power_fd,
+        charge_fd, current_fd, status_fd, time_to_empty_fd);
     bar->refresh(bar);
 
     while (true) {
@@ -355,8 +383,9 @@ run(struct module *mod)
                 continue;
         }
 
-        update_status(mod, capacity_fd, energy_fd, power_fd, status_fd,
-                      time_to_empty_fd);
+        update_status(
+            mod, capacity_fd, energy_fd, power_fd,
+            charge_fd, current_fd, status_fd, time_to_empty_fd);
         bar->refresh(bar);
     }
 
