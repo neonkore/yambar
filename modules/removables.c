@@ -229,6 +229,7 @@ static struct partition *
 add_partition(struct module *mod, struct block_device *block,
               struct udev_device *dev)
 {
+    struct private *m = mod->private;
     const char *_size = udev_device_get_sysattr_value(dev, "size");
     uint64_t size = 0;
     if (_size != NULL)
@@ -240,6 +241,16 @@ add_partition(struct module *mod, struct block_device *block,
         LOG_DBG("%s -> %s", udev_list_entry_get_name(e), udev_list_entry_get_value(e));
     }
 #endif
+
+    const char *devname = udev_device_get_property_value(dev, "DEVNAME");
+    if (devname != NULL) {
+        tll_foreach(m->ignore, it) {
+            if (strcmp(it->item, devname) == 0) {
+                LOG_DBG("ignoring %s because it is on the ignore list", devname);
+                return NULL;
+            }
+        }
+    }
 
     const char *label = udev_device_get_property_value(dev, "ID_FS_LABEL");
     if (label == NULL)
