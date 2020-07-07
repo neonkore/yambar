@@ -58,6 +58,7 @@ struct seat {
     struct wayland_backend *backend;
     struct wl_seat *seat;
     char *name;
+    uint32_t id;
 
     struct {
         struct wl_pointer *pointer;
@@ -109,6 +110,22 @@ struct wayland_backend {
     void (*bar_expose)(const struct bar *bar);
     void (*bar_on_mouse)(struct bar *bar, enum mouse_event event, int x, int y);
 };
+
+static void
+seat_destroy(struct seat *seat)
+{
+    if (seat == NULL)
+        return;
+
+    if (seat->pointer.theme != NULL)
+        wl_cursor_theme_destroy(seat->pointer.theme);
+    if (seat->pointer.pointer != NULL)
+        wl_pointer_destroy(seat->pointer.pointer);
+    if (seat->pointer.surface != NULL)
+        wl_surface_destroy(seat->pointer.surface);
+    if (seat->seat != NULL)
+        wl_seat_destroy(seat->seat);
+}
 
 void *
 bar_backend_wayland_new(void)
@@ -524,7 +541,7 @@ handle_global(void *data, struct wl_registry *registry,
         assert(seat != NULL);
 
         tll_push_back(
-            backend->seats, ((struct seat){.backend = backend, .seat = seat}));
+            backend->seats, ((struct seat){.backend = backend, .seat = seat, .id = name}));
 
         wl_seat_add_listener(seat, &seat_listener, &tll_back(backend->seats));
     }
@@ -542,7 +559,19 @@ handle_global(void *data, struct wl_registry *registry,
 static void
 handle_global_remove(void *data, struct wl_registry *registry, uint32_t name)
 {
-    LOG_WARN("global removed: 0x%08x", name);
+    struct wayland_backend *backend = data;
+
+    tll_foreach(backend->seats, it) {
+        if (it->item.id == name) {
+            if (backend->active_seat == &it->item)
+                backend->active_seat = NULL;
+
+            seat_destroy(&it->item);
+            return;
+        }
+    }
+
+    LOG_WARN("unknown global removed: 0x%08x", name);
 
     /* TODO: need to handle displays and seats */
 }
@@ -868,17 +897,8 @@ cleanup(struct bar *_bar)
     /* TODO: move to bar */
     free(bar->cursor_name);
 
-    tll_foreach(backend->seats, it) {
-        struct seat *seat = &it->item;
-        if (seat->pointer.theme != NULL)
-            wl_cursor_theme_destroy(seat->pointer.theme);
-        if (seat->pointer.pointer != NULL)
-            wl_pointer_destroy(seat->pointer.pointer);
-        if (seat->pointer.surface != NULL)
-            wl_surface_destroy(seat->pointer.surface);
-        if (seat->seat != NULL)
-            wl_seat_destroy(seat->seat);
-    }
+    tll_foreach(backend->seats, it)
+        seat_destroy(&it->item);
     tll_free(backend->seats);
 
     if (backend->layer_surface != NULL)
