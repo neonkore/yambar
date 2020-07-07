@@ -57,6 +57,7 @@ struct monitor {
 struct seat {
     struct wayland_backend *backend;
     struct wl_seat *seat;
+    char *name;
 
     struct {
         struct wl_pointer *pointer;
@@ -112,7 +113,11 @@ struct wayland_backend {
 void *
 bar_backend_wayland_new(void)
 {
-    return calloc(1, sizeof(struct wayland_backend));
+    struct wayland_backend *backend = malloc(sizeof(struct wayland_backend));
+    *backend = (struct wayland_backend){
+        .scale = 1,
+    };
+    return backend;
 }
 
 static void
@@ -128,7 +133,7 @@ static const struct wl_shm_listener shm_listener = {
 static void
 update_cursor_surface(struct wayland_backend *backend, struct seat *seat)
 {
-    if (seat->pointer.cursor == NULL)
+    if (seat->pointer.cursor == NULL || seat->pointer.surface == NULL)
         return;
 
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
@@ -250,6 +255,40 @@ static const struct wl_pointer_listener pointer_listener = {
 };
 
 static void
+reload_cursor_theme(struct seat *seat)
+{
+    if (seat->pointer.theme != NULL) {
+        wl_cursor_theme_destroy(seat->pointer.theme);
+        seat->pointer.theme = NULL;
+    }
+
+    unsigned cursor_size = 24;
+    const char *cursor_theme = getenv("XCURSOR_THEME");
+
+    {
+        const char *env_cursor_size = getenv("XCURSOR_SIZE");
+        if (env_cursor_size != NULL) {
+            unsigned size;
+            if (sscanf(env_cursor_size, "%u", &size) == 1)
+                cursor_size = size;
+        }
+    }
+
+    LOG_INFO("%s: cursor theme: %s, size: %u",
+             seat->name, cursor_theme, cursor_size);
+
+    struct wl_cursor_theme *theme = wl_cursor_theme_load(
+        cursor_theme, cursor_size * seat->backend->scale, seat->backend->shm);
+
+    if (theme == NULL) {
+        LOG_ERR("%s: failed to load cursor theme", seat->name);
+        return;
+    }
+
+    seat->pointer.theme = theme;
+}
+
+static void
 seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
                          enum wl_seat_capability caps)
 {
@@ -259,41 +298,9 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     if (caps & WL_SEAT_CAPABILITY_POINTER) {
         if (seat->pointer.pointer == NULL) {
 
-            struct wl_surface *surf = wl_compositor_create_surface(backend->compositor);
-            if (surf == NULL) {
-                LOG_ERR(
-                    "seat %p: failed to create pointer surface for seat",
-                    wl_seat);
-                return;
-            }
-
-            unsigned cursor_size = 24;
-            const char *cursor_theme = getenv("XCURSOR_THEME");
-
-            {
-                const char *env_cursor_size = getenv("XCURSOR_SIZE");
-                if (env_cursor_size != NULL) {
-                    unsigned size;
-                    if (sscanf(env_cursor_size, "%u", &size) == 1)
-                        cursor_size = size;
-                }
-            }
-
-            LOG_INFO("seat %p: cursor theme: %s, size: %u",
-                     wl_seat, cursor_theme, cursor_size);
-
-            struct wl_cursor_theme *theme = wl_cursor_theme_load(
-                cursor_theme, cursor_size * backend->scale, backend->shm);
-
-            if (theme == NULL) {
-                LOG_ERR("seat %p: failed to load cursor theme", wl_seat);
-                wl_surface_destroy(surf);
-                return;
-            }
-
+            reload_cursor_theme(seat);
             seat->pointer.pointer = wl_seat_get_pointer(wl_seat);
-            seat->pointer.surface = surf;
-            seat->pointer.theme = theme;
+            seat->pointer.surface = wl_compositor_create_surface(backend->compositor);
             seat->pointer.cursor = NULL;
 
             wl_pointer_add_listener(
@@ -302,8 +309,6 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     } else {
         if (seat->pointer.pointer != NULL)
             wl_pointer_release(seat->pointer.pointer);
-        //if (seat->pointer.cursor != NULL)
-        //wl_cursor_destroy(seat->pointer.cursor);
         if (seat->pointer.theme != NULL)
             wl_cursor_theme_destroy(seat->pointer.theme);
         if (seat->pointer.surface != NULL)
@@ -319,6 +324,9 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
 static void
 seat_handle_name(void *data, struct wl_seat *wl_seat, const char *name)
 {
+    struct seat *seat = data;
+    free(seat->name);
+    seat->name = strdup(name);
 }
 
 static const struct wl_seat_listener seat_listener = {
@@ -385,6 +393,27 @@ xdg_output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output,
 static void
 xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
 {
+    const struct monitor *mon = data;
+
+    LOG_INFO("monitor: %s: %dx%d+%d+%d (%dx%dmm)",
+             mon->name, mon->width_px, mon->height_px,
+             mon->x, mon->y, mon->width_mm, mon->height_mm);
+
+    struct wayland_backend *backend = mon->backend;
+    struct private *bar = backend->bar->private;
+
+    if (bar->monitor != NULL && strcmp(bar->monitor, mon->name) == 0) {
+        /* User specified a monitor, and this is one */
+        backend->monitor = mon;
+
+        if (backend->scale != mon->scale) {
+            backend->scale = mon->scale;
+
+            tll_foreach(backend->seats, it)
+                reload_cursor_theme(&it->item);
+        }
+    }
+
 }
 
 static void
@@ -444,7 +473,6 @@ handle_global(void *data, struct wl_registry *registry,
         backend->shm = wl_registry_bind(
             registry, name, &wl_shm_interface, required);
         wl_shm_add_listener(backend->shm, &shm_listener, backend);
-        //wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, wl_output_interface.name) == 0) {
@@ -475,7 +503,6 @@ handle_global(void *data, struct wl_registry *registry,
 
             zxdg_output_v1_add_listener(mon->xdg, &xdg_output_listener, mon);
         }
-        //wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
@@ -500,7 +527,6 @@ handle_global(void *data, struct wl_registry *registry,
             backend->seats, ((struct seat){.backend = backend, .seat = seat}));
 
         wl_seat_add_listener(seat, &seat_listener, &tll_back(backend->seats));
-        //wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
@@ -703,6 +729,7 @@ setup(struct bar *_bar)
         return false;
     }
 
+    /* Globals */
     wl_registry_add_listener(backend->registry, &registry_listener, backend);
     wl_display_roundtrip(backend->display);
 
@@ -724,54 +751,14 @@ setup(struct bar *_bar)
         return false;
     }
 
-    tll_foreach(backend->monitors, it) {
-        const struct monitor *mon = &it->item;
-        LOG_INFO("monitor: %s: %dx%d+%d+%d (%dx%dmm)",
-                 mon->name, mon->width_px, mon->height_px,
-                 mon->x, mon->y, mon->width_mm, mon->height_mm);
-
-        if (bar->monitor != NULL && strcmp(bar->monitor, mon->name) == 0) {
-            /* User specified a monitor, and this is one */
-            backend->monitor = mon;
-        }
-    }
-
-    backend->scale = backend->monitor != NULL ? backend->monitor->scale : 1;
+    /* Trigger listeners registered in previous roundtrip */
+    wl_display_roundtrip(backend->display);
 
     backend->surface = wl_compositor_create_surface(backend->compositor);
     if (backend->surface == NULL) {
         LOG_ERR("failed to create panel surface");
         return false;
     }
-
-#if 0
-    backend->pointer.surface = wl_compositor_create_surface(backend->compositor);
-    if (backend->pointer.surface == NULL) {
-        LOG_ERR("failed to create cursor surface");
-        return false;
-    }
-
-    unsigned cursor_size = 24;
-    const char *cursor_theme = getenv("XCURSOR_THEME");
-
-    {
-        const char *env_cursor_size = getenv("XCURSOR_SIZE");
-        if (env_cursor_size != NULL) {
-            unsigned size;
-            if (sscanf(env_cursor_size, "%u", &size) == 1)
-                cursor_size = size;
-        }
-    }
-
-    LOG_INFO("cursor theme: %s, size: %u", cursor_theme, cursor_size);
-
-    backend->pointer.theme = wl_cursor_theme_load(
-        cursor_theme, cursor_size * backend->scale, backend->shm);
-    if (backend->pointer.theme == NULL) {
-        LOG_ERR("failed to load cursor theme");
-        return false;
-    }
-#endif
 
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         backend->layer_shell, backend->surface,
@@ -1075,7 +1062,7 @@ set_cursor(struct bar *_bar, const char *cursor)
     struct wayland_backend *backend = bar->backend.data;
 
     struct seat *seat = backend->active_seat;
-    if (seat == NULL)
+    if (seat == NULL || seat->pointer.theme == NULL)
         return;
 
     seat->pointer.cursor = wl_cursor_theme_get_cursor(
