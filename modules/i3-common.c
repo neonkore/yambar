@@ -296,9 +296,11 @@ i3_receive_loop(int abort_fd, int sock,
                 break;
 
             /* Sway extensions */
-            case ((1<<31) | 21):  /* IPC_EVENT_INPUT */
+#define SWAY_IPC_EVENT_INPUT ((1u << 31) | 21)
+            case SWAY_IPC_EVENT_INPUT:
                 pkt_handler = cbs->event_input;
                 break;
+#undef SWAY_IPC_EVENT_INPUT
 
             default:
                 LOG_ERR("unimplemented IPC reply type: %d", hdr->type);
