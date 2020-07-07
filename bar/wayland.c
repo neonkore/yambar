@@ -54,16 +54,8 @@ struct monitor {
     int scale;
 };
 
-struct wayland_backend {
-    struct bar *bar;
-
-    struct wl_display *display;
-    struct wl_registry *registry;
-    struct wl_compositor *compositor;
-    struct wl_surface *surface;
-    struct zwlr_layer_shell_v1 *layer_shell;
-    struct zwlr_layer_surface_v1 *layer_surface;
-    struct wl_shm *shm;
+struct seat {
+    struct wayland_backend *backend;
     struct wl_seat *seat;
 
     struct {
@@ -77,6 +69,21 @@ struct wayland_backend {
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
     } pointer;
+};
+
+struct wayland_backend {
+    struct bar *bar;
+
+    struct wl_display *display;
+    struct wl_registry *registry;
+    struct wl_compositor *compositor;
+    struct wl_surface *surface;
+    struct zwlr_layer_shell_v1 *layer_shell;
+    struct zwlr_layer_surface_v1 *layer_surface;
+    struct wl_shm *shm;
+
+    tll(struct seat) seats;
+    struct seat *active_seat;
 
     tll(struct monitor) monitors;
     const struct monitor *monitor;
@@ -119,28 +126,28 @@ static const struct wl_shm_listener shm_listener = {
 };
 
 static void
-update_cursor_surface(struct wayland_backend *backend)
+update_cursor_surface(struct wayland_backend *backend, struct seat *seat)
 {
-    if (backend->pointer.cursor == NULL)
+    if (seat->pointer.cursor == NULL)
         return;
 
-    struct wl_cursor_image *image = backend->pointer.cursor->images[0];
+    struct wl_cursor_image *image = seat->pointer.cursor->images[0];
 
-    wl_surface_set_buffer_scale(backend->pointer.surface, backend->scale);
+    wl_surface_set_buffer_scale(seat->pointer.surface, backend->scale);
 
     wl_surface_attach(
-        backend->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
+        seat->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
 
     wl_pointer_set_cursor(
-        backend->pointer.pointer, backend->pointer.serial,
-        backend->pointer.surface,
+        seat->pointer.pointer, seat->pointer.serial,
+        seat->pointer.surface,
         image->hotspot_x / backend->scale, image->hotspot_y / backend->scale);
 
 
     wl_surface_damage_buffer(
-        backend->pointer.surface, 0, 0, INT32_MAX, INT32_MAX);
+        seat->pointer.surface, 0, 0, INT32_MAX, INT32_MAX);
 
-    wl_surface_commit(backend->pointer.surface);
+    wl_surface_commit(seat->pointer.surface);
     wl_display_flush(backend->display);
 }
 
@@ -149,31 +156,41 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                  uint32_t serial, struct wl_surface *surface,
                  wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
-    struct wayland_backend *backend = data;
-    backend->pointer.serial = serial;
-    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->scale;
-    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->scale;
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
 
-    update_cursor_surface(backend);
+    seat->pointer.serial = serial;
+    seat->pointer.x = wl_fixed_to_int(surface_x) * backend->scale;
+    seat->pointer.y = wl_fixed_to_int(surface_y) * backend->scale;
+
+    backend->active_seat = seat;
+    update_cursor_surface(backend, seat);
 }
 
 static void
 wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
                  uint32_t serial, struct wl_surface *surface)
 {
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
+
+    if (backend->active_seat == seat)
+        backend->active_seat = NULL;
 }
 
 static void
 wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                   uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
-    struct wayland_backend *backend = data;
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
 
-    backend->pointer.x = wl_fixed_to_int(surface_x) * backend->scale;
-    backend->pointer.y = wl_fixed_to_int(surface_y) * backend->scale;
+    seat->pointer.x = wl_fixed_to_int(surface_x) * backend->scale;
+    seat->pointer.y = wl_fixed_to_int(surface_y) * backend->scale;
 
+    backend->active_seat = seat;
     backend->bar_on_mouse(
-        backend->bar, ON_MOUSE_MOTION, backend->pointer.x, backend->pointer.y);
+        backend->bar, ON_MOUSE_MOTION, seat->pointer.x, seat->pointer.y);
 }
 
 static void
@@ -183,9 +200,12 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
     if (state != WL_POINTER_BUTTON_STATE_PRESSED)
         return;
 
-    struct wayland_backend *backend = data;
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
+
+    backend->active_seat = seat;
     backend->bar_on_mouse(
-        backend->bar, ON_MOUSE_CLICK, backend->pointer.x, backend->pointer.y);
+        backend->bar, ON_MOUSE_CLICK, seat->pointer.x, seat->pointer.y);
 }
 
 static void
@@ -233,18 +253,69 @@ static void
 seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
                          enum wl_seat_capability caps)
 {
-    struct wayland_backend *backend = data;
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
 
     if (caps & WL_SEAT_CAPABILITY_POINTER) {
-        if (backend->pointer.pointer == NULL) {
-            backend->pointer.pointer = wl_seat_get_pointer(wl_seat);
-            wl_pointer_add_listener(backend->pointer.pointer, &pointer_listener, backend);
+        if (seat->pointer.pointer == NULL) {
+
+            struct wl_surface *surf = wl_compositor_create_surface(backend->compositor);
+            if (surf == NULL) {
+                LOG_ERR(
+                    "seat %p: failed to create pointer surface for seat",
+                    wl_seat);
+                return;
+            }
+
+            unsigned cursor_size = 24;
+            const char *cursor_theme = getenv("XCURSOR_THEME");
+
+            {
+                const char *env_cursor_size = getenv("XCURSOR_SIZE");
+                if (env_cursor_size != NULL) {
+                    unsigned size;
+                    if (sscanf(env_cursor_size, "%u", &size) == 1)
+                        cursor_size = size;
+                }
+            }
+
+            LOG_INFO("seat %p: cursor theme: %s, size: %u",
+                     wl_seat, cursor_theme, cursor_size);
+
+            assert(backend->shm);
+            LOG_INFO("SCALE: %d", backend->scale);
+
+            struct wl_cursor_theme *theme = wl_cursor_theme_load(
+                cursor_theme, cursor_size * backend->scale, backend->shm);
+
+            if (theme == NULL) {
+                LOG_ERR("seat %p: failed to load cursor theme", wl_seat);
+                wl_surface_destroy(surf);
+                return;
+            }
+
+            seat->pointer.pointer = wl_seat_get_pointer(wl_seat);
+            seat->pointer.surface = surf;
+            seat->pointer.theme = theme;
+            seat->pointer.cursor = NULL;
+
+            wl_pointer_add_listener(
+                seat->pointer.pointer, &pointer_listener, seat);
         }
     } else {
-        if (backend->pointer.pointer != NULL) {
-            wl_pointer_release(backend->pointer.pointer);
-            backend->pointer.pointer = NULL;
-        }
+        if (seat->pointer.pointer != NULL)
+            wl_pointer_release(seat->pointer.pointer);
+        //if (seat->pointer.cursor != NULL)
+        //wl_cursor_destroy(seat->pointer.cursor);
+        if (seat->pointer.theme != NULL)
+            wl_cursor_theme_destroy(seat->pointer.theme);
+        if (seat->pointer.surface != NULL)
+            wl_surface_destroy(seat->pointer.surface);
+
+        seat->pointer.pointer = NULL;
+        seat->pointer.cursor = NULL;
+        seat->pointer.theme = NULL;
+        seat->pointer.surface = NULL;
     }
 }
 
@@ -376,7 +447,7 @@ handle_global(void *data, struct wl_registry *registry,
         backend->shm = wl_registry_bind(
             registry, name, &wl_shm_interface, required);
         wl_shm_add_listener(backend->shm, &shm_listener, backend);
-        wl_display_roundtrip(backend->display);
+        //wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, wl_output_interface.name) == 0) {
@@ -407,7 +478,7 @@ handle_global(void *data, struct wl_registry *registry,
 
             zxdg_output_v1_add_listener(mon->xdg, &xdg_output_listener, mon);
         }
-        wl_display_roundtrip(backend->display);
+        //wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
@@ -424,9 +495,15 @@ handle_global(void *data, struct wl_registry *registry,
         if (!verify_iface_version(interface, version, required))
             return;
 
-        backend->seat = wl_registry_bind(registry, name, &wl_seat_interface, required);
-        wl_seat_add_listener(backend->seat, &seat_listener, backend);
-        wl_display_roundtrip(backend->display);
+        struct wl_seat *seat = wl_registry_bind(
+            registry, name, &wl_seat_interface, required);
+        assert(seat != NULL);
+
+        tll_push_back(
+            backend->seats, ((struct seat){.backend = backend, .seat = seat}));
+
+        wl_seat_add_listener(seat, &seat_listener, &tll_back(backend->seats));
+        //wl_display_roundtrip(backend->display);
     }
 
     else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
@@ -443,6 +520,8 @@ static void
 handle_global_remove(void *data, struct wl_registry *registry, uint32_t name)
 {
     LOG_WARN("global removed: 0x%08x", name);
+
+    /* TODO: need to handle displays and seats */
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -668,6 +747,7 @@ setup(struct bar *_bar)
         return false;
     }
 
+#if 0
     backend->pointer.surface = wl_compositor_create_surface(backend->compositor);
     if (backend->pointer.surface == NULL) {
         LOG_ERR("failed to create cursor surface");
@@ -694,6 +774,7 @@ setup(struct bar *_bar)
         LOG_ERR("failed to load cursor theme");
         return false;
     }
+#endif
 
     backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         backend->layer_shell, backend->surface,
@@ -803,20 +884,25 @@ cleanup(struct bar *_bar)
     /* TODO: move to bar */
     free(bar->cursor_name);
 
+    tll_foreach(backend->seats, it) {
+        struct seat *seat = &it->item;
+        if (seat->pointer.theme != NULL)
+            wl_cursor_theme_destroy(seat->pointer.theme);
+        if (seat->pointer.pointer != NULL)
+            wl_pointer_destroy(seat->pointer.pointer);
+        if (seat->pointer.surface != NULL)
+            wl_surface_destroy(seat->pointer.surface);
+        if (seat->seat != NULL)
+            wl_seat_destroy(seat->seat);
+    }
+    tll_free(backend->seats);
+
     if (backend->layer_surface != NULL)
         zwlr_layer_surface_v1_destroy(backend->layer_surface);
     if (backend->layer_shell != NULL)
         zwlr_layer_shell_v1_destroy(backend->layer_shell);
-    if (backend->pointer.theme != NULL)
-        wl_cursor_theme_destroy(backend->pointer.theme);
-    if (backend->pointer.pointer != NULL)
-        wl_pointer_destroy(backend->pointer.pointer);
-    if (backend->pointer.surface != NULL)
-        wl_surface_destroy(backend->pointer.surface);
     if (backend->surface != NULL)
         wl_surface_destroy(backend->surface);
-    if (backend->seat != NULL)
-        wl_seat_destroy(backend->seat);
     if (backend->compositor != NULL)
         wl_compositor_destroy(backend->compositor);
     if (backend->shm != NULL)
@@ -991,10 +1077,14 @@ set_cursor(struct bar *_bar, const char *cursor)
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
 
-    backend->pointer.cursor = wl_cursor_theme_get_cursor(
-        backend->pointer.theme, cursor);
+    struct seat *seat = backend->active_seat;
+    if (seat == NULL)
+        return;
 
-    update_cursor_surface(backend);
+    seat->pointer.cursor = wl_cursor_theme_get_cursor(
+        seat->pointer.theme, cursor);
+
+    update_cursor_surface(backend, seat);
 }
 
 const struct backend wayland_backend_iface = {
