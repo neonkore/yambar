@@ -282,9 +282,6 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
             LOG_INFO("seat %p: cursor theme: %s, size: %u",
                      wl_seat, cursor_theme, cursor_size);
 
-            assert(backend->shm);
-            LOG_INFO("SCALE: %d", backend->scale);
-
             struct wl_cursor_theme *theme = wl_cursor_theme_load(
                 cursor_theme, cursor_size * backend->scale, backend->shm);
 
