@@ -1189,6 +1189,8 @@ set_cursor(struct bar *_bar, const char *cursor)
     if (seat->pointer.xcursor != NULL && strcmp(seat->pointer.xcursor, cursor) == 0)
         return;
 
+    seat->pointer.xcursor = cursor;
+
     seat->pointer.cursor = wl_cursor_theme_get_cursor(
         seat->pointer.theme, cursor);
 
