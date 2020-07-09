@@ -154,13 +154,6 @@ static void
 set_cursor(struct bar *bar, const char *cursor)
 {
     struct private *b = bar->private;
-
-    if (b->cursor_name != NULL && strcmp(b->cursor_name, cursor) == 0)
-        return;
-
-    free(b->cursor_name);
-    b->cursor_name = strdup(cursor);
-
     b->backend.iface->set_cursor(bar, cursor);
 }
 

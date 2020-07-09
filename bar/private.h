@@ -40,9 +40,6 @@ struct private {
     int width;
     int height_with_border;
 
-    /* Name of currently active cursor */
-    char *cursor_name;
-
     pixman_image_t *pix;
 
     struct {

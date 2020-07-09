@@ -72,6 +72,7 @@ struct seat {
         struct wl_surface *surface;
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
+        const char *xcursor;
         int scale;
     } pointer;
 };
@@ -89,7 +90,6 @@ struct wayland_backend {
 
     tll(struct seat) seats;
     struct seat *active_seat;
-    const char *xcursor;
 
     tll(struct monitor) monitors;
     const struct monitor *monitor;
@@ -179,28 +179,6 @@ update_cursor_surface(struct wayland_backend *backend, struct seat *seat)
 }
 
 static void
-set_cursor(struct bar *_bar, const char *_cursor)
-{
-    struct private *bar = _bar->private;
-    struct wayland_backend *backend = bar->backend.data;
-
-    const char *cursor = _cursor != NULL ? _cursor : backend->xcursor;
-    if (cursor == NULL)
-        return;
-
-    backend->xcursor = cursor;
-
-    struct seat *seat = backend->active_seat;
-    if (seat == NULL || seat->pointer.theme == NULL)
-        return;
-
-    seat->pointer.cursor = wl_cursor_theme_get_cursor(
-        seat->pointer.theme, cursor);
-
-    update_cursor_surface(backend, seat);
-}
-
-static void
 reload_cursor_theme(struct seat *seat, int new_scale)
 {
     if (seat->pointer.theme != NULL && seat->pointer.scale == new_scale)
@@ -252,7 +230,6 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
 
     backend->active_seat = seat;
     reload_cursor_theme(seat, backend->monitor->scale);
-    set_cursor(backend->bar, NULL);
 }
 
 static void
@@ -981,9 +958,6 @@ cleanup(struct bar *_bar)
     if (backend->xdg_output_manager != NULL)
         zxdg_output_manager_v1_destroy(backend->xdg_output_manager);
 
-    /* TODO: move to bar */
-    free(bar->cursor_name);
-
     tll_foreach(backend->seats, it)
         seat_destroy(&it->item);
     tll_free(backend->seats);
@@ -1200,6 +1174,25 @@ refresh(const struct bar *_bar)
     {
         LOG_ERRNO("failed to signal 'refresh' to main thread");
     }
+}
+
+static void
+set_cursor(struct bar *_bar, const char *cursor)
+{
+    struct private *bar = _bar->private;
+    struct wayland_backend *backend = bar->backend.data;
+
+    struct seat *seat = backend->active_seat;
+    if (seat == NULL || seat->pointer.theme == NULL)
+        return;
+
+    if (seat->pointer.xcursor != NULL && strcmp(seat->pointer.xcursor, cursor) == 0)
+        return;
+
+    seat->pointer.cursor = wl_cursor_theme_get_cursor(
+        seat->pointer.theme, cursor);
+
+    update_cursor_surface(backend, seat);
 }
 
 const struct backend wayland_backend_iface = {

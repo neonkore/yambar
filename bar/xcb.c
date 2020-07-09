@@ -32,6 +32,7 @@ struct xcb_backend {
     xcb_gc_t gc;
     xcb_cursor_context_t *cursor_ctx;
     xcb_cursor_t cursor;
+    const char *xcursor;
 
     uint8_t depth;
     void *client_pixmap;
@@ -280,9 +281,6 @@ cleanup(struct bar *_bar)
     if (backend->cursor_ctx != NULL)
         xcb_cursor_context_free(backend->cursor_ctx);
 
-    /* TODO: move to bar.c */
-    free(bar->cursor_name);
-
     if (backend->pix != NULL)
         pixman_image_unref(backend->pix);
     free(backend->client_pixmap);
@@ -430,6 +428,9 @@ set_cursor(struct bar *_bar, const char *cursor)
     struct xcb_backend *backend = bar->backend.data;
 
     if (backend->cursor_ctx == NULL)
+        return;
+
+    if (backend->xcursor != NULL && strcmp(backend->xcursor, cursor) == 0)
         return;
 
     if (backend->cursor != 0)
