@@ -184,9 +184,6 @@ set_cursor(struct bar *_bar, const char *_cursor)
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
 
-    if (backend->xcursor == _cursor && _cursor != NULL)
-        return;
-
     const char *cursor = _cursor != NULL ? _cursor : backend->xcursor;
     if (cursor == NULL)
         return;
