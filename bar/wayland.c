@@ -62,8 +62,8 @@ struct seat {
     char *name;
     uint32_t id;
 
+    struct wl_pointer *wl_pointer;
     struct {
-        struct wl_pointer *pointer;
         uint32_t serial;
 
         int x;
@@ -123,8 +123,8 @@ seat_destroy(struct seat *seat)
 
     if (seat->pointer.theme != NULL)
         wl_cursor_theme_destroy(seat->pointer.theme);
-    if (seat->pointer.pointer != NULL)
-        wl_pointer_destroy(seat->pointer.pointer);
+    if (seat->wl_pointer != NULL)
+        wl_pointer_destroy(seat->wl_pointer);
     if (seat->pointer.surface != NULL)
         wl_surface_destroy(seat->pointer.surface);
     if (seat->seat != NULL)
@@ -162,7 +162,7 @@ update_cursor_surface(struct wayland_backend *backend, struct seat *seat)
         seat->pointer.surface, wl_cursor_image_get_buffer(image), 0, 0);
 
     wl_pointer_set_cursor(
-        seat->pointer.pointer, seat->pointer.serial,
+        seat->wl_pointer, seat->pointer.serial,
         seat->pointer.surface,
         image->hotspot_x / scale, image->hotspot_y / scale);
 
@@ -318,24 +318,24 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
     struct wayland_backend *backend = seat->backend;
 
     if (caps & WL_SEAT_CAPABILITY_POINTER) {
-        if (seat->pointer.pointer == NULL) {
+        if (seat->wl_pointer == NULL) {
 
-            seat->pointer.pointer = wl_seat_get_pointer(wl_seat);
+            seat->wl_pointer = wl_seat_get_pointer(wl_seat);
             seat->pointer.surface = wl_compositor_create_surface(backend->compositor);
             seat->pointer.cursor = NULL;
 
             wl_pointer_add_listener(
-                seat->pointer.pointer, &pointer_listener, seat);
+                seat->wl_pointer, &pointer_listener, seat);
         }
     } else {
-        if (seat->pointer.pointer != NULL)
-            wl_pointer_release(seat->pointer.pointer);
+        if (seat->wl_pointer != NULL)
+            wl_pointer_release(seat->wl_pointer);
         if (seat->pointer.theme != NULL)
             wl_cursor_theme_destroy(seat->pointer.theme);
         if (seat->pointer.surface != NULL)
             wl_surface_destroy(seat->pointer.surface);
 
-        seat->pointer.pointer = NULL;
+        seat->wl_pointer = NULL;
         seat->pointer.cursor = NULL;
         seat->pointer.theme = NULL;
         seat->pointer.surface = NULL;
