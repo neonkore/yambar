@@ -822,6 +822,8 @@ update_size(struct wayland_backend *backend)
     bar->width = backend->width;
 
     /* Reload buffers */
+    if (backend->next_buffer != NULL)
+        backend->next_buffer->busy = false;
     backend->next_buffer = get_buffer(backend);
     assert(backend->next_buffer != NULL && backend->next_buffer->busy);
     bar->pix = backend->next_buffer->pix;
