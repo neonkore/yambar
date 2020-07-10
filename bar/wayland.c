@@ -392,10 +392,8 @@ output_scale(void *data, struct wl_output *wl_output, int32_t factor)
 
     mon->scale = factor;
 
-    if (mon->backend->monitor == mon) {
-        mon->backend->scale = mon->scale;
+    if (mon->backend->monitor == mon)
         update_size(mon->backend);
-    }
 }
 
 
@@ -752,33 +750,67 @@ err:
     return NULL;
 }
 
+static int
+guess_scale(const struct wayland_backend *backend)
+{
+    if (tll_length(backend->monitors) == 0)
+        return 1;
+
+    bool all_have_same_scale = true;
+    int last_scale = -1;
+
+    tll_foreach(backend->monitors, it) {
+        if (last_scale == -1)
+            last_scale = it->item.scale;
+        else if (last_scale != it->item.scale) {
+            all_have_same_scale = false;
+            break;
+        }
+    }
+
+    if (all_have_same_scale) {
+        assert(last_scale >= 1);
+        return last_scale;
+    }
+
+    return 1;
+}
+
 static bool
 update_size(struct wayland_backend *backend)
 {
     struct bar *_bar = backend->bar;
     struct private *bar = _bar->private;
 
+    const struct monitor *mon = backend->monitor;
+    const int scale = mon != NULL ? mon->scale : guess_scale(backend);
+
+    if (backend->scale == scale)
+        return true;
+
+    backend->scale = scale;
+
     int height = bar->height_with_border;
-    height /= backend->scale;
-    height *= backend->scale;
+    height /= scale;
+    height *= scale;
     bar->height = height - 2 * bar->border.width;
     bar->height_with_border = height;
 
     zwlr_layer_surface_v1_set_size(
-        backend->layer_surface, 0, bar->height_with_border / backend->scale);
+        backend->layer_surface, 0, bar->height_with_border / scale);
     zwlr_layer_surface_v1_set_exclusive_zone(
         backend->layer_surface,
         (bar->height_with_border + (bar->location == BAR_TOP
                                     ? bar->border.bottom_margin
                                     : bar->border.top_margin))
-        / backend->scale);
+        / scale);
 
     zwlr_layer_surface_v1_set_margin(
         backend->layer_surface,
-        bar->border.top_margin / backend->scale,
-        bar->border.right_margin / backend->scale,
-        bar->border.bottom_margin / backend->scale,
-        bar->border.left_margin / backend->scale
+        bar->border.top_margin / scale,
+        bar->border.right_margin / scale,
+        bar->border.bottom_margin / scale,
+        bar->border.left_margin / scale
         );
 
     /* Trigger a 'configure' event, after which we'll have the width */
@@ -1023,15 +1055,8 @@ surface_enter(void *data, struct wl_surface *wl_surface,
             continue;
 
         if (backend->monitor != mon) {
-            int old_scale = backend->monitor != NULL ? backend->monitor->scale : 1;
-            int new_scale = mon->scale;
-
             backend->monitor = mon;
-
-            if (old_scale != new_scale) {
-                backend->scale = mon->scale;
-                update_size(backend);
-            }
+            update_size(backend);
         }
         break;
     }
