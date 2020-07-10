@@ -378,6 +378,7 @@ output_done(void *data, struct wl_output *wl_output)
 }
 
 static bool update_size(struct wayland_backend *backend);
+static void refresh(const struct bar *_bar);
 
 static void
 output_scale(void *data, struct wl_output *wl_output, int32_t factor)
@@ -388,8 +389,13 @@ output_scale(void *data, struct wl_output *wl_output, int32_t factor)
 
     mon->scale = factor;
 
-    if (mon->backend->monitor == mon)
+    if (mon->backend->monitor == mon) {
+        int old_scale = mon->backend->scale;
         update_size(mon->backend);
+
+        if (mon->backend->scale != old_scale)
+            refresh(mon->backend->bar);
+    }
 }
 
 
@@ -1054,7 +1060,12 @@ surface_enter(void *data, struct wl_surface *wl_surface,
 
         if (backend->monitor != mon) {
             backend->monitor = mon;
+
+            int old_scale = backend->scale;
             update_size(backend);
+
+            if (backend->scale != old_scale)
+                refresh(backend->bar);
         }
         break;
     }
