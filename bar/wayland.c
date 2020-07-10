@@ -227,6 +227,7 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
 
     backend->active_seat = seat;
     reload_cursor_theme(seat, backend->monitor->scale);
+    update_cursor_surface(backend, seat);
 }
 
 static void
