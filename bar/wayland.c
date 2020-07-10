@@ -880,40 +880,6 @@ setup(struct bar *_bar)
         ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
         top_or_bottom);
 
-#if 0
-    int height = bar->height_with_border;
-    height /= backend->scale;
-    height *= backend->scale;
-    bar->height = height - 2 * bar->border.width;
-    bar->height_with_border = height;
-
-    zwlr_layer_surface_v1_set_size(
-        backend->layer_surface, 0, bar->height_with_border / backend->scale);
-    zwlr_layer_surface_v1_set_exclusive_zone(
-        backend->layer_surface,
-        (bar->height_with_border + (bar->location == BAR_TOP
-                                    ? bar->border.bottom_margin
-                                    : bar->border.top_margin))
-        / backend->scale);
-
-    zwlr_layer_surface_v1_set_margin(
-        backend->layer_surface,
-        bar->border.top_margin / backend->scale,
-        bar->border.right_margin / backend->scale,
-        bar->border.bottom_margin / backend->scale,
-        bar->border.left_margin / backend->scale
-        );
-
-    /* Trigger a 'configure' event, after which we'll have the width */
-    wl_surface_commit(backend->surface);
-    wl_display_roundtrip(backend->display);
-
-    if (backend->width == -1 ||
-        backend->height != bar->height_with_border) {
-        LOG_ERR("failed to get panel width");
-        return false;
-    }
-#endif
     update_size(backend);
 
     assert(backend->monitor == NULL ||
