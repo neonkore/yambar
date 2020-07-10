@@ -183,6 +183,7 @@ reload_cursor_theme(struct seat *seat, int new_scale)
     if (seat->pointer.theme != NULL) {
         wl_cursor_theme_destroy(seat->pointer.theme);
         seat->pointer.theme = NULL;
+        seat->pointer.cursor = NULL;
     }
 
     unsigned cursor_size = 24;
@@ -315,30 +316,34 @@ seat_handle_capabilities(void *data, struct wl_seat *wl_seat,
                          enum wl_seat_capability caps)
 {
     struct seat *seat = data;
-    struct wayland_backend *backend = seat->backend;
 
     if (caps & WL_SEAT_CAPABILITY_POINTER) {
         if (seat->wl_pointer == NULL) {
+            assert(seat->pointer.surface == NULL);
+            seat->pointer.surface = wl_compositor_create_surface(
+                seat->backend->compositor);
+
+            if (seat->pointer.surface == NULL) {
+                LOG_ERR("%s: failed to create pointer surface", seat->name);
+                return;
+            }
 
             seat->wl_pointer = wl_seat_get_pointer(wl_seat);
-            seat->pointer.surface = wl_compositor_create_surface(backend->compositor);
-            seat->pointer.cursor = NULL;
-
-            wl_pointer_add_listener(
-                seat->wl_pointer, &pointer_listener, seat);
+            wl_pointer_add_listener(seat->wl_pointer, &pointer_listener, seat);
         }
     } else {
-        if (seat->wl_pointer != NULL)
+        if (seat->wl_pointer != NULL) {
             wl_pointer_release(seat->wl_pointer);
-        if (seat->pointer.theme != NULL)
-            wl_cursor_theme_destroy(seat->pointer.theme);
-        if (seat->pointer.surface != NULL)
             wl_surface_destroy(seat->pointer.surface);
 
-        seat->wl_pointer = NULL;
-        seat->pointer.cursor = NULL;
-        seat->pointer.theme = NULL;
-        seat->pointer.surface = NULL;
+            if (seat->pointer.theme != NULL)
+                wl_cursor_theme_destroy(seat->pointer.theme);
+
+            seat->wl_pointer = NULL;
+            seat->pointer.surface = NULL;
+            seat->pointer.theme = NULL;
+            seat->pointer.cursor = NULL;
+        }
     }
 }
 
