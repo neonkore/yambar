@@ -134,11 +134,7 @@ seat_destroy(struct seat *seat)
 void *
 bar_backend_wayland_new(void)
 {
-    struct wayland_backend *backend = malloc(sizeof(struct wayland_backend));
-    *backend = (struct wayland_backend){
-        .scale = 1,
-    };
-    return backend;
+    return calloc(1, sizeof(struct wayland_backend));
 }
 
 static void
