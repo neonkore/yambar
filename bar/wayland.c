@@ -150,8 +150,12 @@ static const struct wl_shm_listener shm_listener = {
 static void
 update_cursor_surface(struct wayland_backend *backend, struct seat *seat)
 {
-    if (seat->pointer.cursor == NULL || seat->pointer.surface == NULL)
+    if (seat->pointer.serial == 0 ||
+        seat->pointer.cursor == NULL ||
+        seat->pointer.surface == NULL)
+    {
         return;
+    }
 
     struct wl_cursor_image *image = seat->pointer.cursor->images[0];
 
