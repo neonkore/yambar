@@ -1200,6 +1200,11 @@ set_cursor(struct bar *_bar, const char *cursor)
     seat->pointer.cursor = wl_cursor_theme_get_cursor(
         seat->pointer.theme, cursor);
 
+    if (seat->pointer.cursor == NULL) {
+        LOG_ERR("%s: failed to load cursor '%s'", seat->name, cursor);
+        return;
+    }
+
     update_cursor_surface(backend, seat);
 }
 
