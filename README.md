@@ -5,6 +5,8 @@
 1. [Introduction](#introduction)
 1. [Configuration](#configuration)
 1. [Modules](#modules)
+1. [Installation](#installation)
+1. [Bugs](#bugs)
 
 
 ## Introduction
@@ -112,3 +114,16 @@ Optionally, install it:
 ```sh
 ninja install
 ```
+
+## Bugs
+
+Please report bugs to https://codeberg.org/dnkl/yambar/issues
+
+The report should contain the following:
+
+* Which Wayland compositor (and version) you are running
+* Yambar version (`yambar --version`)
+* Log output from yambar (start yambar from a terminal)
+* If reporting a crash, please try to provide a `bt full` backtrace
+  **with symbols** (i.e. use a debug build)
+* Steps to reproduce. The more details the better
