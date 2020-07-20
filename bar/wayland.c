@@ -452,7 +452,6 @@ xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
     {
         /* User specified a monitor, and this is one */
         backend->monitor = mon;
-        backend->scale = mon->scale;
     }
 
 }
