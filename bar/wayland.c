@@ -447,7 +447,9 @@ xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
     struct wayland_backend *backend = mon->backend;
     struct private *bar = backend->bar->private;
 
-    if (bar->monitor != NULL && strcmp(bar->monitor, mon->name) == 0) {
+    if (bar->monitor != NULL && mon->name != NULL &&
+        strcmp(bar->monitor, mon->name) == 0)
+    {
         /* User specified a monitor, and this is one */
         backend->monitor = mon;
         backend->scale = mon->scale;
