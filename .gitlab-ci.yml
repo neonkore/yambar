@@ -1,6 +1,7 @@
 image: alpine:edge
 
 stages:
+  - info
   - build
 
 variables:
@@ -20,6 +21,13 @@ before_script:
   - git clone https://codeberg.org/dnkl/tllist.git
   - git clone https://codeberg.org/dnkl/fcft.git
   - cd ..
+
+versions:
+  stage: info
+  script:
+    - meson --version
+    - ninja --version
+    - cc --version
 
 debug:
   stage: build
