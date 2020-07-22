@@ -8,7 +8,7 @@ license=(mit)
 makedepends=('meson' 'ninja' 'scdoc' 'tllist>=1.0.1')
 depends=(
   'libxcb' 'xcb-util' 'xcb-util-cursor' 'xcb-util-wm'
-  'wayland' 'wlroots'
+  'wayland'
   'pixman'
   'libyaml'
   'alsa-lib'
