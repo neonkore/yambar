@@ -18,6 +18,7 @@ if backend_wayland
   generated_wayland_protocols = []
   foreach prot : [
     '../external/wlr-layer-shell-unstable-v1.xml',
+    '../external/river-status-unstable-v1.xml',
     wayland_protocols_datadir + '/stable/xdg-shell/xdg-shell.xml',
     wayland_protocols_datadir + '/unstable/xdg-output/xdg-output-unstable-v1.xml']
 

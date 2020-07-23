@@ -29,6 +29,12 @@ if backend_x11
   }
 endif
 
+if backend_wayland
+  deps += {
+    'river': [[], []],
+  }
+endif
+
 foreach mod, data : deps
   sources = data[0]
   dep = data[1]
