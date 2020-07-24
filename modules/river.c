@@ -48,7 +48,8 @@ struct private {
     struct zriver_status_manager_v1 *status_manager;
     struct particle *template;
     struct particle *title;
-    
+
+    bool is_starting_up;
     tll(struct output) outputs;
     tll(struct seat) seats;
 };
@@ -81,17 +82,12 @@ content(struct module *mod)
         output_focused |= output->focused;
         occupied |= output->occupied;
 
-#if 0
-        /* TODO: river bug */
         tll_foreach(m->seats, it2) {
             const struct seat *seat = &it2->item;
             if (seat->output == output) {
                 seat_focused |= output->focused;
             }
         }
-#else
-        seat_focused |= output->focused;
-#endif
     }
 
     const size_t seat_count = m->title != NULL ? tll_length(m->seats) : 0;
@@ -279,6 +275,9 @@ static struct zxdg_output_v1_listener xdg_output_listener = {
 static void
 instantiate_output(struct output *output)
 {
+    if (output->m->is_starting_up)
+        return;
+
     assert(output->wl_output != NULL);
 
     if (output->m->status_manager != NULL && output->status == NULL) {
@@ -306,8 +305,6 @@ static void
 focused_output(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
                struct wl_output *wl_output)
 {
-    /* TODO: never called by river */
-    abort();
     struct seat *seat = data;
     struct private *m = seat->m;
     struct module *mod = m->mod;
@@ -416,6 +413,9 @@ static void
 instantiate_seat(struct seat *seat)
 {
     assert(seat->wl_seat != NULL);
+
+    if (seat->m->is_starting_up)
+        return;
 
     if (seat->m->status_manager == NULL)
         return;
@@ -564,6 +564,14 @@ run(struct module *mod)
         goto out;
     }
 
+    wl_display_roundtrip(display);
+    m->is_starting_up = false;
+
+    tll_foreach(m->outputs, it)
+        instantiate_output(&it->item);
+    tll_foreach(m->seats, it)
+        instantiate_seat(&it->item);
+
     while (true) {
         wl_display_flush(display);
 
@@ -619,6 +627,7 @@ river_new(struct particle *template, struct particle *title)
     struct private *m = calloc(1, sizeof(*m));
     m->template = template;
     m->title = title;
+    m->is_starting_up = true;
 
     struct module *mod = module_common_new();
     mod->private = m;
