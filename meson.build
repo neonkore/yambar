@@ -122,6 +122,9 @@ yambar = executable(
   install: true,
   install_rpath: '$ORIGIN/../' + get_option('libdir') + '/yambar')
 
+install_data(
+  'LICENSE', 'README.md',
+  install_dir: join_paths(get_option('datadir'), 'doc', 'yambar'))
 install_data('yambar.desktop', install_dir: join_paths(get_option('datadir'), 'applications'))
 
 subdir('test')
