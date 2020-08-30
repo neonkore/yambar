@@ -15,7 +15,6 @@ if backend_wayland
 
   wl_proto_headers = []
   wl_proto_src = []
-  generated_wayland_protocols = []
   foreach prot : [
     '../external/wlr-layer-shell-unstable-v1.xml',
     '../external/river-status-unstable-v1.xml',
