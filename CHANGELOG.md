@@ -15,7 +15,7 @@
 * **Experimental**: 'river': new module for the river Wayland compositor.
 
 
-## Changed
+### Changed
 
 * Requires fcft-2.2.x.
 * battery: a poll value of 0 disables polling.
