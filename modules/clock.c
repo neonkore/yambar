@@ -76,7 +76,7 @@ run(struct module *mod)
             .tv_usec = _now.tv_nsec / 1000,
         };
 
-        int timeout_ms;
+        int timeout_ms = 1000;
 
         switch (m->update_granularity) {
         case UPDATE_GRANULARITY_SECONDS: {
