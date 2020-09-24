@@ -28,8 +28,8 @@
 
 ### Added
 
-* battery: support for drivers that use `charge\_\*` (instead of
-  `energy\_\*`) sys files.
+* battery: support for drivers that use `charge_*` (instead of
+  `energy_*`) sys files.
 * removables: SD card support.
 * removables: new `ignore` property.
 * Wayland: multi-seat support.
