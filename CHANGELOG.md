@@ -8,7 +8,8 @@
 ### Added
 
 * alsa: `percent` tag. This is an integer tag that represents the
-  current volume as a percentage value.
+  current volume as a percentage value
+  (https://codeberg.org/dnkl/yambar/issues/10).
 
 
 ### Deprecated
