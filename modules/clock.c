@@ -7,6 +7,7 @@
 #include <sys/time.h>
 
 #define LOG_MODULE "clock"
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../bar/bar.h"
 #include "../config.h"
@@ -129,7 +130,31 @@ clock_new(struct particle *label, const char *date_format, const char *time_form
     m->label = label;
     m->date_format = strdup(date_format);
     m->time_format = strdup(time_format);
+
+    static const char *const seconds_formatters[] = {
+        "%c",
+        "%s",
+        "%S",
+        "%T",
+        "%r",
+        "%X",
+    };
+
     m->update_granularity = UPDATE_GRANULARITY_MINUTES;
+
+    for (size_t i = 0;
+         i < sizeof(seconds_formatters) / sizeof(seconds_formatters[0]);
+         i++)
+    {
+        if (strstr(time_format, seconds_formatters[i]) != NULL) {
+            m->update_granularity = UPDATE_GRANULARITY_SECONDS;
+            break;
+        }
+    }
+
+    LOG_DBG("using %s update granularity",
+            (m->update_granularity == UPDATE_GRANULARITY_MINUTES
+             ? "minutes" : "seconds"));
 
     struct module *mod = module_common_new();
     mod->private = m;

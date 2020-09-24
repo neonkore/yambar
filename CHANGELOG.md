@@ -18,6 +18,8 @@
 * YAML parsing error messages being replaced with a generic _“unknown
   error”_.
 * Memory leak when a YAML parsing error was encountered.
+* clock: update every second when necessary
+  (https://codeberg.org/dnkl/yambar/issues/12).
 
 
 ### Security
