@@ -28,10 +28,10 @@
 
 ### Added
 
-* battery: support for drivers that use 'charge\_\*' (instead of
-  'energy\_\*') sys files.
+* battery: support for drivers that use `charge\_\*` (instead of
+  `energy\_\*`) sys files.
 * removables: SD card support.
-* removables: new 'ignore' property.
+* removables: new `ignore` property.
 * Wayland: multi-seat support.
 * **Experimental**: 'river': new module for the river Wayland compositor.
 
