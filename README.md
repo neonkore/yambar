@@ -105,6 +105,11 @@ might also want `--prefix=/usr`):
 meson --buildtype=release ../..
 ```
 
+Optionally, explicitly disable a backend (or enable, if you want a
+configuration error if not all dependencies are met) by adding either
+`-Dbackend-x11=disabled|enabled` or
+`-Dbackend-wayland=disabled|enabled` to the meson command line.
+
 Three, build it:
 ```sh
 ninja
