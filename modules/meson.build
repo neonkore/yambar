@@ -30,8 +30,26 @@ if backend_x11
 endif
 
 if backend_wayland
+  river_proto_headers = []
+  river_proto_src = []
+
+  foreach prot : ['../external/river-status-unstable-v1.xml']
+
+    river_proto_headers += custom_target(
+      prot.underscorify() + '-client-header',
+      output: '@BASENAME@.h',
+      input: prot,
+      command: [wscanner_prog, 'client-header', '@INPUT@', '@OUTPUT@'])
+
+    river_proto_src += custom_target(
+      prot.underscorify() + '-private-code',
+      output: '@BASENAME@.c',
+      input: prot,
+      command: [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
+  endforeach
+
   deps += {
-    'river': [[], []],
+    'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], []],
   }
 endif
 
