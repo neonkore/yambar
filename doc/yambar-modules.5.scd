@@ -145,6 +145,9 @@ Monitors an alsa soundcard for volume and mute/unmute changes.
 |  volume
 :  range
 :  Volume level, with min and max as start and end range values
+|  percent
+:  range
+:  Volume level, as a percentage
 |  muted
 :  bool
 :  True if muted, otherwise false

@@ -43,13 +43,18 @@ content(struct module *mod)
 {
     struct private *m = mod->private;
 
+    int percent = m->vol_max - m->vol_min > 0
+        ? 100 * m->vol_cur / (m->vol_max - m->vol_min)
+        : 0;
+
     mtx_lock(&mod->lock);
     struct tag_set tags = {
         .tags = (struct tag *[]){
             tag_new_int_range(mod, "volume", m->vol_cur, m->vol_min, m->vol_max),
+            tag_new_int_range(mod, "percent", percent, 0, 100),
             tag_new_bool(mod, "muted", m->muted),
         },
-        .count = 2,
+        .count = 3,
     };
     mtx_unlock(&mod->lock);
 

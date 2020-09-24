@@ -6,6 +6,11 @@
 
 ## Unreleased
 ### Added
+
+* alsa: `percentage` tag. This is an integer tag that represents the
+  current volume as a percentage value.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
