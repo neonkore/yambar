@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include <alsa/asoundlib.h>
 
@@ -44,7 +45,7 @@ content(struct module *mod)
     struct private *m = mod->private;
 
     int percent = m->vol_max - m->vol_min > 0
-        ? 100 * m->vol_cur / (m->vol_max - m->vol_min)
+        ? round(100. * m->vol_cur / (m->vol_max - m->vol_min))
         : 0;
 
     mtx_lock(&mod->lock);

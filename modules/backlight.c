@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <assert.h>
 #include <unistd.h>
 #include <poll.h>
@@ -46,7 +47,7 @@ content(struct module *mod)
 
     const long current = m->current_brightness;
     const long max = m->max_brightness;
-    const long percent = max > 0 ? 100 * current / max : 0;
+    const long percent = max > 0 ? round(100. * current / max) : 0;
 
     struct tag_set tags = {
         .tags = (struct tag *[]){

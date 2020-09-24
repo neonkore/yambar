@@ -42,6 +42,7 @@ endif
 
 # Common dependencies
 dl = cc.find_library('dl')
+m = cc.find_library('m')
 threads = dependency('threads')
 pixman = dependency('pixman-1')
 yaml = dependency('yaml-0.1')

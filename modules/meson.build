@@ -10,8 +10,8 @@ xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 
 # Module name -> (source-list, dep-list)
 deps = {
-  'alsa': [[], [alsa]],
-  'backlight': [[], [udev]],
+  'alsa': [[], [m, alsa]],
+  'backlight': [[], [m, udev]],
   'battery': [[], [udev]],
   'clock': [[], []],
   'i3': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
