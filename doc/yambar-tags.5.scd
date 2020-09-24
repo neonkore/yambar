@@ -25,14 +25,22 @@ The available tag *types* are:
 |  range
 :  Value is an integer, with a minimum and maximum value associated
    with it. By default, the _string_ particle renders the value. The
-   _:min_ or _:max_ suffixes by be added to instead render the mininum
-   or maximum value (_\"{tag_name:min}\"_).
+   *:min* or *:max* suffixes may be added to instead render the
+   mininum or maximum value (_\"{tag_name:min}\"_).
 |  realtime
 :  Value is an integer that changes in a predictable manner (in
    "realtime"). This allows the particle to update itself
    periodically. Only supported by the
    *yambar-particle-progress-bar*(5). Other particles can still render
-   the tag's value. And, the _string_ particle recognizes the _:unit_
+   the tag's value. And, the _string_ particle recognizes the *:unit*
    suffix, which will be translated to a "s" for a tag with "seconds"
    resolution, or "ms" for one with "milliseconds" resolution.
 
+# FORMATTING
+
+As mentioned above, each tag type has a default representation that is
+used when the tag is rendered by a string particle.
+
+All integer, floating point and boolean tag types can be modified to
+instead be rendered in hexadecimal or octal form, by appending either
+the *:hex* or *:oct* suffixes. For example, _\"{tag_name:hex}\"_.
