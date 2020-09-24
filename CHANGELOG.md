@@ -9,6 +9,11 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* YAML parsing error messages being replaced with a generic “unknown error”.
+* Memory leak when a YAML parsing error was encoutered.
+
+
 ### Security
 ### Contributors
 

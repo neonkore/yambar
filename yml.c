@@ -383,7 +383,7 @@ yml_load(FILE *yml, char **error)
                     yaml.context != NULL ? yaml.context : "");
             }
 
-            goto err;
+            goto err_no_error_formatting;
         }
 
         switch (event.type) {
@@ -549,6 +549,8 @@ err:
         snprintf(*error, cnt + 1, "%zu:%zu: unknown error",
                  yaml.mark.line + 1, yaml.mark.column);
     }
+
+err_no_error_formatting:
 
     yml_destroy(root);
     yaml_parser_delete(&yaml);
