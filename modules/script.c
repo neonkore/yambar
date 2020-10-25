@@ -377,6 +377,20 @@ run(struct module *mod)
     if (pid == 0) {
         /* Child */
 
+        /* Restore signal handlers */
+
+        sigset_t mask;
+        sigemptyset(&mask);
+
+        const struct sigaction sa = {.sa_handler = SIG_DFL};
+        if (sigaction(SIGINT, &sa, NULL) < 0 ||
+            sigaction(SIGTERM, &sa, NULL) < 0 ||
+            sigaction(SIGCHLD, &sa, NULL) < 0 ||
+            sigprocmask(SIG_SETMASK, &mask, NULL) < 0)
+        {
+            goto fail;
+        }
+
         setpgid(0, 0);
 
         /* Close pipe read ends */
