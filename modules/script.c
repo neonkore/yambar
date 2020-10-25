@@ -13,7 +13,7 @@
 #include <sys/signalfd.h>
 
 #define LOG_MODULE "script"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../config.h"
 #include "../config-verify.h"
