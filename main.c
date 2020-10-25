@@ -279,6 +279,11 @@ main(int argc, char *const *argv)
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 
+    sigset_t proc_signal_mask;
+    sigemptyset(&proc_signal_mask);
+    sigaddset(&proc_signal_mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &proc_signal_mask, NULL);
+
     /* Block SIGINT (this is under the assumption that threads inherit
      * the signal mask */
     sigset_t signal_mask;
@@ -326,7 +331,7 @@ main(int argc, char *const *argv)
     thrd_t bar_thread;
     thrd_create(&bar_thread, (int (*)(void *))bar->run, bar);
 
-    /* Now unblock. We should be only thread receiving SIGINT */
+    /* Now unblock. We should be only thread receiving SIGINT/SIGTERM */
     pthread_sigmask(SIG_UNBLOCK, &signal_mask, NULL);
 
     if (pid_file != NULL) {
