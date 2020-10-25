@@ -61,7 +61,6 @@ static struct tag *
 process_line(struct module *mod, const char *line, size_t len)
 {
     const char *_name = line;
-    LOG_INFO("LINE: %.*s", (int)len, line);
 
     const char *type = memchr(line, '|', len);
     if (type == NULL)
@@ -425,13 +424,12 @@ run(struct module *mod)
         return -1;
     }
 
-    LOG_WARN("child running under PID=%u", pid);
+    LOG_DBG("script running under PID=%u", pid);
 
     int ret = run_loop(mod, comm_pipe[0]);
 
     close(comm_pipe[0]);
     if (waitpid(pid, NULL, WNOHANG) == 0) {
-        LOG_WARN("sending SIGTERM to PGRP=%u", pid);
         killpg(pid, SIGTERM);
 
         /* TODO: send SIGKILL after X seconds */
