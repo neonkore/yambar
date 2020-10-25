@@ -19,6 +19,7 @@ deps = {
   'mpd': [[], [mpd]],
   'network': [[], []],
   'removables': [[], [dynlist, udev]],
+  'script': [[], []],
   'sway_xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
 }
 
