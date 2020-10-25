@@ -60,6 +60,9 @@ content(struct module *mod)
 static struct tag *
 process_line(struct module *mod, const char *line, size_t len)
 {
+    char *name = NULL;
+    char *value = NULL;
+
     const char *_name = line;
 
     const char *type = memchr(line, '|', len);
@@ -82,9 +85,13 @@ process_line(struct module *mod, const char *line, size_t len)
             (int)len, line,
             (int)name_len, _name, (int)type_len, type, (int)value_len, _value);
 
-    char *name = malloc(name_len + 1);
+    name = malloc(name_len + 1);
     memcpy(name, _name, name_len);
     name[name_len] = '\0';
+
+    value = malloc(value_len + 1);
+    memcpy(value, _value, value_len);
+    value[value_len] = '\0';
 
     struct tag *tag = NULL;
 
@@ -112,10 +119,8 @@ process_line(struct module *mod, const char *line, size_t len)
         const char *_start = type + 6;
         const char *split = memchr(_start, '-', type_len - 6);
 
-        if (split == NULL || split == _start || (split + 1) - type >= type_len) {
-            free(name);
+        if (split == NULL || split == _start || (split + 1) - type >= type_len)
             goto bad_tag;
-        }
 
         const char *_end = split + 1;
 
@@ -124,10 +129,8 @@ process_line(struct module *mod, const char *line, size_t len)
 
         long start = 0;
         for (size_t i = 0; i < start_len; i++) {
-            if (!(_start[i] >= '0' && _start[i] <= '9')) {
-                free(name);
+            if (!(_start[i] >= '0' && _start[i] <= '9'))
                 goto bad_tag;
-            }
 
             start *= 10;
             start |= _start[i] - '0';
@@ -135,17 +138,14 @@ process_line(struct module *mod, const char *line, size_t len)
 
         long end = 0;
         for (size_t i = 0; i < end_len; i++) {
-            if (!(_end[i] >= '0' && _end[i] < '9')) {
-                free(name);
+            if (!(_end[i] >= '0' && _end[i] < '9'))
                 goto bad_tag;
-            }
 
             end *= 10;
             end |= _end[i] - '0';
         }
 
         if (type_len > 9 && memcmp(type, "realtime:", 9) == 0) {
-            free(name);
             LOG_WARN("unimplemented: realtime tag");
             goto bad_tag;
         }
@@ -155,15 +155,17 @@ process_line(struct module *mod, const char *line, size_t len)
     }
 
     else {
-        free(name);
         goto bad_tag;
     }
 
     free(name);
+    free(value);
     return tag;
 
 bad_tag:
     LOG_ERR("invalid: %.*s", (int)len, line);
+    free(name);
+    free(value);
     return NULL;
 }
 
