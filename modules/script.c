@@ -374,7 +374,6 @@ run(struct module *mod)
     if (pid == 0) {
         /* Child */
 
-        setsid();
         setpgid(0, 0);
 
         /* Close pipe read ends */
