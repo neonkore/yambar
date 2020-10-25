@@ -301,6 +301,8 @@ run_loop(struct module *mod, int comm_fd)
                 break;
             }
 
+            LOG_DBG("recv: \"%.*s\"", (int)amount, data);
+
             data_received(mod, data, amount);
         }
 
