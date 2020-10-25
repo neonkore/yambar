@@ -22,6 +22,9 @@
 
 struct private {
     char *path;
+    size_t argc;
+    char **argv;
+
     struct particle *content;
 
     struct tag_set tags;
@@ -39,6 +42,10 @@ destroy(struct module *mod)
     struct private *m = mod->private;
     m->content->destroy(m->content);
     tag_set_destroy(&m->tags);
+
+    for (size_t i = 0; i < m->argc; i++)
+        free(m->argv[i]);
+    free(m->argv);
     free(m->recv_buf.data);
     free(m->path);
     free(m);
@@ -377,8 +384,13 @@ run(struct module *mod)
     if (pid == 0) {
         /* Child */
 
-        /* Restore signal handlers */
+        char *argv[1 + m->argc + 1];
+        argv[0] = m->path;
+        for (size_t i = 0; i < m->argc; i++)
+            argv[i + 1] = m->argv[i];
+        argv[1 + m->argc] = NULL;
 
+        /* Restore signal handlers */
         sigset_t mask;
         sigemptyset(&mask);
 
@@ -411,7 +423,6 @@ run(struct module *mod)
 
         close(comm_pipe[1]);
 
-        char *const argv[] = {NULL};
         execvp(m->path, argv);
 
     fail:
@@ -458,11 +469,16 @@ run(struct module *mod)
 }
 
 static struct module *
-script_new(const char *path, struct particle *_content)
+script_new(const char *path, size_t argc, const char *const argv[static argc],
+           struct particle *_content)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->path = strdup(path);
     m->content = _content;
+    m->argc = argc;
+    m->argv = malloc(argc * sizeof(m->argv[0]));
+    for (size_t i = 0; i < argc; i++)
+        m->argv[i] = strdup(argv[i]);
 
     struct module *mod = module_common_new();
     mod->private = m;
@@ -476,8 +492,30 @@ static struct module *
 from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *run = yml_get_value(node, "path");
+    const struct yml_node *args = yml_get_value(node, "args");
     const struct yml_node *c = yml_get_value(node, "content");
-    return script_new(yml_value_as_string(run), conf_to_particle(c, inherited));
+
+    size_t argc = args != NULL ? yml_list_length(args) : 0;
+    const char *argv[argc];
+
+    if (args != NULL) {
+        size_t i = 0;
+        for (struct yml_list_iter iter = yml_list_iter(args);
+             iter.node != NULL;
+             yml_list_next(&iter), i++)
+        {
+            argv[i] = yml_value_as_string(iter.node);
+        }
+    }
+
+    return script_new(
+        yml_value_as_string(run), argc, argv, conf_to_particle(c, inherited));
+}
+
+static bool
+conf_verify_args(keychain_t *chain, const struct yml_node *node)
+{
+    return conf_verify_list(chain, node, &conf_verify_string);
 }
 
 static bool
@@ -485,6 +523,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"path", true, &conf_verify_string},
+        {"args", false, &conf_verify_args},
         MODULE_COMMON_ATTRS,
     };
 
