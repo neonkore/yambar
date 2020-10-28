@@ -140,7 +140,7 @@ process_line(struct module *mod, const char *line, size_t len)
                 goto bad_tag;
 
             start *= 10;
-            start |= _start[i] - '0';
+            start += _start[i] - '0';
         }
 
         long end = 0;
@@ -149,7 +149,7 @@ process_line(struct module *mod, const char *line, size_t len)
                 goto bad_tag;
 
             end *= 10;
-            end |= _end[i] - '0';
+            end += _end[i] - '0';
         }
 
         if (type_len > 9 && memcmp(type, "realtime:", 9) == 0) {
