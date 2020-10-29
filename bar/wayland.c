@@ -136,7 +136,9 @@ seat_destroy(struct seat *seat)
 void *
 bar_backend_wayland_new(void)
 {
-    return calloc(1, sizeof(struct wayland_backend));
+    struct wayland_backend *backend = calloc(1, sizeof(struct wayland_backend));
+    backend->pipe_fds[0] = backend->pipe_fds[1] = -1;
+    return backend;
 }
 
 static void
@@ -948,6 +950,11 @@ cleanup(struct bar *_bar)
 {
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
+
+    if (backend->pipe_fds[0] >= 0)
+        close(backend->pipe_fds[0]);
+    if (backend->pipe_fds[1] >= 0)
+        close(backend->pipe_fds[1]);
 
     tll_foreach(backend->buffers, it) {
         if (it->item.wl_buf != NULL)
