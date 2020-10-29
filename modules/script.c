@@ -41,7 +41,10 @@ destroy(struct module *mod)
 {
     struct private *m = mod->private;
     m->content->destroy(m->content);
+
+    struct tag **tag_array = m->tags.tags;
     tag_set_destroy(&m->tags);
+    free(tag_array);
 
     for (size_t i = 0; i < m->argc; i++)
         free(m->argv[i]);
@@ -194,7 +197,10 @@ process_transaction(struct module *mod, size_t size)
         }
     }
 
+    struct tag **old_tag_array = m->tags.tags;
     tag_set_destroy(&m->tags);
+    free(old_tag_array);
+
     m->tags.tags = calloc(line_count, sizeof(m->tags.tags[0]));
     m->tags.count = line_count;
 
