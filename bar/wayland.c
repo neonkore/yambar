@@ -121,6 +121,8 @@ seat_destroy(struct seat *seat)
     if (seat == NULL)
         return;
 
+    free(seat->name);
+
     if (seat->pointer.theme != NULL)
         wl_cursor_theme_destroy(seat->pointer.theme);
     if (seat->wl_pointer != NULL)
