@@ -432,7 +432,7 @@ run(struct module *mod)
         execvp(m->path, argv);
 
     fail:
-        write(exec_pipe[1], &errno, sizeof(errno));
+        (void)!write(exec_pipe[1], &errno, sizeof(errno));
         close(exec_pipe[1]);
         close(comm_pipe[1]);
         _exit(errno);
