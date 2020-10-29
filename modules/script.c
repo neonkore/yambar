@@ -450,11 +450,13 @@ run(struct module *mod)
 
     if (r < 0) {
         LOG_ERRNO("failed to read from pipe");
+        close(comm_pipe[0]);
         return -1;
     }
 
     if (r > 0) {
         LOG_ERRNO_P("%s: failed to start", _errno, m->path);
+        close(comm_pipe[0]);
         waitpid(pid, NULL, 0);
         return -1;
     }
