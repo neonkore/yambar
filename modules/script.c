@@ -492,7 +492,7 @@ script_new(const char *path, size_t argc, const char *const argv[static argc],
 static struct module *
 from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
-    const struct yml_node *run = yml_get_value(node, "path");
+    const struct yml_node *path = yml_get_value(node, "path");
     const struct yml_node *args = yml_get_value(node, "args");
     const struct yml_node *c = yml_get_value(node, "content");
 
@@ -510,7 +510,22 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     }
 
     return script_new(
-        yml_value_as_string(run), argc, argv, conf_to_particle(c, inherited));
+        yml_value_as_string(path), argc, argv, conf_to_particle(c, inherited));
+}
+
+static bool
+conf_verify_path(keychain_t *chain, const struct yml_node *node)
+{
+    if (!conf_verify_string(chain, node))
+        return false;
+
+    const char *path = yml_value_as_string(node);
+    if (strlen(path) < 1 || path[0] != '/') {
+        LOG_ERR("%s: path must be absolute", conf_err_prefix(chain, node));
+        return false;
+    }
+
+    return true;
 }
 
 static bool
@@ -523,7 +538,7 @@ static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"path", true, &conf_verify_string},
+        {"path", true, &conf_verify_path},
         {"args", false, &conf_verify_args},
         MODULE_COMMON_ATTRS,
     };
