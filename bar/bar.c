@@ -36,19 +36,22 @@ calculate_widths(const struct private *b, int *left, int *center, int *right)
 
     for (size_t i = 0; i < b->left.count; i++) {
         struct exposable *e = b->left.exps[i];
-        assert(e != NULL);
+        if (e == NULL)
+            continue;
         *left += b->left_spacing + e->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->center.count; i++) {
         struct exposable *e = b->center.exps[i];
-        assert(e != NULL);
+        if (e == NULL)
+            continue;
         *center += b->left_spacing + e->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->right.count; i++) {
         struct exposable *e = b->right.exps[i];
-        assert(e != NULL);
+        if (e == NULL)
+            continue;
         *right += b->left_spacing + e->width + b->right_spacing;
     }
 
@@ -116,6 +119,8 @@ expose(const struct bar *_bar)
     int x = bar->border.width + bar->left_margin - bar->left_spacing;
     for (size_t i = 0; i < bar->left.count; i++) {
         const struct exposable *e = bar->left.exps[i];
+        if (e == NULL)
+            continue;
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
@@ -123,6 +128,8 @@ expose(const struct bar *_bar)
     x = bar->width / 2 - center_width / 2 - bar->left_spacing;
     for (size_t i = 0; i < bar->center.count; i++) {
         const struct exposable *e = bar->center.exps[i];
+        if (e == NULL)
+            continue;
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
@@ -135,6 +142,8 @@ expose(const struct bar *_bar)
 
     for (size_t i = 0; i < bar->right.count; i++) {
         const struct exposable *e = bar->right.exps[i];
+        if (e == NULL)
+            continue;
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
         x += bar->left_spacing + e->width + bar->right_spacing;
     }
