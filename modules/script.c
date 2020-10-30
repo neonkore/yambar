@@ -106,7 +106,7 @@ process_line(struct module *mod, const char *line, size_t len)
     struct tag *tag = NULL;
 
     if (type_len == 6 && memcmp(type, "string", 6) == 0)
-        tag = tag_new_string(mod, name, _value);
+        tag = tag_new_string(mod, name, value);
 
     else if (type_len == 3 && memcmp(type, "int", 3) == 0) {
         long value = strtol(_value, NULL, 0);
