@@ -67,6 +67,16 @@ content(struct module *mod)
     return e;
 }
 
+
+static bool
+str_to_bool(const char *s)
+{
+    return strcasecmp(s, "on") == 0 ||
+        strcasecmp(s, "true") == 0 ||
+        strcasecmp(s, "yes") == 0 ||
+        strtoul(s, NULL, 0) > 0;
+}
+
 static struct tag *
 process_line(struct module *mod, const char *line, size_t len)
 {
@@ -112,7 +122,7 @@ process_line(struct module *mod, const char *line, size_t len)
         tag = tag_new_int(mod, name, strtol(value, NULL, 0));
 
     else if (type_len == 4 && memcmp(type, "bool", 4) == 0)
-        tag = tag_new_bool(mod, name, strtol(value, NULL, 0));
+        tag = tag_new_bool(mod, name, str_to_bool(value));
 
     else if (type_len == 5 && memcmp(type, "float", 5) == 0)
         tag = tag_new_float(mod, name, strtod(value, NULL));
