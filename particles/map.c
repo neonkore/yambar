@@ -87,11 +87,13 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 {
     const struct private *p = particle->private;
     const struct tag *tag = tag_for_name(tags, p->tag);
-    assert(tag != NULL || p->default_particle != NULL);
 
-    if (tag == NULL)
-        return p->default_particle->instantiate(p->default_particle, tags);
-
+    if (tag == NULL) {
+        if (p->default_particle != NULL)
+            return p->default_particle->instantiate(p->default_particle, tags);
+        else
+            return NULL;
+    }
 
     const char *tag_value = tag->as_string(tag);
     struct particle *pp = NULL;
