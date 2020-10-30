@@ -108,20 +108,14 @@ process_line(struct module *mod, const char *line, size_t len)
     if (type_len == 6 && memcmp(type, "string", 6) == 0)
         tag = tag_new_string(mod, name, value);
 
-    else if (type_len == 3 && memcmp(type, "int", 3) == 0) {
-        long value = strtol(_value, NULL, 0);
-        tag = tag_new_int(mod, name, value);
-    }
+    else if (type_len == 3 && memcmp(type, "int", 3) == 0)
+        tag = tag_new_int(mod, name, strtol(value, NULL, 0));
 
-    else if (type_len == 4 && memcmp(type, "bool", 4) == 0) {
-        bool value = strtol(_value, NULL, 0);
-        tag = tag_new_bool(mod, name, value);
-    }
+    else if (type_len == 4 && memcmp(type, "bool", 4) == 0)
+        tag = tag_new_bool(mod, name, strtol(value, NULL, 0));
 
-    else if (type_len == 5 && memcmp(type, "float", 5) == 0) {
-        double value = strtod(_value, NULL);
-        tag = tag_new_float(mod, name, value);
-    }
+    else if (type_len == 5 && memcmp(type, "float", 5) == 0)
+        tag = tag_new_float(mod, name, strtod(value, NULL));
 
     else if ((type_len > 6 && memcmp(type, "range:", 6) == 0) ||
              (type_len > 9 && memcmp(type, "realtime:", 9 == 0)))
@@ -160,8 +154,7 @@ process_line(struct module *mod, const char *line, size_t len)
             goto bad_tag;
         }
 
-        long value = strtol(_value, NULL, 0);
-        tag = tag_new_int_range(mod, name, value, start, end);
+        tag = tag_new_int_range(mod, name, strtol(value, NULL, 0), start, end);
     }
 
     else {
