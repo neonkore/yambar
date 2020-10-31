@@ -67,16 +67,6 @@ content(struct module *mod)
     return e;
 }
 
-
-static bool
-str_to_bool(const char *s)
-{
-    return strcasecmp(s, "on") == 0 ||
-        strcasecmp(s, "true") == 0 ||
-        strcasecmp(s, "yes") == 0 ||
-        strtoul(s, NULL, 0) > 0;
-}
-
 static struct tag *
 process_line(struct module *mod, const char *line, size_t len)
 {
@@ -118,14 +108,43 @@ process_line(struct module *mod, const char *line, size_t len)
     if (type_len == 6 && memcmp(type, "string", 6) == 0)
         tag = tag_new_string(mod, name, value);
 
-    else if (type_len == 3 && memcmp(type, "int", 3) == 0)
-        tag = tag_new_int(mod, name, strtol(value, NULL, 0));
+    else if (type_len == 3 && memcmp(type, "int", 3) == 0) {
+        errno = 0;
+        char *end;
+        long v = strtol(value, &end, 0);
 
-    else if (type_len == 4 && memcmp(type, "bool", 4) == 0)
-        tag = tag_new_bool(mod, name, str_to_bool(value));
+        if (errno != 0 || *end != '\0') {
+            LOG_ERR("tag value is not an integer: %s", value);
+            goto bad_tag;
+        }
+        tag = tag_new_int(mod, name, v);
+    }
 
-    else if (type_len == 5 && memcmp(type, "float", 5) == 0)
-        tag = tag_new_float(mod, name, strtod(value, NULL));
+    else if (type_len == 4 && memcmp(type, "bool", 4) == 0) {
+        bool v;
+        if (strcmp(value, "true") == 0)
+            v = true;
+        else if (strcmp(value, "false") == 0)
+            v = false;
+        else {
+            LOG_ERR("tag value is not a boolean: %s", value);
+            goto bad_tag;
+        }
+        tag = tag_new_bool(mod, name, v);
+    }
+
+    else if (type_len == 5 && memcmp(type, "float", 5) == 0) {
+        errno = 0;
+        char *end;
+        double v = strtod(value, &end);
+
+        if (errno != 0 || *end != '\0') {
+            LOG_ERR("tag value is not a float: %s", value);
+            goto bad_tag;
+        }
+
+        tag = tag_new_float(mod, name, v);
+    }
 
     else if ((type_len > 6 && memcmp(type, "range:", 6) == 0) ||
              (type_len > 9 && memcmp(type, "realtime:", 9 == 0)))
@@ -133,8 +152,12 @@ process_line(struct module *mod, const char *line, size_t len)
         const char *_start = type + 6;
         const char *split = memchr(_start, '-', type_len - 6);
 
-        if (split == NULL || split == _start || (split + 1) - type >= type_len)
+        if (split == NULL || split == _start || (split + 1) - type >= type_len) {
+            LOG_ERR(
+                "tag range delimiter ('-') not found in type: %.*s",
+                (int)type_len, type);
             goto bad_tag;
+        }
 
         const char *_end = split + 1;
 
@@ -143,8 +166,12 @@ process_line(struct module *mod, const char *line, size_t len)
 
         long start = 0;
         for (size_t i = 0; i < start_len; i++) {
-            if (!(_start[i] >= '0' && _start[i] <= '9'))
+            if (!(_start[i] >= '0' && _start[i] <= '9')) {
+                LOG_ERR(
+                    "tag range start is not an integer: %.*s",
+                    (int)start_len, _start);
                 goto bad_tag;
+            }
 
             start *= 10;
             start += _start[i] - '0';
@@ -152,19 +179,37 @@ process_line(struct module *mod, const char *line, size_t len)
 
         long end = 0;
         for (size_t i = 0; i < end_len; i++) {
-            if (!(_end[i] >= '0' && _end[i] < '9'))
+            if (!(_end[i] >= '0' && _end[i] < '9')) {
+                LOG_ERR(
+                    "tag range end is not an integer: %.*s",
+                    (int)end_len, _end);
                 goto bad_tag;
+            }
 
             end *= 10;
             end += _end[i] - '0';
         }
 
         if (type_len > 9 && memcmp(type, "realtime:", 9) == 0) {
-            LOG_WARN("unimplemented: realtime tag");
+            LOG_ERR("unimplemented: realtime tag");
             goto bad_tag;
         }
 
-        tag = tag_new_int_range(mod, name, strtol(value, NULL, 0), start, end);
+        errno = 0;
+        char *vend;
+        long v = strtol(value, &vend, 0);
+        if (errno != 0 || *vend != '\0') {
+            LOG_ERR("tag value is not an integer: %s", value);
+            goto bad_tag;
+        }
+
+        if (v < start || v > end) {
+            LOG_ERR("tag value is outside range: %ld <= %ld <= %ld",
+                    start, v, end);
+            goto bad_tag;
+        }
+
+        tag = tag_new_int_range(mod, name, v, start, end);
     }
 
     else {
@@ -176,7 +221,7 @@ process_line(struct module *mod, const char *line, size_t len)
     return tag;
 
 bad_tag:
-    LOG_ERR("invalid: %.*s", (int)len, line);
+    LOG_ERR("invalid tag: %.*s", (int)len, line);
     free(name);
     free(value);
     return NULL;
