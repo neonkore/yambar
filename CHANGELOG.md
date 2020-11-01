@@ -10,6 +10,8 @@
 * alsa: `percent` tag. This is an integer tag that represents the
   current volume as a percentage value
   (https://codeberg.org/dnkl/yambar/issues/10).
+* river: added documentation
+  (https://codeberg.org/dnkl/yambar/issues/9).
 
 
 ### Deprecated
