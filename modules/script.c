@@ -475,14 +475,17 @@ run(struct module *mod)
             goto fail;
         }
 
+        /* We're done with the redirection pipe */
         close(comm_pipe[1]);
+        comm_pipe[1] = -1;
 
         execvp(m->path, argv);
 
     fail:
         (void)!write(exec_pipe[1], &errno, sizeof(errno));
         close(exec_pipe[1]);
-        close(comm_pipe[1]);
+        if (comm_pipe[1] >= 0)
+            close(comm_pipe[1]);
         _exit(errno);
     }
 
