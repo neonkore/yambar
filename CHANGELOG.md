@@ -12,6 +12,8 @@
   (https://codeberg.org/dnkl/yambar/issues/10).
 * river: added documentation
   (https://codeberg.org/dnkl/yambar/issues/9).
+* script: new module, adds support for custom user scripts
+  (https://codeberg.org/dnkl/yambar/issues/11).
 
 
 ### Deprecated
@@ -29,6 +31,8 @@
 
 ### Security
 ### Contributors
+
+* [JorwLNKwpH](https://codeberg.org/JorwLNKwpH)
 
 
 ## 1.5.0
