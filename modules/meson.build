@@ -9,7 +9,7 @@ mpd = dependency('libmpdclient')
 xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 
 # Module name -> (source-list, dep-list)
-deps = {
+mod_data = {
   'alsa': [[], [m, alsa]],
   'backlight': [[], [m, udev]],
   'battery': [[], [udev]],
@@ -20,11 +20,11 @@ deps = {
   'network': [[], []],
   'removables': [[], [dynlist, udev]],
   'script': [[], []],
-  'sway_xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
+  'sway-xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
 }
 
 if backend_x11
-  deps += {
+  mod_data += {
     'xkb': [[], [xcb_stuff, xcb_xkb]],
     'xwindow': [[], [xcb_stuff]],
   }
@@ -49,25 +49,25 @@ if backend_wayland
       command: [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
   endforeach
 
-  deps += {
-    'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], []],
+  mod_data += {
+    'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], [dynlist]],
   }
 endif
 
-foreach mod, data : deps
+foreach mod, data : mod_data
   sources = data[0]
-  dep = data[1]
+  deps = data[1]
 
   if plugs_as_libs
     shared_module(mod, '@0@.c'.format(mod), sources,
-                  dependencies: [module_sdk] + dep,
+                  dependencies: [module_sdk] + deps,
                   name_prefix: 'module_',
                   install: true,
                   install_dir: join_paths(get_option('libdir'), 'yambar'))
   else
     modules += [declare_dependency(
       sources: ['@0@.c'.format(mod)] + sources,
-      dependencies: [module_sdk] + dep,
-      compile_args: '-DHAVE_PLUGIN_@0@'.format(mod))]
+      dependencies: [module_sdk] + deps,
+      compile_args: '-DHAVE_PLUGIN_@0@'.format(mod.underscorify()))]
   endif
 endforeach
