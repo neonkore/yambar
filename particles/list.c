@@ -118,6 +118,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     for (size_t i = 0; i < p->count; i++) {
         const struct particle *pp = p->particles[i];
         e->exposables[i] = pp->instantiate(pp, tags);
+        assert(e->exposables[i] != NULL);
     }
 
     char *on_click = tags_expand_template(particle->on_click_template, tags);
