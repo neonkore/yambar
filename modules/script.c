@@ -10,7 +10,6 @@
 
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <sys/signalfd.h>
 
 #define LOG_MODULE "script"
 #define LOG_ENABLE_DBG 0
@@ -315,34 +314,13 @@ data_received(struct module *mod, const char *data, size_t len)
 }
 
 static int
-run_loop(struct module *mod, int comm_fd)
+run_loop(struct module *mod, pid_t pid, int comm_fd)
 {
-    //struct private *m = mod;
-
-    sigset_t mask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGCHLD);
-
-    /* Block normal signal handling - we're using a signalfd instead */
-    sigset_t original_mask;
-    if (pthread_sigmask(SIG_BLOCK, &mask, &original_mask) < 0) {
-        LOG_ERRNO("failed to block SIGCHLD");
-        return -1;
-    }
-
-    int sig_fd = signalfd(-1, &mask, SFD_NONBLOCK | SFD_CLOEXEC);
-    if (sig_fd < 0) {
-        LOG_ERRNO("failed to create signal FD");
-        pthread_sigmask(SIG_SETMASK, &original_mask, NULL);
-        return -1;
-    }
-
     int ret = 0;
 
     while (true) {
         struct pollfd fds[] = {
             {.fd = mod->abort_fd, .events = POLLIN},
-            {.fd = sig_fd, .events = POLLIN},
             {.fd = comm_fd, .events = POLLIN},
         };
 
@@ -354,7 +332,7 @@ run_loop(struct module *mod, int comm_fd)
             break;
         }
 
-        if (fds[2].revents & POLLIN) {
+        if (fds[1].revents & POLLIN) {
             char data[4096];
             ssize_t amount = read(comm_fd, data, sizeof(data));
             if (amount < 0) {
@@ -373,36 +351,17 @@ run_loop(struct module *mod, int comm_fd)
         }
 
         if (fds[1].revents & POLLHUP) {
-            LOG_ERR("signal FD closed unexpectedly");
-            ret = 1;
-            break;
-        }
-
-        if (fds[2].revents & POLLHUP) {
             /* Child's stdout closed */
+            LOG_DBG("script pipe closed (script terminated?)");
             break;
         }
 
-        if (fds[0].revents & POLLIN)
-            break;
-
-        if (fds[1].revents & POLLIN) {
-            struct signalfd_siginfo info;
-            ssize_t amount = read(sig_fd, &info, sizeof(info));
-
-            if (amount < 0) {
-                LOG_ERRNO("failed to read from signal FD");
-                break;
-            }
-
-            assert(info.ssi_signo == SIGCHLD);
-            LOG_WARN("script died");
+        if (fds[0].revents & POLLIN) {
+            /* Aborted */
             break;
         }
     }
 
-    close(sig_fd);
-    pthread_sigmask(SIG_SETMASK, &original_mask, NULL);
     return ret;
 }
 
@@ -411,12 +370,14 @@ run(struct module *mod)
 {
     struct private *m = mod->private;
 
+    /* Pipe to detect exec() failures */
     int exec_pipe[2];
     if (pipe2(exec_pipe, O_CLOEXEC) < 0) {
         LOG_ERRNO("failed to create pipe");
         return -1;
     }
 
+    /* Stdout redirection pipe */
     int comm_pipe[2];
     if (pipe(comm_pipe) < 0) {
         LOG_ERRNO("failed to create stdin/stdout redirection pipe");
@@ -438,13 +399,14 @@ run(struct module *mod)
     if (pid == 0) {
         /* Child */
 
+        /* Construct argv for execvp() */
         char *argv[1 + m->argc + 1];
         argv[0] = m->path;
         for (size_t i = 0; i < m->argc; i++)
             argv[i + 1] = m->argv[i];
         argv[1 + m->argc] = NULL;
 
-        /* Restore signal handlers */
+        /* Restore signal handlers and signal mask */
         sigset_t mask;
         sigemptyset(&mask);
 
@@ -457,6 +419,7 @@ run(struct module *mod)
             goto fail;
         }
 
+        /* New process group, so that we can use killpg()  */
         setpgid(0, 0);
 
         /* Close pipe read ends */
@@ -505,6 +468,7 @@ run(struct module *mod)
     int _errno;
     static_assert(sizeof(_errno) == sizeof(errno), "errno size mismatch");
 
+    /* Wait for errno from child, or FD being closed in execvp() */
     int r = read(exec_pipe[0], &_errno, sizeof(_errno));
     close(exec_pipe[0]);
 
@@ -521,10 +485,11 @@ run(struct module *mod)
         return -1;
     }
 
+    /* Pipe was closed. I.e. execvp() succeeded */
+    assert(r == 0);
     LOG_DBG("script running under PID=%u", pid);
 
-    int ret = run_loop(mod, comm_pipe[0]);
-
+    int ret = run_loop(mod, pid, comm_pipe[0]);
     close(comm_pipe[0]);
     if (waitpid(pid, NULL, WNOHANG) == 0) {
         killpg(pid, SIGTERM);
