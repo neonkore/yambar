@@ -95,13 +95,12 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 {
     const struct private *p = particle->private;
     const struct tag *tag = tag_for_name(tags, p->tag);
-    assert(tag != NULL);
 
     assert(p->count > 0);
 
-    long value = tag->as_int(tag);
-    long min = tag->min(tag);
-    long max = tag->max(tag);
+    long value = tag != NULL ? tag->as_int(tag) : 0;
+    long min = tag != NULL ? tag->min(tag) : 0;
+    long max = tag != NULL ? tag->max(tag) : 0;
 
     assert(value >= min && value <= max);
     assert(max >= min);
