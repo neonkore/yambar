@@ -23,7 +23,6 @@ struct exposable *
 module_begin_expose(struct module *mod)
 {
     struct exposable *e = mod->content(mod);
-    if (e != NULL)
-        e->begin_expose(e);
+    e->begin_expose(e);
     return e;
 }
