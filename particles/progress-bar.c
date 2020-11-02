@@ -210,6 +210,8 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     epriv->exposables[idx++] = p->end_marker->instantiate(p->end_marker, tags);
 
     assert(idx == epriv->count);
+    for (size_t i = 0; i < epriv->count; i++)
+        assert(epriv->exposables[i] != NULL);
 
     char *on_click = tags_expand_template(particle->on_click_template, tags);
 
