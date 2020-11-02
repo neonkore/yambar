@@ -8,6 +8,7 @@
 #include "../config-verify.h"
 #include "../particle.h"
 #include "../plugin.h"
+#include "dynlist.h"
 
 struct particle_map {
     const char *tag_value;
@@ -89,10 +90,9 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     const struct tag *tag = tag_for_name(tags, p->tag);
 
     if (tag == NULL) {
-        if (p->default_particle != NULL)
-            return p->default_particle->instantiate(p->default_particle, tags);
-        else
-            return NULL;
+        return p->default_particle != NULL
+            ? p->default_particle->instantiate(p->default_particle, tags)
+            : dynlist_exposable_new(NULL, 0, 0, 0);
     }
 
     const char *tag_value = tag->as_string(tag);
@@ -108,13 +108,16 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         break;
     }
 
-    if (pp == NULL) {
-        assert(p->default_particle != NULL);
-        pp = p->default_particle;
-    }
-
     struct eprivate *e = calloc(1, sizeof(*e));
-    e->exposable = pp->instantiate(pp, tags);
+
+    if (pp != NULL)
+        e->exposable = pp->instantiate(pp, tags);
+    else if (p->default_particle != NULL)
+        e->exposable = p->default_particle->instantiate(p->default_particle, tags);
+    else
+        e->exposable = dynlist_exposable_new(NULL, 0, 0, 0);
+
+    assert(e->exposable != NULL);
 
     char *on_click = tags_expand_template(particle->on_click_template, tags);
     struct exposable *exposable = exposable_common_new(particle, on_click);
