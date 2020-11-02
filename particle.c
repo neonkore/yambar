@@ -219,14 +219,25 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 
                 LOG_DBG("executing on-click handler: %s", cmd);
 
+                sigset_t mask;
+                sigemptyset(&mask);
+
+                const struct sigaction sa = {.sa_handler = SIG_DFL};
+                if (sigaction(SIGINT, &sa, NULL) < 0 ||
+                    sigaction(SIGTERM, &sa, NULL) < 0 ||
+                    sigaction(SIGCHLD, &sa, NULL) < 0 ||
+                    sigprocmask(SIG_SETMASK, &mask, NULL) < 0)
+                {
+                    goto fail;
+                }
+
                 /* Redirect stdin/stdout/stderr to /dev/null */
                 int dev_null_r = open("/dev/null", O_RDONLY | O_CLOEXEC);
                 int dev_null_w = open("/dev/null", O_WRONLY | O_CLOEXEC);
 
                 if (dev_null_r == -1 || dev_null_w == -1) {
                     LOG_ERRNO("/dev/null: failed to open");
-                    (void)!write(pipe_fds[1], &errno, sizeof(errno));
-                    _exit(1);
+                    goto fail;
                 }
 
                 if (dup2(dev_null_r, STDIN_FILENO) == -1 ||
@@ -234,15 +245,20 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
                     dup2(dev_null_w, STDERR_FILENO) == -1)
                 {
                     LOG_ERRNO("failed to redirect stdin/stdout/stderr");
-                    (void)!write(pipe_fds[1], &errno, sizeof(errno));
-                    _exit(1);
+                    goto fail;
                 }
+
+                /* Close *all* other FDs (e.g. script modules' FDs) */
+                for (int i = STDERR_FILENO + 1; i < 65536; i++)
+                    close(i);
 
                 execvp(argv[0], argv);
 
+            fail:
                 /* Signal failure to parent process */
                 (void)!write(pipe_fds[1], &errno, sizeof(errno));
-                _exit(1);
+                close(pipe_fds[1]);
+                _exit(errno);
                 break;
 
             default:
