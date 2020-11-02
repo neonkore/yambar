@@ -463,13 +463,12 @@ run(struct module *mod)
         close(exec_pipe[0]);
         close(comm_pipe[0]);
 
-        /* Re-direct stdin/stdout/stderr */
-        int dev_null = open("/dev/null", O_RDWR);
+        /* Re-direct stdin/stdout */
+        int dev_null = open("/dev/null", O_RDONLY);
         if (dev_null < 0)
             goto fail;
 
         if (dup2(dev_null, STDIN_FILENO) < 0 ||
-            dup2(dev_null, STDERR_FILENO) < 0 ||
             dup2(comm_pipe[1], STDOUT_FILENO) < 0)
         {
             goto fail;
