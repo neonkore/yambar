@@ -9,7 +9,9 @@
 #include <fcntl.h>
 
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/wait.h>
+#include <sys/timerfd.h>
 
 #define LOG_MODULE "script"
 #define LOG_ENABLE_DBG 0
@@ -491,12 +493,61 @@ run(struct module *mod)
 
     int ret = run_loop(mod, pid, comm_pipe[0]);
     close(comm_pipe[0]);
-    if (waitpid(pid, NULL, WNOHANG) == 0) {
-        killpg(pid, SIGTERM);
 
-        /* TODO: send SIGKILL after X seconds */
-        waitpid(pid, NULL, 0);
-    }
+    if (waitpid(pid, NULL, WNOHANG) == 0) {
+        static const struct {
+            int signo;
+            int timeout;
+            const char *name;
+        } sig_info[] = {
+            {SIGINT, 2, "SIGINT"},
+            {SIGTERM, 5, "SIGTERM"},
+            {SIGKILL, 0, "SIGKILL"},
+        };
+
+        for (size_t i = 0; i < sizeof(sig_info) / sizeof(sig_info[0]); i++) {
+            struct timeval start;
+            gettimeofday(&start, NULL);
+
+            const int signo = sig_info[i].signo;
+            const int timeout = sig_info[i].timeout;
+            const char *const name __attribute__((unused)) = sig_info[i].name;
+
+            LOG_DBG("sending %s to PID=%u (timeout=%ds)", name, pid, timeout);
+            killpg(pid, signo);
+
+            /*
+             * Child is unlikely to terminate *immediately*. Wait a
+             * *short* period of time before checking waitpid() the
+             * first time
+             */
+            usleep(10000);
+
+            pid_t waited_pid;
+            while ((waited_pid = waitpid(
+                        pid, NULL, timeout > 0 ? WNOHANG : 0)) == 0)
+            {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+
+                struct timeval elapsed;
+                timersub(&now, &start, &elapsed);
+
+                if (elapsed.tv_sec >= timeout)
+                    break;
+
+                /* Don't spinning */
+                thrd_yield();
+                usleep(100000);  /* 100ms */
+            }
+
+            if (waited_pid == pid) {
+                /* Child finally dead */
+                break;
+            }
+        }
+    } else
+        LOG_DBG("PID=%u already terminated", pid);
 
     return ret;
 }
