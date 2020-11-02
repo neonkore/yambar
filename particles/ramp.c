@@ -122,6 +122,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     struct eprivate *e = calloc(1, sizeof(*e));
     e->exposable = pp->instantiate(pp, tags);
+    assert(e->exposable != NULL);
 
     char *on_click = tags_expand_template(particle->on_click_template, tags);
     struct exposable *exposable = exposable_common_new(particle, on_click);
