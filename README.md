@@ -62,7 +62,7 @@ bar:
 
 For details, see the man pages (**yambar**(5) is a good start).
 
-Example configurations can be found in [examples](examples/configuration).
+Example configurations can be found in [examples](examples/configurations).
 
 
 ## Modules
