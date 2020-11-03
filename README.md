@@ -76,6 +76,8 @@ Available modules:
 * mpd
 * network
 * removables
+* river
+* sway-xkb
 * xkb (_XCB backend only_)
 * xwindow (_XCB backend only_)
 
