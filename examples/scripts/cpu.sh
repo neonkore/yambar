@@ -16,7 +16,7 @@
 #  cpuN-1 range 0-100
 #
 # I.e. ‘cpu’ is the average (or aggregated) CPU usage, while cpuX is a
-# specific CPUs usage.
+# specific CPU’s usage.
 #
 # Example configuration (update every second):
 #
