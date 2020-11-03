@@ -79,6 +79,7 @@ Available modules:
 * network
 * removables
 * river
+* script (see script [examples](examples/scripts))
 * sway-xkb
 * xkb (_XCB backend only_)
 * xwindow (_XCB backend only_)
