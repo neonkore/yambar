@@ -27,6 +27,7 @@
   (https://codeberg.org/dnkl/yambar/issues/12).
 * mpd: fix compilation with clang
   (https://codeberg.org/dnkl/yambar/issues/16).
+* Crash when the alpha component in a color value was 0.
 
 
 ### Security
