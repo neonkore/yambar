@@ -27,13 +27,6 @@
 #include "../config-verify.h"
 #include "../plugin.h"
 
-enum state {
-    STATE_OFFLINE = 1000,
-    STATE_STOP = MPD_STATE_STOP,
-    STATE_PAUSE = MPD_STATE_PAUSE,
-    STATE_PLAY = MPD_STATE_PLAY,
-};
-
 struct private {
     char *host;
     uint16_t port;
@@ -41,7 +34,7 @@ struct private {
 
     struct mpd_connection *conn;
 
-    enum state state;
+    enum mpd_state state;
     bool repeat;
     bool random;
     bool consume;
@@ -127,7 +120,7 @@ content(struct module *mod)
     /* Calculate what 'elapsed' is now */
     uint64_t elapsed = m->elapsed.value;
 
-    if (m->state == STATE_PLAY) {
+    if (m->state == MPD_STATE_PLAY) {
         elapsed += timespec_diff_milli_seconds(&now, &m->elapsed.when);
         if (elapsed > m->duration) {
             LOG_DBG(
@@ -148,15 +141,19 @@ content(struct module *mod)
 
     /* State as string */
     const char *state_str = NULL;
-    switch (m->state) {
-    case STATE_OFFLINE: state_str = "offline"; break;
-    case STATE_STOP:    state_str = "stopped"; break;
-    case STATE_PAUSE:   state_str = "paused"; break;
-    case STATE_PLAY:    state_str = "playing"; break;
+    if (m->conn == NULL)
+        state_str = "offline";
+    else {
+        switch (m->state) {
+        case MPD_STATE_UNKNOWN: state_str = "unknown"; break;
+        case MPD_STATE_STOP:    state_str = "stopped"; break;
+        case MPD_STATE_PAUSE:   state_str = "paused"; break;
+        case MPD_STATE_PLAY:    state_str = "playing"; break;
+        }
     }
 
     /* Tell particle to real-time track? */
-    enum tag_realtime_unit realtime = m->state == STATE_PLAY
+    enum tag_realtime_unit realtime = m->state == MPD_STATE_PLAY
         ? TAG_REALTIME_MSECS : TAG_REALTIME_NONE;
 
     struct tag_set tags = {
@@ -384,7 +381,7 @@ run(struct module *mod)
         free(m->album); m->album = NULL;
         free(m->artist); m->artist = NULL;
         free(m->title); m->title = NULL;
-        m->state = STATE_OFFLINE;
+        m->state = MPD_STATE_UNKNOWN;
         m->elapsed.value = m->duration = 0;
         m->elapsed.when.tv_sec = m->elapsed.when.tv_nsec = 0;
         mtx_unlock(&mod->lock);
@@ -579,7 +576,7 @@ mpd_new(const char *host, uint16_t port, struct particle *label)
     priv->host = strdup(host);
     priv->port = port;
     priv->label = label;
-    priv->state = STATE_OFFLINE;
+    priv->state = MPD_STATE_UNKNOWN;
     priv->refresh_abort_fd = -1;
 
     struct module *mod = module_common_new();

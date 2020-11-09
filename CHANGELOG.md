@@ -23,6 +23,8 @@
 * Memory leak when a YAML parsing error was encountered.
 * clock: update every second when necessary
   (https://codeberg.org/dnkl/yambar/issues/12).
+* mpd: fix compilation with clang
+  (https://codeberg.org/dnkl/yambar/issues/16).
 
 
 ### Security
