@@ -124,11 +124,11 @@ seat_destroy(struct seat *seat)
     if (seat->pointer.theme != NULL)
         wl_cursor_theme_destroy(seat->pointer.theme);
     if (seat->wl_pointer != NULL)
-        wl_pointer_destroy(seat->wl_pointer);
+        wl_pointer_release(seat->wl_pointer);
     if (seat->pointer.surface != NULL)
         wl_surface_destroy(seat->pointer.surface);
     if (seat->seat != NULL)
-        wl_seat_destroy(seat->seat);
+        wl_seat_release(seat->seat);
 }
 
 void *
@@ -964,7 +964,7 @@ cleanup(struct bar *_bar)
         if (mon->xdg != NULL)
             zxdg_output_v1_destroy(mon->xdg);
         if (mon->output != NULL)
-            wl_output_destroy(mon->output);
+            wl_output_release(mon->output);
         tll_remove(backend->monitors, it);
     }
 
@@ -987,8 +987,10 @@ cleanup(struct bar *_bar)
         wl_shm_destroy(backend->shm);
     if (backend->registry != NULL)
         wl_registry_destroy(backend->registry);
-    if (backend->display != NULL)
+    if (backend->display != NULL) {
+        wl_display_flush(backend->display);
         wl_display_disconnect(backend->display);
+    }
 
     /* Destroyed when freeing buffer list */
     bar->pix = NULL;
