@@ -291,7 +291,10 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
     const char *status = readline_from_fd(status_fd);
     enum state state;
 
-    if (strcmp(status, "Full") == 0)
+    if (status == NULL) {
+        LOG_WARN("failed to read battery state");
+        state = STATE_DISCHARGING;
+    } else if (strcmp(status, "Full") == 0)
         state = STATE_FULL;
     else if (strcmp(status, "Charging") == 0)
         state = STATE_CHARGING;
