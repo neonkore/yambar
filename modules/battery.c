@@ -297,7 +297,7 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
         state = STATE_CHARGING;
     else if (strcmp(status, "Discharging") == 0)
         state = STATE_DISCHARGING;
-    else if (strcmp(state, "Not charging") == 0)
+    else if (strcmp(status, "Not charging") == 0)
         state = STATE_DISCHARGING;
     else if (strcmp(status, "Unknown") == 0)
         state = STATE_DISCHARGING;
