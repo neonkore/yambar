@@ -65,8 +65,6 @@ while true; do
     IFS=$'\n' readarray -t all_cpu_stats < <(grep -e "^cpu" /proc/stat)
 
     usage=()           # CPU usage in percent, 0 <= x <= 100
-    idle=()            # idle time since boot, in jiffies
-    total=()           # total time since boot, in jiffies
 
     average_idle=0  # All CPUs idle time since boot
     average_total=0 # All CPUs total time since boot
@@ -75,28 +73,37 @@ while true; do
         # Split this CPUs stats into an array
         stats=($(echo "${all_cpu_stats[$((i + 1))]}"))
 
-        # Clear (zero out) “cpuN”
-        unset "stats[0]"
+        # man procfs(5)
+        user=${stats[1]}
+        nice=${stats[2]}
+        system=${stats[3]}
+        idle=${stats[4]}
+        iowait=${stats[5]}
+        irq=${stats[6]}
+        softirq=${stats[7]}
+        steal=${stats[8]}
+        guest=${stats[9]}
+        guestnice=${stats[10]}
 
-        # CPU idle time since boot
-        idle[i]=${stats[4]}
-        average_idle=$((average_idle + idle[i]))
+        # Guest time already accounted for in user
+        user=$((user - guest))
+        nice=$((nice - guestnice))
 
-        # CPU total time since boot
-        total[i]=0
-        for v in "${stats[@]}"; do
-            total[i]=$((total[i] + v))
-        done
-        average_total=$((average_total + total[i]))
+        idle=$((idle + iowait))
+
+        total=$((user + nice + system + irq + softirq + idle + steal + guest + guestnice))
+
+        average_idle=$((average_idle + idle))
+        average_total=$((average_total + total))
 
         # Diff since last sample
-        diff_idle=$((idle[i] - prev_idle[i]))
-        diff_total=$((total[i] - prev_total[i]))
+        diff_idle=$((idle - prev_idle[i]))
+        diff_total=$((total - prev_total[i]))
 
         usage[i]=$((100 * (diff_total - diff_idle) / diff_total))
 
-        prev_idle[i]=${idle[i]}
-        prev_total[i]=${total[i]}
+        prev_idle[i]=${idle}
+        prev_total[i]=${total}
     done
 
     diff_average_idle=$((average_idle - prev_average_idle))
