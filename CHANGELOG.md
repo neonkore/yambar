@@ -12,6 +12,8 @@
   (https://codeberg.org/dnkl/yambar/issues/10).
 * river: added documentation
   (https://codeberg.org/dnkl/yambar/issues/9).
+* script: new module, adds support for custom user scripts
+  (https://codeberg.org/dnkl/yambar/issues/11).
 
 
 ### Deprecated
@@ -25,10 +27,13 @@
   (https://codeberg.org/dnkl/yambar/issues/12).
 * mpd: fix compilation with clang
   (https://codeberg.org/dnkl/yambar/issues/16).
+* Crash when the alpha component in a color value was 0.
 
 
 ### Security
 ### Contributors
+
+* [JorwLNKwpH](https://codeberg.org/JorwLNKwpH)
 
 
 ## 1.5.0

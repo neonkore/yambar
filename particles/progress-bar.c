@@ -179,13 +179,13 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 {
     const struct private *p = particle->private;
     const struct tag *tag = tag_for_name(tags, p->tag);
-    assert(tag != NULL);
 
-    long value = tag->as_int(tag);
-    long min = tag->min(tag);
-    long max = tag->max(tag);
+    long value = tag != NULL ? tag->as_int(tag) : 0;
+    long min = tag != NULL ? tag->min(tag) : 0;
+    long max = tag != NULL ? tag->max(tag) : 0;
 
-    LOG_DBG("%s: value=%ld, min=%ld, max=%ld", tag->name(tag), value, min, max);
+    LOG_DBG("%s: value=%ld, min=%ld, max=%ld",
+            tag != NULL ? tag->name(tag) : "<no tag>", value, min, max);
 
     long fill_count = max == min ? 0 : p->width * value / (max - min);
     long empty_count = p->width - fill_count;
@@ -210,6 +210,8 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     epriv->exposables[idx++] = p->end_marker->instantiate(p->end_marker, tags);
 
     assert(idx == epriv->count);
+    for (size_t i = 0; i < epriv->count; i++)
+        assert(epriv->exposables[i] != NULL);
 
     char *on_click = tags_expand_template(particle->on_click_template, tags);
 
@@ -221,6 +223,9 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
     exposable->on_mouse = &on_mouse;
+
+    if (tag == NULL)
+        return exposable;
 
     enum tag_realtime_unit rt = tag->realtime(tag);
 

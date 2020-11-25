@@ -36,19 +36,16 @@ calculate_widths(const struct private *b, int *left, int *center, int *right)
 
     for (size_t i = 0; i < b->left.count; i++) {
         struct exposable *e = b->left.exps[i];
-        assert(e != NULL);
         *left += b->left_spacing + e->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->center.count; i++) {
         struct exposable *e = b->center.exps[i];
-        assert(e != NULL);
         *center += b->left_spacing + e->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->right.count; i++) {
         struct exposable *e = b->right.exps[i];
-        assert(e != NULL);
         *right += b->left_spacing + e->width + b->right_spacing;
     }
 
@@ -82,30 +79,24 @@ expose(const struct bar *_bar)
     for (size_t i = 0; i < bar->left.count; i++) {
         struct module *m = bar->left.mods[i];
         struct exposable *e = bar->left.exps[i];
-
         if (e != NULL)
             e->destroy(e);
-
         bar->left.exps[i] = module_begin_expose(m);
     }
 
     for (size_t i = 0; i < bar->center.count; i++) {
         struct module *m = bar->center.mods[i];
         struct exposable *e = bar->center.exps[i];
-
         if (e != NULL)
             e->destroy(e);
-
         bar->center.exps[i] = module_begin_expose(m);
     }
 
     for (size_t i = 0; i < bar->right.count; i++) {
         struct module *m = bar->right.mods[i];
         struct exposable *e = bar->right.exps[i];
-
         if (e != NULL)
             e->destroy(e);
-
         bar->right.exps[i] = module_begin_expose(m);
     }
 
@@ -307,7 +298,6 @@ destroy(struct bar *bar)
     for (size_t i = 0; i < b->left.count; i++) {
         struct module *m = b->left.mods[i];
         struct exposable *e = b->left.exps[i];
-
         if (e != NULL)
             e->destroy(e);
         m->destroy(m);
@@ -315,7 +305,6 @@ destroy(struct bar *bar)
     for (size_t i = 0; i < b->center.count; i++) {
         struct module *m = b->center.mods[i];
         struct exposable *e = b->center.exps[i];
-
         if (e != NULL)
             e->destroy(e);
         m->destroy(m);
@@ -323,7 +312,6 @@ destroy(struct bar *bar)
     for (size_t i = 0; i < b->right.count; i++) {
         struct module *m = b->right.mods[i];
         struct exposable *e = b->right.exps[i];
-
         if (e != NULL)
             e->destroy(e);
         m->destroy(m);

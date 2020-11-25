@@ -326,7 +326,7 @@ main(int argc, char *const *argv)
     thrd_t bar_thread;
     thrd_create(&bar_thread, (int (*)(void *))bar->run, bar);
 
-    /* Now unblock. We should be only thread receiving SIGINT */
+    /* Now unblock. We should be only thread receiving SIGINT/SIGTERM */
     pthread_sigmask(SIG_UNBLOCK, &signal_mask, NULL);
 
     if (pid_file != NULL) {
@@ -336,15 +336,17 @@ main(int argc, char *const *argv)
 
     while (!aborted) {
         struct pollfd fds[] = {{.fd = abort_fd, .events = POLLIN}};
-        int r __attribute__((unused)) = poll(fds, 1, -1);
+        int r __attribute__((unused)) = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
 
-        /*
-         * Either the bar aborted (triggering the abort_fd), or user
-         * killed us (triggering the signal handler which sets
-         * 'aborted')
-         */
-        assert(aborted || r == 1);
-        break;
+        if (fds[0].revents & (POLLIN | POLLHUP)) {
+            /*
+             * Either the bar aborted (triggering the abort_fd), or user
+             * killed us (triggering the signal handler which sets
+             * 'aborted')
+             */
+            assert(aborted || r == 1);
+            break;
+        }
     }
 
     if (aborted)

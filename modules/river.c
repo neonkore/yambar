@@ -90,7 +90,8 @@ content(struct module *mod)
         }
     }
 
-    const size_t seat_count = m->title != NULL ? tll_length(m->seats) : 0;
+    const size_t seat_count = m->title != NULL && !m->is_starting_up
+        ? tll_length(m->seats) : 0;
     struct exposable *tag_parts[32 + seat_count];
 
     for (unsigned i = 0; i < 32; i++) {
@@ -122,7 +123,7 @@ content(struct module *mod)
         tag_set_destroy(&tags);
     }
 
-    if (m->title != NULL) {
+    if (m->title != NULL && !m->is_starting_up) {
         size_t i = 32;
         tll_foreach(m->seats, it) {
             const struct seat *seat = &it->item;
@@ -565,12 +566,19 @@ run(struct module *mod)
     }
 
     wl_display_roundtrip(display);
+
+    bool unlock_at_exit = true;
+    mtx_lock(&mod->lock);
+
     m->is_starting_up = false;
 
     tll_foreach(m->outputs, it)
         instantiate_output(&it->item);
     tll_foreach(m->seats, it)
         instantiate_seat(&it->item);
+
+    unlock_at_exit = false;
+    mtx_unlock(&mod->lock);
 
     while (true) {
         wl_display_flush(display);
@@ -618,6 +626,9 @@ out:
         wl_registry_destroy(registry);
     if (display != NULL)
         wl_display_disconnect(display);
+
+    if (unlock_at_exit)
+        mtx_unlock(&mod->lock);
     return ret;
 }
 

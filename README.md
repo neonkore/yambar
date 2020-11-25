@@ -62,6 +62,8 @@ bar:
 
 For details, see the man pages (**yambar**(5) is a good start).
 
+Example configurations can be found in [examples](examples/configurations).
+
 
 ## Modules
 
@@ -76,6 +78,9 @@ Available modules:
 * mpd
 * network
 * removables
+* river
+* script (see script [examples](examples/scripts))
+* sway-xkb
 * xkb (_XCB backend only_)
 * xwindow (_XCB backend only_)
 

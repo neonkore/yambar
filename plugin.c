@@ -43,6 +43,7 @@ EXTERN_MODULE(network);
 EXTERN_MODULE(removables);
 EXTERN_MODULE(river);
 EXTERN_MODULE(sway_xkb);
+EXTERN_MODULE(script);
 EXTERN_MODULE(xkb);
 EXTERN_MODULE(xwindow);
 
@@ -119,6 +120,7 @@ init(void)
     REGISTER_CORE_MODULE(river, river);
 #endif
     REGISTER_CORE_MODULE(sway-xkb, sway_xkb);
+    REGISTER_CORE_MODULE(script, script);
 #if defined(HAVE_PLUGIN_xkb)
     REGISTER_CORE_MODULE(xkb, xkb);
 #endif
