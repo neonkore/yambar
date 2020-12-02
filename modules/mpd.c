@@ -38,6 +38,7 @@ struct private {
     bool repeat;
     bool random;
     bool consume;
+    int  volume;
     char *album;
     char *artist;
     char *title;
@@ -162,6 +163,7 @@ content(struct module *mod)
             tag_new_bool(mod, "repeat", m->repeat),
             tag_new_bool(mod, "random", m->random),
             tag_new_bool(mod, "consume", m->consume),
+            tag_new_int_range(mod, "volume", m->volume, 0, 100),
             tag_new_string(mod, "album", m->album),
             tag_new_string(mod, "artist", m->artist),
             tag_new_string(mod, "title", m->title),
@@ -320,6 +322,7 @@ update_status(struct module *mod)
     m->repeat = mpd_status_get_repeat(status);
     m->random = mpd_status_get_random(status);
     m->consume = mpd_status_get_consume(status);
+    m->volume = mpd_status_get_volume(status);
     m->duration = mpd_status_get_total_time(status) * 1000;
     m->elapsed.value = mpd_status_get_elapsed_ms(status);
     m->elapsed.when = now;

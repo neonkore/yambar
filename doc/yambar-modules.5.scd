@@ -452,6 +452,9 @@ artist/album/song.
 |  consume
 :  bool
 :  True if the *consume* flag is set
+|  volume
+:  range
+:  Volume of MPD in percentage
 |  album
 :  string
 :  Currently playing album (also valid in *paused* state)
