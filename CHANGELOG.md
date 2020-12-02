@@ -14,6 +14,8 @@
   (https://codeberg.org/dnkl/yambar/issues/9).
 * script: new module, adds support for custom user scripts
   (https://codeberg.org/dnkl/yambar/issues/11).
+* mpd: `volume` tag. This is a range tag that represents MPD's current volume
+  in percentage (0-100)
 
 
 ### Deprecated
