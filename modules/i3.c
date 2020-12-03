@@ -105,7 +105,7 @@ workspaces_free(struct private *m)
 static void
 workspace_add(struct private *m, struct workspace ws)
 {
-#if 0
+#if 1
     tll_push_back(m->workspaces, ws);
 #else
     tll_rforeach(m->workspaces, it) {
