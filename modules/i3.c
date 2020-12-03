@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include <tllist.h>
+
 #define LOG_MODULE "i3"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
@@ -50,10 +52,7 @@ struct private {
         size_t count;
     } ws_content;
 
-    struct {
-        struct workspace *v;
-        size_t count;
-    } workspaces;
+    tll(struct workspace) workspaces;
 };
 
 static bool
@@ -87,54 +86,50 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
 }
 
 static void
-workspace_free(struct workspace ws)
+workspace_free(struct workspace *ws)
 {
-    free(ws.name);
-    free(ws.output);
-    free(ws.window.title);
-    free(ws.window.application);
+    free(ws->name);
+    free(ws->output);
+    free(ws->window.title);
+    free(ws->window.application);
 }
 
 static void
 workspaces_free(struct private *m)
 {
-    for (size_t i = 0; i < m->workspaces.count; i++)
-        workspace_free(m->workspaces.v[i]);
-
-    free(m->workspaces.v);
-    m->workspaces.v = NULL;
-    m->workspaces.count = 0;
+    tll_foreach(m->workspaces, it)
+        workspace_free(&it->item);
+    tll_free(m->workspaces);
 }
 
 static void
 workspace_add(struct private *m, struct workspace ws)
 {
-    size_t new_count = m->workspaces.count + 1;
-    struct workspace *new_v = realloc(m->workspaces.v, new_count * sizeof(new_v[0]));
+#if 0
+    tll_push_back(m->workspaces, ws);
+#else
+    tll_rforeach(m->workspaces, it) {
+        if (strcasecmp(it->item.name, ws.name) < 0) {
+            tll_insert_after(m->workspaces, it, ws);
+            return;
+        }
+    }
 
-    m->workspaces.count = new_count;
-    m->workspaces.v = new_v;
-    m->workspaces.v[new_count - 1] = ws;
+    tll_push_front(m->workspaces, ws);
+#endif
 }
 
 static void
 workspace_del(struct private *m, const char *name)
 {
-    struct workspace *workspaces = m->workspaces.v;
-
-    for (size_t i = 0; i < m->workspaces.count; i++) {
-        const struct workspace *ws = &workspaces[i];
+    tll_foreach(m->workspaces, it) {
+        struct workspace *ws = &it->item;
 
         if (strcmp(ws->name, name) != 0)
             continue;
 
-        workspace_free(*ws);
-
-        memmove(
-            &workspaces[i],
-            &workspaces[i + 1],
-            (m->workspaces.count - i - 1) * sizeof(workspaces[0]));
-        m->workspaces.count--;
+        workspace_free(ws);
+        tll_remove(m->workspaces, it);
         break;
     }
 }
@@ -142,12 +137,13 @@ workspace_del(struct private *m, const char *name)
 static struct workspace *
 workspace_lookup(struct private *m, const char *name)
 {
-    for (size_t i = 0; i < m->workspaces.count; i++)
-        if (strcmp(m->workspaces.v[i].name, name) == 0)
-            return &m->workspaces.v[i];
+    tll_foreach(m->workspaces, it) {
+        struct workspace *ws = &it->item;
+        if (strcmp(ws->name, name) == 0)
+            return ws;
+    }
     return NULL;
 }
-
 
 static bool
 handle_get_version_reply(int type, const struct json_object *json, void *_m)
@@ -191,18 +187,17 @@ handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod
     m->dirty = true;
 
     size_t count = json_object_array_length(json);
-    m->workspaces.count = count;
-    m->workspaces.v = calloc(count, sizeof(m->workspaces.v[0]));
 
     for (size_t i = 0; i < count; i++) {
-        if (!workspace_from_json(
-                json_object_array_get_idx(json, i), &m->workspaces.v[i])) {
+        struct workspace ws = {};
+        if (!workspace_from_json(json_object_array_get_idx(json, i), &ws)) {
             workspaces_free(m);
             mtx_unlock(&mod->lock);
             return false;
         }
 
         LOG_DBG("#%zu: %s", i, m->workspaces.v[i].name);
+        workspace_add(m, ws);
     }
 
     mtx_unlock(&mod->lock);
@@ -250,7 +245,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         struct workspace *already_exists = workspace_lookup(m, current_name);
         if (already_exists != NULL) {
             LOG_WARN("workspace 'init' event for already existing workspace: %s", current_name);
-            workspace_free(*already_exists);
+            workspace_free(already_exists);
             if (!workspace_from_json(current, already_exists))
                 goto err;
         } else {
@@ -284,8 +279,8 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         LOG_DBG("w: %s", w->name);
 
         /* Mark all workspaces on current's output invisible */
-        for (size_t i = 0; i < m->workspaces.count; i++) {
-            struct workspace *ws = &m->workspaces.v[i];
+        tll_foreach(m->workspaces, it) {
+            struct workspace *ws = &it->item;
             if (strcmp(ws->output, w->output) == 0)
                 ws->visible = false;
         }
@@ -346,9 +341,9 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
 
     struct workspace *ws = NULL;
     size_t focused = 0;
-    for (size_t i = 0; i < m->workspaces.count; i++) {
-        if (m->workspaces.v[i].focused) {
-            ws = &m->workspaces.v[i];
+    tll_foreach(m->workspaces, it) {
+        if (it->item.focused) {
+            ws = &it->item;
             focused++;
         }
     }
@@ -536,11 +531,11 @@ content(struct module *mod)
     mtx_lock(&mod->lock);
 
     size_t particle_count = 0;
-    struct exposable *particles[m->workspaces.count + 1];
+    struct exposable *particles[tll_length(m->workspaces) + 1];
     struct exposable *current = NULL;
 
-    for (size_t i = 0; i < m->workspaces.count; i++) {
-        const struct workspace *ws = &m->workspaces.v[i];
+    tll_foreach(m->workspaces, it) {
+        struct workspace *ws = &it->item;
         const struct ws_content *template = NULL;
 
         /* Lookup content template for workspace. Fall back to default
