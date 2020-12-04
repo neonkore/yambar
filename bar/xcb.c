@@ -101,27 +101,38 @@ setup(struct bar *_bar)
                mon->width, mon->height, mon->x, mon->y,
                mon->width_in_millimeters, mon->height_in_millimeters);
 
-        if (!((bar->monitor == NULL && mon->primary) ||
-              (bar->monitor != NULL && strcmp(bar->monitor, name) == 0)))
-        {
+        /* User wants a specific monitor, and this is not the one */
+        if (bar->monitor != NULL && strcmp(bar->monitor, name) != 0) {
             free(name);
             continue;
         }
-
-        free(name);
 
         backend->x = mon->x;
         backend->y = mon->y;
         bar->width = mon->width;
         backend->y += bar->location == BAR_TOP ? 0
             : screen->height_in_pixels - bar->height_with_border;
+
         found_monitor = true;
-        break;
+
+        if ((bar->monitor != NULL && strcmp(bar->monitor, name) == 0) ||
+            (bar->monitor == NULL && mon->primary))
+        {
+            /* Exact match */
+            free(name);
+            break;
+        }
+
+        free(name);
     }
     free(monitors);
 
     if (!found_monitor) {
-        LOG_ERR("no matching monitor");
+        if (bar->monitor == NULL)
+            LOG_ERR("no monitors found");
+        else
+            LOG_ERR("no monitor '%s'", bar->monitor);
+
         /* TODO: cleanup */
         return false;
     }
