@@ -16,6 +16,10 @@
   (https://codeberg.org/dnkl/yambar/issues/11).
 * mpd: `volume` tag. This is a range tag that represents MPD's current
   volume in percentage (0-100)
+* i3: `sort` configuration option, that controls how the workspace
+  list is sorted. Can be set to one of `none`, `ascending` or
+  `descending`. Default is `none`
+  (https://codeberg.org/dnkl/yambar/issues/17).
 
 
 ### Deprecated

@@ -21,6 +21,8 @@
 #include "i3-ipc.h"
 #include "i3-common.h"
 
+enum sort_mode {SORT_NONE, SORT_ASCENDING, SORT_DESCENDING};
+
 struct ws_content {
     char *name;
     struct particle *content;
@@ -52,6 +54,7 @@ struct private {
         size_t count;
     } ws_content;
 
+    enum sort_mode sort_mode;
     tll(struct workspace) workspaces;
 };
 
@@ -105,18 +108,31 @@ workspaces_free(struct private *m)
 static void
 workspace_add(struct private *m, struct workspace ws)
 {
-#if 1
-    tll_push_back(m->workspaces, ws);
-#else
-    tll_rforeach(m->workspaces, it) {
-        if (strcasecmp(it->item.name, ws.name) < 0) {
-            tll_insert_after(m->workspaces, it, ws);
-            return;
-        }
-    }
+    switch (m->sort_mode) {
+    case SORT_NONE:
+        tll_push_back(m->workspaces, ws);
+        return;
 
-    tll_push_front(m->workspaces, ws);
-#endif
+    case SORT_ASCENDING:
+        tll_foreach(m->workspaces, it) {
+            if (strcoll(it->item.name, ws.name) > 0) {
+                tll_insert_before(m->workspaces, it, ws);
+                return;
+            }
+        }
+        tll_push_back(m->workspaces, ws);
+        return;
+
+    case SORT_DESCENDING:
+        tll_foreach(m->workspaces, it) {
+            if (strcoll(it->item.name, ws.name) < 0) {
+                tll_insert_before(m->workspaces, it, ws);
+                return;
+            }
+        }
+        tll_push_back(m->workspaces, ws);
+        return;
+    }
 }
 
 static void
@@ -600,7 +616,7 @@ struct i3_workspaces {
 
 static struct module *
 i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
-       int left_spacing, int right_spacing)
+       int left_spacing, int right_spacing, enum sort_mode sort_mode)
 {
     struct private *m = calloc(1, sizeof(*m));
 
@@ -614,6 +630,8 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
         m->ws_content.v[i].name = strdup(workspaces[i].name);
         m->ws_content.v[i].content = workspaces[i].content;
     }
+
+    m->sort_mode = sort_mode;
 
     struct module *mod = module_common_new();
     mod->private = m;
@@ -630,11 +648,18 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *spacing = yml_get_value(node, "spacing");
     const struct yml_node *left_spacing = yml_get_value(node, "left-spacing");
     const struct yml_node *right_spacing = yml_get_value(node, "right-spacing");
+    const struct yml_node *sort = yml_get_value(node, "sort");
 
     int left = spacing != NULL ? yml_value_as_int(spacing) :
         left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
     int right = spacing != NULL ? yml_value_as_int(spacing) :
         right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
+
+    const char *sort_value = sort != NULL ? yml_value_as_string(sort) : NULL;
+    enum sort_mode sort_mode =
+        sort_value == NULL ? SORT_NONE :
+        strcmp(sort_value, "none") == 0 ? SORT_NONE :
+        strcmp(sort_value, "ascending") == 0 ? SORT_ASCENDING : SORT_DESCENDING;
 
     struct i3_workspaces workspaces[yml_dict_length(c)];
 
@@ -647,7 +672,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
         workspaces[idx].content = conf_to_particle(it.value, inherited);
     }
 
-    return i3_new(workspaces, yml_dict_length(c), left, right);
+    return i3_new(workspaces, yml_dict_length(c), left, right, sort_mode);
 }
 
 static bool
@@ -681,12 +706,20 @@ verify_content(keychain_t *chain, const struct yml_node *node)
 }
 
 static bool
+verify_sort(keychain_t *chain, const struct yml_node *node)
+{
+    return conf_verify_enum(
+        chain, node, (const char *[]){"none", "ascending", "descending"}, 3);
+}
+
+static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"spacing", false, &conf_verify_int},
         {"left-spacing", false, &conf_verify_int},
         {"right-spacing", false, &conf_verify_int},
+        {"sort", false, &verify_sort},
         {"content", true, &verify_content},
         {"anchors", false, NULL},
         {NULL, false, NULL},
