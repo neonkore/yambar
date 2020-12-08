@@ -49,6 +49,8 @@ struct private {
 
     bool dirty;
 
+    char *mode;
+
     struct {
         struct ws_content *v;
         size_t count;
@@ -459,6 +461,25 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     return true;
 }
 
+static bool
+handle_mode_event(int type, const struct json_object *json, void *_mod)
+{
+    struct module *mod = _mod;
+    struct private *m = mod->private;
+
+    struct json_object *change;
+    if (!json_object_object_get_ex(json, "change", &change)) {
+        LOG_ERR("mode event without 'change' property");
+        return false;
+    }
+
+    const char *current_mode = json_object_get_string(change);
+    free(m->mode);
+    m->mode = strdup(current_mode);
+    m->dirty = true;
+    return true;
+}
+
 static void
 burst_done(void *_mod)
 {
@@ -492,7 +513,7 @@ run(struct module *mod)
     }
 
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
-    i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\"]");
+    i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\", \"mode\"]");
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
 
     static const struct i3_ipc_callbacks callbacks = {
@@ -502,6 +523,7 @@ run(struct module *mod)
         .reply_workspaces = &handle_get_workspaces_reply,
         .event_workspace = &handle_workspace_event,
         .event_window = &handle_window_event,
+        .event_mode = &handle_mode_event,
     };
 
     bool ret = i3_receive_loop(mod->abort_fd, sock, &callbacks, mod);
@@ -523,6 +545,7 @@ destroy(struct module *mod)
     free(m->ws_content.v);
     workspaces_free(m);
 
+    free(m->mode);
     free(m);
     module_default_destroy(mod);
 }
@@ -578,8 +601,10 @@ content(struct module *mod)
 
                 tag_new_string(mod, "application", ws->window.application),
                 tag_new_string(mod, "title", ws->window.title),
+
+                tag_new_string(mod, "mode", m->mode),
             },
-            .count = 7,
+            .count = 8,
         };
 
         if (ws->focused) {
@@ -620,6 +645,7 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
 {
     struct private *m = calloc(1, sizeof(*m));
 
+    m->mode = strdup("default");
     m->left_spacing = left_spacing;
     m->right_spacing = right_spacing;
 
