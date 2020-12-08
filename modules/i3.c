@@ -474,9 +474,14 @@ handle_mode_event(int type, const struct json_object *json, void *_mod)
     }
 
     const char *current_mode = json_object_get_string(change);
-    free(m->mode);
-    m->mode = strdup(current_mode);
-    m->dirty = true;
+
+    mtx_lock(&mod->lock);
+    {
+        free(m->mode);
+        m->mode = strdup(current_mode);
+        m->dirty = true;
+    }
+    mtx_unlock(&mod->lock);
     return true;
 }
 
