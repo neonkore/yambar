@@ -20,6 +20,7 @@
   list is sorted. Can be set to one of `none`, `ascending` or
   `descending`. Default is `none`
   (https://codeberg.org/dnkl/yambar/issues/17).
+* i3: `mode` tag: the name of the currently active mode
 
 
 ### Deprecated

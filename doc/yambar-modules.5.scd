@@ -361,6 +361,9 @@ with the _application_ and _title_ tags to replace the X11-only
 |  title
 :  string
 :  This workspace's focused window's title
+|  mode
+:  string
+:  The name of the current mode
 
 ## CONFIGURATION
 
