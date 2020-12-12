@@ -374,6 +374,10 @@ with the _application_ and _title_ tags to replace the X11-only
 :  Unlike other modules, _content_ is an associative array mapping
    workspace names to particles. Use *""* to specify a default
    fallback particle, or *current* for the currently active workspace.
+|  sort
+:  enum
+:  no
+:  How to sort the list of workspaces; one of _none_, _ascending_ or _descending_, defaults to _none_.
 |  left-spacing
 :  int
 :  no
