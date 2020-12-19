@@ -1,10 +1,11 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.6.0](#1-6-0)
 * [1.5.0](#1-5-0)
 
 
-## Unreleased
+## 1.6.0
+
 ### Added
 
 * alsa: `percent` tag. This is an integer tag that represents the
@@ -23,8 +24,6 @@
 * i3: `mode` tag: the name of the currently active mode
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * YAML parsing error messages being replaced with a generic _“unknown
@@ -39,7 +38,6 @@
   disconnected (https://codeberg.org/dnkl/yambar/issues/20)
 
 
-### Security
 ### Contributors
 
 * [JorwLNKwpH](https://codeberg.org/JorwLNKwpH)
