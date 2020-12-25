@@ -1,4 +1,5 @@
 /bld/
 /pkg/
 /src/
-/subprojects/
+/subprojects/*
+!/subprojects/*.wrap
