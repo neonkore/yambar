@@ -88,3 +88,12 @@ plugins_as_shared_modules:
     - meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true ../../
     - ninja -k0
     - meson test --print-errorlogs
+
+codespell:
+  image: alpine:edge
+  stage: build
+  script:
+    - apk add python3
+    - apk add py3-pip
+    - pip install codespell
+    - codespell *.c *.h

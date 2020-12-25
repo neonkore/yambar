@@ -21,6 +21,8 @@ packages:
   - alsa-lib-dev
   - ttf-dejavu
   - gcovr
+  - python3
+  - py3-pip
 
 sources:
   - https://codeberg.org/dnkl/yambar
@@ -31,6 +33,10 @@ sources:
 #     to: <comitter>
 
 tasks:
+  - codespell: |
+      pip install codespell
+      cd yambar
+      ~/.local/bin/codespell *.c *.h
   - setup: |
       mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
       meson --buildtype=debug -Db_coverage=true yambar bld/debug
