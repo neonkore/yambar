@@ -17,10 +17,6 @@ before_script:
   - apk add json-c-dev libmpdclient-dev alsa-lib-dev
   - apk add ttf-dejavu
   - apk add git
-  - mkdir -p subprojects && cd subprojects
-  - git clone https://codeberg.org/dnkl/tllist.git
-  - git clone https://codeberg.org/dnkl/fcft.git
-  - cd ..
 
 versions:
   stage: info
