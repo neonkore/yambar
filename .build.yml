@@ -23,18 +23,14 @@ packages:
   - gcovr
 
 sources:
-  - https://git.sr.ht/~dnkl/yambar
+  - https://codeberg.org/dnkl/yambar
 
-triggers:
-  - action: email
-    condition: failure
-    to: daniel@ekloef.se
+# triggers:
+#   - action: email
+#     condition: failure
+#     to: <comitter>
 
 tasks:
-  - install-gcovr: |
-      python2 -m ensurepip --user --upgrade
-      python2 -m pip install --user --upgrade pip
-      python2 -m pip install --user --upgrade setuptools
   - setup: |
       mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
       meson --buildtype=debug -Db_coverage=true yambar bld/debug
