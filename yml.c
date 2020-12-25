@@ -228,7 +228,7 @@ post_process(struct yml_node *node)
                         tll_push_back(node->dict.pairs, p);
                     }
 
-                    /* Destroy lits, but don't free (since its nodes
+                    /* Destroy list, but don't free (since its nodes
                      * have been moved to this node), *before*
                      * destroying the key/value nodes. This ensures
                      * the dict nodes aren't free:d in the

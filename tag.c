@@ -454,7 +454,7 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             continue;
         }
 
-        /* Copy characters preceeding the tag (name) */
+        /* Copy characters preceding the tag (name) */
         sbuf_append_at_most(&formatted, template, begin - template);
 
         /* Parse arguments */
