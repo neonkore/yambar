@@ -36,7 +36,7 @@ tasks:
   - codespell: |
       pip install codespell
       cd yambar
-      ~/.local/bin/codespell README.md *.c *.h doc/*.scd
+      ~/.local/bin/codespell README.md CHANGELOG.md *.c *.h doc/*.scd
   - setup: |
       mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
       meson --buildtype=debug -Db_coverage=true yambar bld/debug
