@@ -26,7 +26,7 @@ The available tag *types* are:
 :  Value is an integer, with a minimum and maximum value associated
    with it. By default, the _string_ particle renders the value. The
    *:min* or *:max* suffixes may be added to instead render the
-   mininum or maximum value (_\"{tag_name:min}\"_).
+   minimum or maximum value (_\"{tag_name:min}\"_).
 |  realtime
 :  Value is an integer that changes in a predictable manner (in
    "realtime"). This allows the particle to update itself

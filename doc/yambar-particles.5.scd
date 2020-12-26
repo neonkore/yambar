@@ -224,7 +224,7 @@ indicator.
 :  list
 :  yes
 :  List of particles. Note that the tag value is *not* used as-is; its
-   minumum and maximum values are used to map the tag's range to the
+   minimum and maximum values are used to map the tag's range to the
    particle list's range.
 
 ## EXAMPLES
