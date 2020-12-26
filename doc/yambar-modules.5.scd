@@ -539,7 +539,7 @@ address.
 |  state
 :  string
 :  One of *unknown*, *not present*, *down*, *lower layers down*,
-   *testing*, *dormant* or *up*. You are probably interrested in *down* and *up*.
+   *testing*, *dormant* or *up*. You are probably interested in *down* and *up*.
 |  mac
 :  string
 :  MAC address
@@ -659,7 +659,7 @@ about the river tags.
 
 It has an interface similar to the i3/sway module.
 
-The configuration for the river module speficies one _title_ particle,
+The configuration for the river module specifies one _title_ particle,
 which will be instantiated with tags representing the currently active
 seat and the currently focused view's title.
 
@@ -838,7 +838,7 @@ instantiated from this template, and represents an input device.
 :[ *Description*
 |  id
 :  string
-:  Input device indentifier
+:  Input device identifier
 |  layout
 :  string
 :  The input device's currently active XKB layout
