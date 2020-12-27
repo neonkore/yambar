@@ -12,6 +12,10 @@ plugs_as_libs = get_option('core-plugins-as-shared-libraries')
 
 cc = meson.get_compiler('c')
 
+if cc.has_function('memfd_create')
+  add_project_arguments('-DMEMFD_CREATE', language: 'c')
+endif
+
 # Compute the relative path used by compiler invocations.
 source_root = meson.current_source_dir().split('/')
 build_root = meson.build_root().split('/')

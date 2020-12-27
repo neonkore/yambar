@@ -9,9 +9,7 @@
 #include <pthread.h>
 
 #include <sys/mman.h>
-#ifdef __linux__
-#include <linux/memfd.h>
-#endif
+#include <fcntl.h>
 #include <linux/input-event-codes.h>
 
 #include <pixman.h>
@@ -771,7 +769,16 @@ get_buffer(struct wayland_backend *backend)
     pixman_image_t *pix = NULL;
 
     /* Backing memory for SHM */
+#if defined(MEMFD_CREATE)
     pool_fd = memfd_create("yambar-wayland-shm-buffer-pool", MFD_CLOEXEC);
+#elif defined(__FreeBSD__)
+    // memfd_create on FreeBSD 13 is SHM_ANON without sealing support
+    pool_fd = shm_open(SHM_ANON, O_RDWR | O_CLOEXEC, 0600);
+#else
+    char name[] = "/tmp/yambar-wayland-shm-buffer-pool-XXXXXX";
+    pool_fd = mkostemp(name, O_CLOEXEC);
+    unlink(name);
+#endif
     if (pool_fd == -1) {
         LOG_ERRNO("failed to create SHM backing memory file");
         goto err;
