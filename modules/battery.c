@@ -276,10 +276,28 @@ err:
 }
 
 static void
-update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
-              int charge_fd, int current_fd, int status_fd, int time_to_empty_fd)
+update_status(struct module *mod, int base_dir_fd)
 {
     struct private *m = mod->private;
+
+    int status_fd = openat(base_dir_fd, "status", O_RDONLY);
+    if (status_fd < 0) {
+        LOG_ERRNO("status: failed to open");
+        return;
+    }
+
+    int capacity_fd = openat(base_dir_fd, "capacity", O_RDONLY);
+    if (capacity_fd < 0) {
+        LOG_ERRNO("capacity: failed to open");
+        close(status_fd);
+        return;
+    }
+
+    int energy_fd = openat(base_dir_fd, "energy_now", O_RDONLY);
+    int power_fd = openat(base_dir_fd, "power_now", O_RDONLY);
+    int charge_fd = openat(base_dir_fd, "charge_now", O_RDONLY);
+    int current_fd = openat(base_dir_fd, "current_now", O_RDONLY);
+    int time_to_empty_fd = openat(base_dir_fd, "time_to_empty_now", O_RDONLY);
 
     long capacity = readint_from_fd(capacity_fd);
     long energy = energy_fd >= 0 ? readint_from_fd(energy_fd) : -1;
@@ -289,6 +307,22 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
     long time_to_empty = time_to_empty_fd >= 0 ? readint_from_fd(time_to_empty_fd) : -1;
 
     const char *status = readline_from_fd(status_fd);
+
+    if (status_fd >= 0)
+        close(status_fd);
+    if (capacity_fd >= 0)
+        close(capacity_fd);
+    if (energy_fd >= 0)
+        close(energy_fd);
+    if (power_fd >= 0)
+        close(power_fd);
+    if (charge_fd >= 0)
+        close(charge_fd);
+    if (current_fd >= 0)
+        close(current_fd);
+    if (time_to_empty_fd >= 0)
+        close(time_to_empty_fd);
+
     enum state state;
 
     if (status == NULL) {
@@ -322,6 +356,7 @@ update_status(struct module *mod, int capacity_fd, int energy_fd, int power_fd,
     m->current = current;
     m->time_to_empty = time_to_empty;
     mtx_unlock(&mod->lock);
+
 }
 
 static int
@@ -343,26 +378,17 @@ run(struct module *mod)
               : 0.0));
 
     int ret = 1;
-    int status_fd = openat(base_dir_fd, "status", O_RDONLY);
-    int capacity_fd = openat(base_dir_fd, "capacity", O_RDONLY);
-    int energy_fd = openat(base_dir_fd, "energy_now", O_RDONLY);
-    int power_fd = openat(base_dir_fd, "power_now", O_RDONLY);
-    int charge_fd = openat(base_dir_fd, "charge_now", O_RDONLY);
-    int current_fd = openat(base_dir_fd, "current_now", O_RDONLY);
-    int time_to_empty_fd = openat(base_dir_fd, "time_to_empty_now", O_RDONLY);
 
     struct udev *udev = udev_new();
     struct udev_monitor *mon = udev_monitor_new_from_netlink(udev, "udev");
 
-    if (status_fd < 0 || capacity_fd < 0 || udev == NULL || mon == NULL)
+    if (udev == NULL || mon == NULL)
         goto out;
 
     udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
     udev_monitor_enable_receiving(mon);
 
-    update_status(
-        mod, capacity_fd, energy_fd, power_fd,
-        charge_fd, current_fd, status_fd, time_to_empty_fd);
+    update_status(mod, base_dir_fd);
     bar->refresh(bar);
 
     while (true) {
@@ -388,9 +414,7 @@ run(struct module *mod)
                 continue;
         }
 
-        update_status(
-            mod, capacity_fd, energy_fd, power_fd,
-            charge_fd, current_fd, status_fd, time_to_empty_fd);
+        update_status(mod, base_dir_fd);
         bar->refresh(bar);
     }
 
@@ -399,17 +423,6 @@ out:
         udev_monitor_unref(mon);
     if (udev != NULL)
         udev_unref(udev);
-
-    if (power_fd != -1)
-        close(power_fd);
-    if (energy_fd != -1)
-        close(energy_fd);
-    if (capacity_fd != -1)
-        close(capacity_fd);
-    if (status_fd != -1)
-        close(status_fd);
-    if (time_to_empty_fd != -1)
-        close(time_to_empty_fd);
 
     close(base_dir_fd);
     return ret;
