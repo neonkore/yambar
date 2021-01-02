@@ -56,9 +56,9 @@ conf_to_color(const struct yml_node *node)
     alpha |= alpha << 8;
 
     return (pixman_color_t){
-        .red =   (red << 8 | red) * alpha / 0xffff,
-        .green = (green << 8 | green) * alpha / 0xffff,
-        .blue =  (blue << 8 | blue) * alpha / 0xffff,
+        .red =   (uint32_t)(red << 8 | red) * alpha / 0xffff,
+        .green = (uint32_t)(green << 8 | green) * alpha / 0xffff,
+        .blue =  (uint32_t)(blue << 8 | blue) * alpha / 0xffff,
         .alpha = alpha,
     };
 }
