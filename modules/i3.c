@@ -30,6 +30,8 @@ struct ws_content {
 
 struct workspace {
     char *name;
+    int name_as_int; /* -1 is name is not a decimal number */
+
     char *output;
     bool visible;
     bool focused;
@@ -78,8 +80,22 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
     json_object_object_get_ex(json, "focused", &focused);
     json_object_object_get_ex(json, "urgent", &urgent);
 
+    const char *name_as_string = json_object_get_string(name);
+
+    int name_as_int = 0;
+    for (const char *p = name_as_string; *p != '\0'; p++) {
+        if (!(*p >= '0' && *p <= '9')) {
+            name_as_int = -1;
+            break;
+        }
+
+        name_as_int *= 10;
+        name_as_int += *p - '0';
+    }
+
     *ws = (struct workspace) {
-        .name = strdup(json_object_get_string(name)),
+        .name = strdup(name_as_string),
+        .name_as_int = name_as_int,
         .output = strdup(json_object_get_string(output)),
         .visible = json_object_get_boolean(visible),
         .focused = json_object_get_boolean(focused),
@@ -107,6 +123,7 @@ workspaces_free(struct private *m)
     tll_free(m->workspaces);
 }
 
+
 static void
 workspace_add(struct private *m, struct workspace ws)
 {
@@ -116,20 +133,44 @@ workspace_add(struct private *m, struct workspace ws)
         return;
 
     case SORT_ASCENDING:
-        tll_foreach(m->workspaces, it) {
-            if (strcoll(it->item.name, ws.name) > 0) {
-                tll_insert_before(m->workspaces, it, ws);
-                return;
+        if (ws.name_as_int >= 0) {
+            tll_foreach(m->workspaces, it) {
+                if (it->item.name_as_int < 0)
+                    continue;
+                if (it->item.name_as_int > ws.name_as_int) {
+                    tll_insert_before(m->workspaces, it, ws);
+                    return;
+                }
+            }
+        } else {
+            tll_foreach(m->workspaces, it) {
+                if (strcoll(it->item.name, ws.name) > 0 ||
+                    it->item.name_as_int >= 0)
+                {
+                    tll_insert_before(m->workspaces, it, ws);
+                    return;
+                }
             }
         }
         tll_push_back(m->workspaces, ws);
         return;
 
     case SORT_DESCENDING:
-        tll_foreach(m->workspaces, it) {
-            if (strcoll(it->item.name, ws.name) < 0) {
-                tll_insert_before(m->workspaces, it, ws);
-                return;
+        if (ws.name_as_int >= 0) {
+            tll_foreach(m->workspaces, it) {
+                if (it->item.name_as_int < ws.name_as_int) {
+                    tll_insert_before(m->workspaces, it, ws);
+                    return;
+                }
+            }
+        } else {
+            tll_foreach(m->workspaces, it) {
+                if (it->item.name_as_int >= 0)
+                    continue;
+                if (strcoll(it->item.name, ws.name) < 0) {
+                    tll_insert_before(m->workspaces, it, ws);
+                    return;
+                }
             }
         }
         tll_push_back(m->workspaces, ws);
