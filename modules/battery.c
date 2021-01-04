@@ -171,21 +171,21 @@ readint_from_fd(int fd)
     return ret;
 }
 
-static int
+static bool
 initialize(struct private *m)
 {
     int pw_fd = open("/sys/class/power_supply", O_RDONLY);
-    if (pw_fd == -1) {
+    if (pw_fd < 0) {
         LOG_ERRNO("/sys/class/power_supply");
-        return -1;
+        return false;
     }
 
     int base_dir_fd = openat(pw_fd, m->battery, O_RDONLY);
     close(pw_fd);
 
-    if (base_dir_fd == -1) {
-        LOG_ERRNO("%s", m->battery);
-        return -1;
+    if (base_dir_fd < 0) {
+        LOG_ERRNO("/sys/class/power_supply/%s", m->battery);
+        return false;
     }
 
     {
@@ -268,29 +268,46 @@ initialize(struct private *m)
         m->charge_full = m->charge_full_design = -1;
     }
 
-    return base_dir_fd;
+    close(base_dir_fd);
+    return true;
 
 err:
     close(base_dir_fd);
-    return -1;
+    return false;
 }
 
-static void
-update_status(struct module *mod, int base_dir_fd)
+static bool
+update_status(struct module *mod)
 {
     struct private *m = mod->private;
 
+    int pw_fd = open("/sys/class/power_supply", O_RDONLY);
+    if (pw_fd < 0) {
+        LOG_ERRNO("/sys/class/power_supply");
+        return false;
+    }
+
+    int base_dir_fd = openat(pw_fd, m->battery, O_RDONLY);
+    close(pw_fd);
+
+    if (base_dir_fd < 0) {
+        LOG_ERRNO("/sys/class/power_supply/%s", m->battery);
+        return false;
+    }
+
     int status_fd = openat(base_dir_fd, "status", O_RDONLY);
     if (status_fd < 0) {
-        LOG_ERRNO("status: failed to open");
-        return;
+        LOG_ERRNO("/sys/class/power_supply/%s/status", m->battery);
+        close(base_dir_fd);
+        return false;
     }
 
     int capacity_fd = openat(base_dir_fd, "capacity", O_RDONLY);
     if (capacity_fd < 0) {
-        LOG_ERRNO("capacity: failed to open");
+        LOG_ERRNO("/sys/class/power_supply/%s/capacity", m->battery);
         close(status_fd);
-        return;
+        close(base_dir_fd);
+        return false;
     }
 
     int energy_fd = openat(base_dir_fd, "energy_now", O_RDONLY);
@@ -322,6 +339,8 @@ update_status(struct module *mod, int base_dir_fd)
         close(current_fd);
     if (time_to_empty_fd >= 0)
         close(time_to_empty_fd);
+    if (base_dir_fd >= 0)
+        close(base_dir_fd);
 
     enum state state;
 
@@ -356,7 +375,7 @@ update_status(struct module *mod, int base_dir_fd)
     m->current = current;
     m->time_to_empty = time_to_empty;
     mtx_unlock(&mod->lock);
-
+    return true;
 }
 
 static int
@@ -365,8 +384,7 @@ run(struct module *mod)
     const struct bar *bar = mod->bar;
     struct private *m = mod->private;
 
-    int base_dir_fd = initialize(m);
-    if (base_dir_fd == -1)
+    if (!initialize(m))
         return -1;
 
     LOG_INFO("%s: %s %s (at %.1f%% of original capacity)",
@@ -388,7 +406,9 @@ run(struct module *mod)
     udev_monitor_filter_add_match_subsystem_devtype(mon, "power_supply", NULL);
     udev_monitor_enable_receiving(mon);
 
-    update_status(mod, base_dir_fd);
+    if (!update_status(mod))
+        goto out;
+
     bar->refresh(bar);
 
     while (true) {
@@ -414,7 +434,8 @@ run(struct module *mod)
                 continue;
         }
 
-        update_status(mod, base_dir_fd);
+        if (!update_status(mod))
+            break;
         bar->refresh(bar);
     }
 
@@ -423,8 +444,6 @@ out:
         udev_monitor_unref(mon);
     if (udev != NULL)
         udev_unref(udev);
-
-    close(base_dir_fd);
     return ret;
 }
 
