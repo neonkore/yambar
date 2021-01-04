@@ -173,7 +173,7 @@ content(struct module *mod)
             tag_new_int_realtime(
                 mod, "elapsed", elapsed, 0, m->duration, realtime),
         },
-        .count = 11,
+        .count = 12,
     };
 
     mtx_unlock(&mod->lock);
