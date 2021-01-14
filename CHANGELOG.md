@@ -9,6 +9,12 @@
 
 ### Added
 ### Changed
+
+* i3: workspaces with numerical names are sorted separately from
+  non-numerically named workspaces
+  (https://codeberg.org/dnkl/yambar/issues/30).
+
+
 ### Deprecated
 ### Removed
 ### Fixed
