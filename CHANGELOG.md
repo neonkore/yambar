@@ -1,13 +1,12 @@
 # Changelog
 
-* [Unreleased](#Unreleased)
+* [1.6.1](#1-6-1)
 * [1.6.0](#1-6-0)
 * [1.5.0](#1-5-0)
 
 
-## Unreleased
+## 1.6.1
 
-### Added
 ### Changed
 
 * i3: workspaces with numerical names are sorted separately from
@@ -15,17 +14,12 @@
   (https://codeberg.org/dnkl/yambar/issues/30).
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * mpd: `elapsed` tag not working (regression, introduced in 1.6.0).
 * Wrong background color for (semi-) transparent backgrounds.
 * battery: stats sometimes getting stuck at 0, or impossibly large
   values (https://codeberg.org/dnkl/yambar/issues/25).
-
-
-### Security
 
 
 ## 1.6.0
