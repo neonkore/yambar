@@ -21,6 +21,8 @@
 
 * mpd: `elapsed` tag not working (regression, introduced in 1.6.0).
 * Wrong background color for (semi-) transparent backgrounds.
+* battery: stats sometimes getting stuck at 0, or impossibly large
+  values (https://codeberg.org/dnkl/yambar/issues/25).
 
 
 ### Security
