@@ -14,6 +14,7 @@
 ### Fixed
 
 * mpd: `elapsed` tag not working (regression, introduced in 1.6.0).
+* Wrong background color for (semi-) transparent backgrounds.
 
 
 ### Security
