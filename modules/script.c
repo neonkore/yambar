@@ -148,7 +148,7 @@ process_line(struct module *mod, const char *line, size_t len)
     }
 
     else if ((type_len > 6 && memcmp(type, "range:", 6) == 0) ||
-             (type_len > 9 && memcmp(type, "realtime:", 9 == 0)))
+             (type_len > 9 && memcmp(type, "realtime:", 9) == 0))
     {
         const char *_start = type + 6;
         const char *split = memchr(_start, '-', type_len - 6);
