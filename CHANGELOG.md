@@ -13,6 +13,11 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Crash when merging non-dictionary anchors in the YAML configuration
+  (https://codeberg.org/dnkl/yambar/issues/32).
+
+
 ### Security
 ### Contributors
 
