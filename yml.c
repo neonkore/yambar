@@ -177,13 +177,14 @@ add_anchor(struct yml_node *root, const char *anchor,
     root->root.anchor_count++;
 }
 
-static void
-post_process(struct yml_node *node)
+static bool
+post_process(struct yml_node *node, char **error)
 {
     switch (node->type) {
     case ROOT:
         if (node->root.root != NULL)
-            post_process(node->root.root);
+            if (!post_process(node->root.root, error))
+                return false;
         break;
 
     case SCALAR:
@@ -192,13 +193,17 @@ post_process(struct yml_node *node)
 
     case LIST:
         tll_foreach(node->list.values, it)
-            post_process(it->item);
+            if (!post_process(it->item, error))
+                return false;
         break;
 
     case DICT:
         tll_foreach(node->dict.pairs, it) {
-            post_process(it->item.key);
-            post_process(it->item.value);
+            if (!post_process(it->item.key, error) ||
+                !post_process(it->item.value, error))
+            {
+                return false;
+            }
         }
 
         tll_foreach(node->dict.pairs, it) {
@@ -214,7 +219,17 @@ post_process(struct yml_node *node)
                  * e.g. <<: [*foo, *bar]
                  */
                 tll_foreach(it->item.value->list.values, v_it) {
-                    assert(v_it->item->type == DICT);
+                    if (v_it->item->type != DICT) {
+                        int cnt = snprintf(
+                            NULL, 0, "%zu:%zu: cannot merge non-dictionary anchor",
+                            v_it->item->line, v_it->item->column);
+                        *error = malloc(cnt + 1);
+                        snprintf(
+                            *error, cnt + 1, "%zu:%zu: cannot merge non-dictionary anchor",
+                            v_it->item->line, v_it->item->column);
+                        return false;
+                    }
+
                     tll_foreach(v_it->item->dict.pairs, vv_it) {
                         struct dict_pair p = {
                             .key = vv_it->item.key,
@@ -240,7 +255,17 @@ post_process(struct yml_node *node)
                  * Merge value is a dictionary only
                  * e.g. <<: *foo
                  */
-                assert(it->item.value->type == DICT);
+                if (it->item.value->type != DICT) {
+                    int cnt = snprintf(
+                        NULL, 0, "%zu:%zu: cannot merge non-dictionary anchor",
+                        it->item.value->line, it->item.value->column);
+                    *error = malloc(cnt + 1);
+                    snprintf(
+                        *error, cnt + 1, "%zu:%zu: cannot merge non-dictionary anchor",
+                        it->item.value->line, it->item.value->column);
+                    return false;
+                }
+
                 tll_foreach(it->item.value->dict.pairs, v_it) {
                     struct dict_pair p = {
                         .key = v_it->item.key,
@@ -269,6 +294,8 @@ post_process(struct yml_node *node)
         }
         break;
     }
+
+    return true;
 }
 
 static const char *
@@ -526,7 +553,10 @@ yml_load(FILE *yml, char **error)
 
     yaml_parser_delete(&yaml);
 
-    post_process(root);
+    if (!post_process(root, error)) {
+        yml_destroy(root);
+        return NULL;
+    }
     return root;
 
 err:
