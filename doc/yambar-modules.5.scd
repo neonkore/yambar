@@ -738,8 +738,11 @@ terminated. Or, the script can continue executing and update yambar
 with new tag sets, either periodically, or when there is new data to
 feed to yambar.
 
-Tag sets, or _transactions_, are separated by an empty line. Each
-_tag_ is a single line on the format:
+Tag sets, or _transactions_, are separated by an empty line
+(e.g. *echo ""*). The empty line is required to commit (update) the
+tag even for only one transaction.
+
+Each _tag_ is a single line on the format:
 
 ```
 name|type|value
@@ -754,14 +757,16 @@ Example:
 ```
 var1|string|hello
 var2|int|13
-
+  <empty>
 var1|string|world
 var2|int|37
+  <empty>
 ```
 
 The example above consists of two transactions. Each transaction has
 two tags: one string tag and one integer tag. The second transaction
-replaces the tags from the first transaction.
+replaces the tags from the first transaction. Note that **both**
+transactions need to be terminated with an empty line.
 
 Supported _types_ are:
 
