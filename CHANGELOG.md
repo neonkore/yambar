@@ -10,6 +10,9 @@
 
 ### Added
 ### Changed
+
+* doc: split up yambar-modules(5) into multiple man pages, one for each module 
+
 ### Deprecated
 ### Removed
 ### Fixed
