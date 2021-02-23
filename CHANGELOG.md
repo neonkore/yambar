@@ -10,6 +10,10 @@
 
 ### Added
 ### Changed
+
+* doc: split up **yambar-modules**(5) into multiple man pages, one for
+  each module (https://codeberg.org/dnkl/yambar/issues/15). 
+
 ### Deprecated
 ### Removed
 ### Fixed
@@ -21,6 +25,7 @@
 ### Security
 ### Contributors
 
+* [novakane](https://codeberg.org/novakane)
 
 ## 1.6.1
 
