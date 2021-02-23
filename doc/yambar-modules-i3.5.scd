@@ -101,3 +101,4 @@ bar:
 # SEE ALSO
 
 *yambar-modules*(5), *yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)
+

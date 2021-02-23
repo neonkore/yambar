@@ -1,12 +1,10 @@
 yambar-modules-sway(5)
 
-# NAME
-i3 - This module monitors i3 and sway workspaces
-
 # DESCRIPTION
 
-This module use the same configuration than i3 (see *yambar-modules-i3*(5))
+Please use the i3 (*yambar-modules-i3*(5)) module, as it is fully compatible with Sway
 
 # SEE ALSO
 
-*yambar-modules*(5), *yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)
+*yambar-modules*(5), *yambar-modules-i3*(5)
+

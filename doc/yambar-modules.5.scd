@@ -170,3 +170,4 @@ Available modules have their own pages:
 # SEE ALSO
 
 *yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)
+

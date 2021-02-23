@@ -48,4 +48,5 @@ bar:
 
 # SEE ALSO
 
-*yambar-modules*(5), *yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)
+*yambar-modules-sway-xkb*(5), *yambar-modules*(5), *yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)
+
