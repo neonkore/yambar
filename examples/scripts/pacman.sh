@@ -37,6 +37,12 @@ _err() {
   printf -- '%s\n' "[$(date +'%Y-%m-%d %H:%M:%S')]: $*" >&2
 }
 
+# Display tags before yambar fetch the updates number
+printf -- '%s\n' "pacman|int|0"
+printf -- '%s\n' "aur|int|0"
+printf -- '%s\n' "pkg|int|0"
+printf -- '%s\n' ""
+
 
 while true; do
   # Change interval
@@ -53,6 +59,7 @@ while true; do
 
   if ! hash "${aur_helper}" >/dev/null 2>&1; then
     _err "aur helper not found, change it in the script"
+    exit 1
   else
     aur_num=$("${aur_helper}" -Qmu | wc -l)
   fi
@@ -70,5 +77,4 @@ done
 
 unset -v interval aur_helper pacman_num aur_num pkg_num
 unset -f _err
-
 
