@@ -1,4 +1,4 @@
-yambar-modules-swayxkb(5)
+yambar-modules-sway-xkb(5)
 
 # NAME
 sway-xkb - This module monitor input devices' active XKB layout

@@ -159,7 +159,9 @@ Available modules have their own pages:
 
 *yambar-modules-script*(5)
 
-*yambar-modules-swayxkb*(5)
+*yambar-modules-sway-xkb*(5)
+
+*yambar-modules-sway*(5)
 
 *yambar-modules-xkb*(5)
 
