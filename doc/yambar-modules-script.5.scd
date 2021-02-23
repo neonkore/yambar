@@ -1,0 +1,108 @@
+yambar-modules-script(5)
+
+# NAME
+script - This module executes a user-provided script (or binary!)
+
+# DESCRIPTION
+
+This module executes a user-provided script (or binary!) that writes
+tags on its stdout.
+
+The script can either exit immediately after writing a set of tags, in
+which case yambar will display those tags until yambar is
+terminated. Or, the script can continue executing and update yambar
+with new tag sets, either periodically, or when there is new data to
+feed to yambar.
+
+Tag sets, or _transactions_, are separated by an empty line
+(e.g. *echo ""*). The empty line is required to commit (update) the
+tag even for only one transaction.
+
+Each _tag_ is a single line on the format:
+
+```
+name|type|value
+```
+
+Where _name_ is what you also use to refer to the tag in the yambar
+configuration, _type_ is one of the tag types defined in
+*yambar-tags*(5), and _value_ is the tag’s value.
+
+Example:
+
+```
+var1|string|hello
+var2|int|13
+  <empty>
+var1|string|world
+var2|int|37
+  <empty>
+```
+
+The example above consists of two transactions. Each transaction has
+two tags: one string tag and one integer tag. The second transaction
+replaces the tags from the first transaction. Note that **both**
+transactions need to be terminated with an empty line.
+
+Supported _types_ are:
+
+- string
+- int
+- bool
+- float
+- range:n-m (e.g. *var|range:0-100|57*)
+
+# TAGS
+
+User defined.
+
+# CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  path
+:  string
+:  yes
+:  Path to script/binary to execute. Must be an absolute path.
+|  args
+:  list of strings
+:  no
+:  Arguments to pass to the script/binary.
+
+# EXAMPLES
+
+Here is an "hello world" example script:
+
+```
+#!/bin/sh
+
+while true; do
+    echo "test|string|hello"
+    echo ""
+    sleep 3
+
+    echo "test|string|world"
+    echo ""
+    sleep 3
+done
+```
+
+This script will emit a single string tag, _test_, and alternate its
+value between *hello* and *world* every three seconds.
+
+A corresponding yambar configuration could look like this:
+
+```
+bar:
+  left:
+    - script:
+        path: /path/to/script.sh
+        args: []
+        content: {string: {text: "{test}"}}
+```
+
+# SEE ALSO
+
+*yambar-modules*(5), *yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)
