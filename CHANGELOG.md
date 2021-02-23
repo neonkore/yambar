@@ -21,6 +21,7 @@
 ### Security
 ### Contributors
 
+* [novakane](https://codeberg.org/novakane)
 
 ## 1.6.1
 
