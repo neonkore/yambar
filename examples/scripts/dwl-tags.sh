@@ -6,18 +6,18 @@
 #
 # REQUIREMENTS:
 #  - inotifywait ( 'inotify-tools' on arch )
-#  - 2021/02/22 - dwl pull request:
+#  - 2021/02/25 - dwl pull request:
 #    'Interface to display tag information on status bar #91'
 #    https://github.com/djpohly/dwl/pull/91
 #
 # TAGS:
-#  Name                 Type    Return
+#  Name              Type    Return
 #  ----------------------------------------------------
-#  {dwltag_N}           string  dwl tags name
-#  {dwltag_N_occupied}  bool    dwl tags state occupied
-#  {dwltag_N_focused}   bool    dwl tags state focused
-#  {dwl_layout}         string  dwl layout
-#  {dwl_title}          string  client title
+#  {tag_N}           string  dwl tags name
+#  {tag_N_occupied}  bool    dwl tags state occupied
+#  {tag_N_focused}   bool    dwl tags state focused
+#  {layout}          string  dwl layout
+#  {title}           string  client title
 #
 # Now the fun part
 #
@@ -33,189 +33,44 @@
 #         content:
 #           - map:
 #               margin: 4
-#               tag: dwltag_0_occupied
+#               tag: tag_0_occupied
 #               values:
 #                 true:
 #                   map:
-#                     tag: dwltag_0_focused
+#                     tag: tag_0_focused
 #                     values:
-#                       true:
-#                           - string: {text: "{dwltag_0}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_0}", <<: *occupied}
+#                       true: {string: {text: "{tag_0}", <<: *focused}}
+#                       false: {string: {text: "{tag_0}", <<: *occupied}}
 #                 false:
 #                   map:
-#                     tag: dwltag_0_focused
+#                     tag: tag_0_focused
 #                     values:
-#                       true:
-#                           - string: {text: "{dwltag_0}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_0}", <<: *default}
+#                       true: {string: {text: "{tag_0}", <<: *focused}}
+#                       false: {string: {text: "{tag_0}", <<: *default}}
+#           ...
+#           ... 
+#           ...
 #           - map:
 #               margin: 4
-#               tag: dwltag_1_occupied
+#               tag: tag_8_occupied
 #               values:
 #                 true:
 #                   map:
-#                     tag: dwltag_1_focused
+#                     tag: tag_8_focused
 #                     values:
-#                       true:
-#                           - string: {text: "{dwltag_1}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_1}", <<: *occupied}
+#                       true: {string: {text: "{tag_8}", <<: *focused}}
+#                       false: {string: {text: "{tag_8}", <<: *occupied}}
 #                 false:
 #                   map:
-#                     tag: dwltag_1_focused
+#                     tag: tag_8_focused
 #                     values:
-#                       true:
-#                           - string: {text: "{dwltag_1}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_1}", <<: *default}
-#           - map:
-#               margin: 4
-#               tag: dwltag_2_occupied
-#               values:
-#                 true:
-#                   map:
-#                     tag: dwltag_2_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_2}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_2}", <<: *occupied}
-#                 false:
-#                   map:
-#                     tag: dwltag_2_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_2}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_2}", <<: *default}
-#           - map:
-#               margin: 4
-#               tag: dwltag_3_occupied
-#               values:
-#                 true:
-#                   map:
-#                     tag: dwltag_3_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_3}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_3}", <<: *occupied}
-#                 false:
-#                   map:
-#                     tag: dwltag_3_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_3}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_3}", <<: *default}
-#           - map:
-#               margin: 4
-#               tag: dwltag_4_occupied
-#               values:
-#                 true:
-#                   map:
-#                     tag: dwltag_4_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_4}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_4}", <<: *occupied}
-#                 false:
-#                   map:
-#                     tag: dwltag_4_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_4}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_4}", <<: *default}
-#           - map:
-#               margin: 4
-#               tag: dwltag_5_occupied
-#               values:
-#                 true:
-#                   map:
-#                     tag: dwltag_5_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_5}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_5}", <<: *occupied}
-#                 false:
-#                   map:
-#                     tag: dwltag_5_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_5}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_5}", <<: *default}
-#           - map:
-#               margin: 4
-#               tag: dwltag_6_occupied
-#               values:
-#                 true:
-#                   map:
-#                     tag: dwltag_6_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_6}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_6}", <<: *occupied}
-#                 false:
-#                   map:
-#                     tag: dwltag_6_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_6}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_6}", <<: *default}
-#           - map:
-#               margin: 4
-#               tag: dwltag_7_occupied
-#               values:
-#                 true:
-#                   map:
-#                     tag: dwltag_7_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_7}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_7}", <<: *occupied}
-#                 false:
-#                   map:
-#                     tag: dwltag_7_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_7}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_7}", <<: *default}
-#           - map:
-#               margin: 4
-#               tag: dwltag_8_occupied
-#               values:
-#                 true:
-#                   map:
-#                     tag: dwltag_8_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_8}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_8}", <<: *occupied}
-#                 false:
-#                   map:
-#                     tag: dwltag_8_focused
-#                     values:
-#                       true:
-#                           - string: {text: "{dwltag_8}", <<: *focused}
-#                       false:
-#                           - string: {text: "{dwltag_8}", <<: *default}
+#                       true: {string: {text: "{tag_8}", <<: *focused}}
+#                       false: {string: {text: "{tag_8}", <<: *default}}
 #           - list:
 #               spacing: 3
 #               items:
-#                   - string: {text: "{dwl_layout}"}
-#                   - string: {text: "{dwl_title}"}
+#                   - string: {text: "{layout}"}
+#                   - string: {text: "{title}"}
 
 
 # Variables
@@ -238,7 +93,7 @@ _cycle() {
   for tag in "${!tags[@]}"; do
     mask=$((1<<tag))
 
-    tag_name="dwltag"
+    tag_name="tag"
     declare "${tag_name}_${tag}"
     name[tag]="${name[tag]:-${tags[tag]}}"
 
@@ -254,19 +109,19 @@ _cycle() {
     # Focused
     if (( "${mtags}" & mask )); then
       printf -- '%s\n' "${tag_name}_${tag}_focused|bool|true"
-      printf -- '%s\n' "dwl_title|string|${title}"
+      printf -- '%s\n' "title|string|${title}"
     else
       printf -- '%s\n' "${tag_name}_${tag}_focused|bool|false"
     fi
 
   done
 
-  printf -- '%s\n' "dwl_layout|string|${layout}"
+  printf -- '%s\n' "layout|string|${layout}"
   printf -- '%s\n' ""
 
 }
 
-# Call the function here so the tags are displayed at dwl laucnh
+# Call the function here so the tags are displayed at dwl launch
 _cycle
 
 while true; do
