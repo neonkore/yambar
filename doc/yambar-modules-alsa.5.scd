@@ -28,7 +28,7 @@ alsa - Monitors an alsa soundcard for volume and mute/unmute changes
 |  card
 :  string
 :  yes
-:  The soundcard name. _Default_ might work.
+:  The soundcard name. *default* might work.
 |  mixer
 :  string
 :  yes
