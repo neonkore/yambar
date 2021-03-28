@@ -6,9 +6,7 @@
 #
 # REQUIREMENTS:
 #  - inotifywait ( 'inotify-tools' on arch )
-#  - 2021/02/25 - dwl pull request:
-#    'Interface to display tag information on status bar #91'
-#    https://github.com/djpohly/dwl/pull/91
+#  - Launch dwl with `dwl > ~.cache/dwltags` or change $fname
 #
 # TAGS:
 #  Name              Type    Return
@@ -74,9 +72,9 @@
 
 
 # Variables
-declare titleline tagline title taginfo isactive ctags mtags layout
+declare output title layout activetags selectedtags
 declare -a tags name
-readonly fname=/tmp/dwltags-"$WAYLAND_DISPLAY"
+readonly fname="$HOME"/.cache/dwltags
 
 
 _cycle() {
@@ -99,21 +97,18 @@ _cycle() {
 
     printf -- '%s\n' "${tag_name}_${tag}|string|${name[tag]}"
 
-    # Occupied
-    if (( "${ctags}" & mask )); then
+    if (( "${selectedtags}" & mask )) 2>/dev/null; then
+      printf -- '%s\n' "${tag_name}_${tag}_focused|bool|true"
+      printf -- '%s\n' "title|string|${title}"
+    else
+      printf '%s\n' "${tag_name}_${tag}_focused|bool|false"
+    fi
+
+    if (( "${activetags}" & mask )) 2>/dev/null; then
       printf -- '%s\n' "${tag_name}_${tag}_occupied|bool|true"
     else
       printf -- '%s\n' "${tag_name}_${tag}_occupied|bool|false"
     fi
-
-    # Focused
-    if (( "${mtags}" & mask )); then
-      printf -- '%s\n' "${tag_name}_${tag}_focused|bool|true"
-      printf -- '%s\n' "title|string|${title}"
-    else
-      printf -- '%s\n' "${tag_name}_${tag}_focused|bool|false"
-    fi
-
   done
 
   printf -- '%s\n' "layout|string|${layout}"
@@ -126,28 +121,25 @@ _cycle
 
 while true; do
 
-  # Make sure the file exists
-  while [ ! -f "${fname}" ]; do
-    inotifywait -qqe create "$(dirname "${fname}")"
-  done;
+  [[ ! -f "${fname}" ]] && printf -- '%s\n' \
+      "You need to redirect dwl stdout to ~/.cache/dwltags" >&2
 
-  # Wait for dwl to close it after writing
-  inotifywait -qqe close_write "${fname}"
+  inotifywait -qq --event modify "${fname}"
 
   # Get info from the file
-  titleline="$1"
-  tagline=$((titleline+1))
-  title=$(sed "${titleline}!d" "${fname}")
-  taginfo=$(sed "${tagline}!d" "${fname}")
-  isactive=$(printf -- '%s\n' "${taginfo}" | cut -d ' ' -f 1)
-  ctags=$(printf -- '%s\n' "${taginfo}" | cut -d ' ' -f 2)
-  mtags=$(printf -- '%s\n' "${taginfo}" | cut -d ' ' -f 3)
-  layout=$(printf -- '%s\n' "${taginfo}" | cut -d ' ' -f 4-)
+  output="$(tail -n4 "${fname}")"
+  title="$(echo "${output}" | grep title | cut -d ' ' -f 3- )"
+  #selmon="$(echo "${output}" | grep 'selmon')"
+  layout="$(echo "${output}" | grep layout | cut -d ' ' -f 3- )"
+
+  # Get the tag bit mask as a decimal
+  activetags="$(echo "${output}" | grep tags | awk '{print $3}')"
+  selectedtags="$(echo "${output}" | grep tags | awk '{print $4}')"
 
   _cycle
 
 done
 
-unset -v titleline tagline title taginfo isactive ctags mtags layout 
+unset -v output title layout activetags selectedtags
 unset -v tags name
 
