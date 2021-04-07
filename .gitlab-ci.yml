@@ -1,4 +1,4 @@
-image: alpine:edge
+image: alpine:latest
 
 stages:
   - info
@@ -8,7 +8,6 @@ variables:
   GIT_SUBMODULE_STRATEGY: normal
 
 before_script:
-  - echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
   - apk update
   - apk add musl-dev eudev-libs eudev-dev linux-headers meson ninja gcc scdoc
   - apk add pixman-dev freetype-dev fontconfig-dev
@@ -90,7 +89,7 @@ plugins_as_shared_modules:
     - meson test --print-errorlogs
 
 codespell:
-  image: alpine:edge
+  image: alpine:latest
   stage: build
   script:
     - apk add python3
