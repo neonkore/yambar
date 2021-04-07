@@ -465,6 +465,7 @@ xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
                        const char *name)
 {
     struct monitor *mon = data;
+    free(mon->name);
     mon->name = strdup(name);
 }
 
