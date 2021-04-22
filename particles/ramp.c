@@ -4,6 +4,9 @@
 
 #include <stdio.h>
 
+#define LOG_MODULE "ramp"
+#define LOG_ENABLE_DBG 0
+#include "../log.h"
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particle.h"
@@ -101,6 +104,26 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     long value = tag != NULL ? tag->as_int(tag) : 0;
     long min = tag != NULL ? tag->min(tag) : 0;
     long max = tag != NULL ? tag->max(tag) : 0;
+
+    if (min > max) {
+        LOG_WARN(
+            "tag's minimum value is greater than its maximum: "
+            "tag=\"%s\", min=%ld, max=%ld", p->tag, min, max);
+        min = max;
+    }
+
+    if (value < min) {
+        LOG_WARN(
+            "tag's value is less than its minimum value: "
+            "tag=\"%s\", min=%ld, value=%ld", p->tag, min, value);
+        value = min;
+    }
+    if (value > max) {
+        LOG_WARN(
+            "tag's value is greater than its maximum value: "
+            "tag=\"%s\", max=%ld, value=%ld", p->tag, max, value);
+        value = max;
+    }
 
     assert(value >= min && value <= max);
     assert(max >= min);

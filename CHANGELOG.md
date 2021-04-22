@@ -12,7 +12,7 @@
 ### Changed
 
 * doc: split up **yambar-modules**(5) into multiple man pages, one for
-  each module (https://codeberg.org/dnkl/yambar/issues/15). 
+  each module (https://codeberg.org/dnkl/yambar/issues/15).
 
 ### Deprecated
 ### Removed
@@ -20,6 +20,8 @@
 
 * Crash when merging non-dictionary anchors in the YAML configuration
   (https://codeberg.org/dnkl/yambar/issues/32).
+* Crash in the `ramp` particle when the tag’s value was out-of-bounds
+  (https://codeberg.org/dnkl/yambar/issues/45).
 
 
 ### Security
