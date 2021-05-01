@@ -20,6 +20,9 @@
 * fcft >= 2.4.0 is now required.
 * sway-xkb: non-keyboard inputs are now ignored
   (https://codeberg.org/dnkl/yambar/issues/51).
+* battery: don’t terminate (causing last status to “freeze”) when
+  failing to update; retry again later
+  (https://codeberg.org/dnkl/yambar/issues/44).
 
 
 ### Deprecated
