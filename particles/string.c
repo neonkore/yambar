@@ -13,6 +13,12 @@
 struct private {
     char *text;
     size_t max_len;
+
+    struct {
+        uint64_t hash;
+        struct fcft_text_run *run;
+        int width;
+    } cached;
 };
 
 struct eprivate {
@@ -20,9 +26,23 @@ struct eprivate {
     char *text;
 
     const struct fcft_glyph **glyphs;
+    const struct fcft_glyph **allocated_glyphs;
     long *kern_x;
     int num_glyphs;
 };
+
+static uint64_t
+sdbm_hash(const char *s)
+{
+    uint64_t hash = 0;
+
+    for (; *s != '\0'; s++) {
+        int c = *s;
+        hash = c + (hash << 6) + (hash << 16) - hash;
+    }
+
+    return hash;
+}
 
 static void
 exposable_destroy(struct exposable *exposable)
@@ -30,7 +50,7 @@ exposable_destroy(struct exposable *exposable)
     struct eprivate *e = exposable->private;
 
     free(e->text);
-    free(e->glyphs);
+    free(e->allocated_glyphs);
     free(e->kern_x);
     free(e);
     exposable_default_destroy(exposable);
@@ -40,33 +60,72 @@ static int
 begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
+    struct private *p = exposable->particle->private;
     struct fcft_font *font = exposable->particle->font;
 
-    e->glyphs = NULL;
+    e->glyphs = e->allocated_glyphs = NULL;
     e->num_glyphs = 0;
+    e->kern_x = NULL;
+
+    uint64_t hash = sdbm_hash(e->text);
+
+    if (p->cached.hash == hash) {
+        e->glyphs = p->cached.run->glyphs;
+        e->num_glyphs = p->cached.run->count;
+        e->kern_x = calloc(p->cached.run->count, sizeof(e->kern_x[0]));
+
+        exposable->width =
+            exposable->particle->left_margin +
+            p->cached.width +
+            exposable->particle->right_margin;
+
+        return exposable->width;
+    }
 
     size_t chars = mbstowcs(NULL, e->text, 0);
     if (chars != (size_t)-1) {
         wchar_t wtext[chars + 1];
         mbstowcs(wtext, e->text, chars + 1);
 
-        e->glyphs = malloc(chars * sizeof(e->glyphs[0]));
         e->kern_x = calloc(chars, sizeof(e->kern_x[0]));
 
-        /* Convert text to glyph masks/images. */
-        for (size_t i = 0; i < chars; i++) {
-            const struct fcft_glyph *glyph = fcft_glyph_rasterize(
-                font, wtext[i], FCFT_SUBPIXEL_NONE);
+        if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
+            struct fcft_text_run *run = fcft_text_run_rasterize(font, chars, wtext, FCFT_SUBPIXEL_NONE);
+            if (run != NULL) {
+                int w = 0;
+                for (size_t i = 0; i < run->count; i++)
+                    w += run->glyphs[i]->advance.x;
 
-            if (glyph == NULL)
-                continue;
+                fcft_text_run_destroy(p->cached.run);
+                p->cached.hash = hash;
+                p->cached.run = run;
+                p->cached.width = w;
 
-            e->glyphs[e->num_glyphs++] = glyph;
+                e->num_glyphs = run->count;
+                e->glyphs = run->glyphs;
+            }
+        }
 
-            if (i == 0)
-                continue;
+        if (e->glyphs == NULL) {
+            e->allocated_glyphs = malloc(chars * sizeof(e->glyphs[0]));
 
-            fcft_kerning(font, wtext[i - 1], wtext[i], &e->kern_x[i], NULL);
+            /* Convert text to glyph masks/images. */
+            for (size_t i = 0; i < chars; i++) {
+                const struct fcft_glyph *glyph = fcft_glyph_rasterize(
+                    font, wtext[i], FCFT_SUBPIXEL_NONE);
+
+                if (glyph == NULL)
+                    continue;
+
+                e->allocated_glyphs[e->num_glyphs++] = glyph;
+
+                if (i == 0)
+                    continue;
+
+                fcft_kerning(font, wtext[i - 1], wtext[i], &e->kern_x[i], NULL);
+            }
+
+            e->glyphs = e->allocated_glyphs;
         }
     }
 
@@ -188,6 +247,7 @@ static void
 particle_destroy(struct particle *particle)
 {
     struct private *p = particle->private;
+    fcft_text_run_destroy(p->cached.run);
     free(p->text);
     free(p);
     particle_default_destroy(particle);
@@ -199,6 +259,7 @@ string_new(struct particle *common, const char *text, size_t max_len)
     struct private *p = calloc(1, sizeof(*p));
     p->text = strdup(text);
     p->max_len = max_len;
+    p->cached.hash = -1;
 
     common->private = p;
     common->destroy = &particle_destroy;
