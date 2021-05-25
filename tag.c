@@ -446,8 +446,9 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         }
 
         /* Lookup tag */
-        const struct tag *tag = tag_for_name(tags, tag_name);
-        if (tag == NULL) {
+        const struct tag *tag = NULL;
+
+        if (tag_name == NULL || (tag = tag_for_name(tags, tag_name)) == NULL) {
             /* No such tag, copy as-is instead */
             sbuf_append_at_most(&formatted, template, begin - template + 1);
             template = begin + 1;

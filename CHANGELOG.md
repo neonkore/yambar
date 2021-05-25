@@ -28,6 +28,8 @@
   (https://codeberg.org/dnkl/yambar/issues/32).
 * Crash in the `ramp` particle when the tag’s value was out-of-bounds
   (https://codeberg.org/dnkl/yambar/issues/45).
+* Crash when a string particle contained `{}`
+  (https://codeberg.org/dnkl/yambar/issues/48).
 
 
 ### Security
