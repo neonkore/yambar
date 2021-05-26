@@ -18,6 +18,8 @@
 * doc: split up **yambar-modules**(5) into multiple man pages, one for
   each module (https://codeberg.org/dnkl/yambar/issues/15).
 * fcft >= 2.4.0 is now required.
+* sway-xkb: non-keyboard inputs are now ignored
+  (https://codeberg.org/dnkl/yambar/issues/51).
 
 
 ### Deprecated
