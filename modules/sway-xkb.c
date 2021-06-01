@@ -175,6 +175,15 @@ handle_input_event(int type, const struct json_object *json, void *_mod)
         return false;
 
     const char *id = json_object_get_string(identifier);
+
+    struct json_object *input_type;
+    if (!json_object_object_get_ex(obj, "type", &input_type))
+        return false;
+    if (strcmp(json_object_get_string(input_type), "keyboard") != 0) {
+        LOG_DBG("ignoring non-keyboard input '%s'", id);
+        return true;
+    }
+
     struct input *input = NULL;
     for (size_t i = 0; i < m->num_inputs; i++) {
         struct input *maybe_input = &m->inputs[i];
