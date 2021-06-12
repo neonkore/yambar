@@ -434,9 +434,8 @@ run(struct module *mod)
                 continue;
         }
 
-        if (!update_status(mod))
-            break;
-        bar->refresh(bar);
+        if (update_status(mod))
+            bar->refresh(bar);
     }
 
 out:
