@@ -23,6 +23,9 @@
 * battery: don’t terminate (causing last status to “freeze”) when
   failing to update; retry again later
   (https://codeberg.org/dnkl/yambar/issues/44).
+* battery: differentiate "Not Charging" and "Discharging" in state
+  tag of battery module.
+  (https://codeberg.org/dnkl/yambar/issues/57).
 
 
 ### Deprecated
@@ -41,6 +44,7 @@
 ### Contributors
 
 * [novakane](https://codeberg.org/novakane)
+* [mz](https://codeberg.org/mz)
 
 ## 1.6.1
 
