@@ -24,7 +24,7 @@ uses *udev* to monitor for changes.
 :  Battery model name
 |  state
 :  string
-:  One of *full*, *charging*, *discharging* or *unknown*
+:  One of *full*, *not charging*, *charging*, *discharging* or *unknown*
 |  capacity
 :  range
 :  capacity left, in percent
