@@ -180,7 +180,7 @@ process_line(struct module *mod, const char *line, size_t len)
 
         long end = 0;
         for (size_t i = 0; i < end_len; i++) {
-            if (!(_end[i] >= '0' && _end[i] < '9')) {
+            if (!(_end[i] >= '0' && _end[i] <= '9')) {
                 LOG_ERR(
                     "tag range end is not an integer: %.*s",
                     (int)end_len, _end);

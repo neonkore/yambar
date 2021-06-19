@@ -38,6 +38,8 @@
   (https://codeberg.org/dnkl/yambar/issues/45).
 * Crash when a string particle contained `{}`
   (https://codeberg.org/dnkl/yambar/issues/48).
+* `script` module rejecting range tag end values containing the digit
+  `9` (https://codeberg.org/dnkl/yambar/issues/60).
 
 
 ### Security
