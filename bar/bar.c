@@ -220,7 +220,7 @@ set_module_thread_name(thrd_t id, struct module *mod)
 {
     char title[16];
     if (mod->description != NULL)
-        snprintf(title, sizeof(title), "mod:%s", mod->description(mod));
+        strncpy(title, mod->description(mod), sizeof(title));
     else
         strncpy(title, "mod:<unknown>", sizeof(title));
 
