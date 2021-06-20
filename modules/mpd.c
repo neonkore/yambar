@@ -83,6 +83,12 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    return "mpd";
+}
+
 static uint64_t
 timespec_diff_milli_seconds(const struct timespec *a, const struct timespec *b)
 {
@@ -588,6 +594,7 @@ mpd_new(const char *host, uint16_t port, struct particle *label)
     mod->destroy = &destroy;
     mod->content = &content;
     mod->refresh_in = &refresh_in;
+    mod->description = &description;
     return mod;
 }
 

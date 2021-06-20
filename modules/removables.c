@@ -97,6 +97,12 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    return "removables";
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -596,6 +602,7 @@ removables_new(struct particle *label, int left_spacing, int right_spacing,
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

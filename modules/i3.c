@@ -608,6 +608,12 @@ ws_content_for_name(struct private *m, const char *name)
     return NULL;
 }
 
+static const char *
+description(struct module *mod)
+{
+    return "i3/sway";
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -710,6 +716,7 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

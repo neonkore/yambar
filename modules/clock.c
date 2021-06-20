@@ -35,6 +35,12 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    return "clock";
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -60,6 +66,7 @@ content(struct module *mod)
     return exposable;
 }
 
+#include <pthread.h>
 static int
 run(struct module *mod)
 {
@@ -161,6 +168,7 @@ clock_new(struct particle *label, const char *date_format, const char *time_form
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

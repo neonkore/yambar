@@ -21,6 +21,12 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    return "label";
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -45,6 +51,7 @@ label_new(struct particle *label)
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

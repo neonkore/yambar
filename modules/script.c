@@ -56,6 +56,19 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    static char desc[32];
+    struct private *m = mod->private;
+
+    char *path = strdup(m->path);
+    snprintf(desc, sizeof(desc), "script(%s)", basename(path));
+
+    free(path);
+    return desc;
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -569,6 +582,7 @@ script_new(const char *path, size_t argc, const char *const argv[static argc],
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

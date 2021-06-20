@@ -39,6 +39,15 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    static char desc[32];
+    struct private *m = mod->private;
+    snprintf(desc, sizeof(desc), "alsa(%s)", m->card);
+    return desc;
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -287,6 +296,7 @@ alsa_new(const char *card, const char *mixer, struct particle *label)
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

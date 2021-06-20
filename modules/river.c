@@ -65,6 +65,12 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    return "river";
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -645,6 +651,7 @@ river_new(struct particle *template, struct particle *title)
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     m->mod = mod;
     return mod;
 }
