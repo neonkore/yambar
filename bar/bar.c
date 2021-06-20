@@ -2,12 +2,14 @@
 #include "private.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <threads.h>
 #include <assert.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <sys/eventfd.h>
 
@@ -213,6 +215,20 @@ on_mouse(struct bar *_bar, enum mouse_event event, int x, int y)
     set_cursor(_bar, "left_ptr");
 }
 
+static void
+set_module_thread_name(thrd_t id, struct module *mod)
+{
+    char title[16];
+    if (mod->description != NULL)
+        snprintf(title, sizeof(title), "mod:%s", mod->description(mod));
+    else
+        strncpy(title, "mod:<unknown>", sizeof(title));
+
+    title[15] = '\0';
+
+    if (pthread_setname_np(id, title) < 0)
+        LOG_ERRNO("failed to set thread title");
+}
 
 static int
 run(struct bar *_bar)
@@ -240,18 +256,21 @@ run(struct bar *_bar)
 
         mod->abort_fd = _bar->abort_fd;
         thrd_create(&thrd_left[i], (int (*)(void *))bar->left.mods[i]->run, mod);
+        set_module_thread_name(thrd_left[i], mod);
     }
     for (size_t i = 0; i < bar->center.count; i++) {
         struct module *mod = bar->center.mods[i];
 
         mod->abort_fd = _bar->abort_fd;
         thrd_create(&thrd_center[i], (int (*)(void *))bar->center.mods[i]->run, mod);
+        set_module_thread_name(thrd_center[i], mod);
     }
     for (size_t i = 0; i < bar->right.count; i++) {
         struct module *mod = bar->right.mods[i];
 
         mod->abort_fd = _bar->abort_fd;
         thrd_create(&thrd_right[i], (int (*)(void *))bar->right.mods[i]->run, mod);
+        set_module_thread_name(thrd_right[i], mod);
     }
 
     LOG_DBG("all modules started");
