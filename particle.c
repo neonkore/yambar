@@ -144,9 +144,10 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
                            enum mouse_event event, enum mouse_button btn,
                            int x, int y)
 {
-    LOG_DBG("on_mouse: exposable=%p, event=%s, btn=%d, x=%d, y=%d (on-click=%s)",
-            exposable, event == ON_MOUSE_MOTION ? "motion" : "click", btn, x, y,
-            exposable->on_click);
+    LOG_DBG("on_mouse: exposable=%p, event=%s, btn=%s, x=%d, y=%d (on-click=%s)",
+            exposable, event == ON_MOUSE_MOTION ? "motion" : "click",
+            btn == MOUSE_BTN_NONE ? "none" : btn == MOUSE_BTN_LEFT ? "left" : btn == MOUSE_BTN_MIDDLE ? "middle" : "right",
+            x, y, exposable->on_click);
 
     /* If we have a handler, change cursor to a hand */
     bar->set_cursor(bar, exposable->on_click == NULL ? "left_ptr" : "hand2");
