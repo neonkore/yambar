@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 #include <poll.h>
+#include <pthread.h>
 
 #include <pixman.h>
 #include <xcb/xcb.h>
@@ -315,6 +316,8 @@ loop(struct bar *_bar,
 {
     struct private *bar = _bar->private;
     struct xcb_backend *backend = bar->backend.data;
+
+    pthread_setname_np(pthread_self(), "bar(xcb)");
 
     const int fd = xcb_get_file_descriptor(backend->conn);
 
