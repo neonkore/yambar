@@ -10,6 +10,7 @@
 
 #include <sys/mman.h>
 #include <linux/memfd.h>
+#include <linux/input-event-codes.h>
 
 #include <pixman.h>
 #include <wayland-client.h>
@@ -113,7 +114,8 @@ struct wayland_backend {
     struct buffer *pending_buffer;  /* Finished, but not yet rendered */
 
     void (*bar_expose)(const struct bar *bar);
-    void (*bar_on_mouse)(struct bar *bar, enum mouse_event event, int x, int y);
+    void (*bar_on_mouse)(struct bar *bar, enum mouse_event event,
+                         enum mouse_button btn, int x, int y);
 };
 
 static void
@@ -262,7 +264,8 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 
     backend->active_seat = seat;
     backend->bar_on_mouse(
-        backend->bar, ON_MOUSE_MOTION, seat->pointer.x, seat->pointer.y);
+        backend->bar, ON_MOUSE_MOTION, MOUSE_BTN_NONE,
+        seat->pointer.x, seat->pointer.y);
 }
 
 static void
@@ -276,8 +279,19 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
     struct wayland_backend *backend = seat->backend;
 
     backend->active_seat = seat;
+
+    enum mouse_button btn;
+
+    switch (button) {
+    case BTN_LEFT:   btn = MOUSE_BTN_LEFT; break;
+    case BTN_MIDDLE: btn = MOUSE_BTN_MIDDLE; break;
+    case BTN_RIGHT:  btn = MOUSE_BTN_RIGHT; break;
+    default:
+        return;
+    }
+
     backend->bar_on_mouse(
-        backend->bar, ON_MOUSE_CLICK, seat->pointer.x, seat->pointer.y);
+        backend->bar, ON_MOUSE_CLICK, btn, seat->pointer.x, seat->pointer.y);
 }
 
 static void
@@ -1011,7 +1025,8 @@ cleanup(struct bar *_bar)
 static void
 loop(struct bar *_bar,
      void (*expose)(const struct bar *bar),
-     void (*on_mouse)(struct bar *bar, enum mouse_event event, int x, int y))
+     void (*on_mouse)(struct bar *bar, enum mouse_event event,
+                      enum mouse_button btn, int x, int y))
 {
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;

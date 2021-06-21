@@ -67,13 +67,13 @@ dynlist_expose(const struct exposable *exposable, pixman_image_t *pix, int x, in
 
 static void
 on_mouse(struct exposable *exposable, struct bar *bar,
-         enum mouse_event event, int x, int y)
+         enum mouse_event event, enum mouse_button btn, int x, int y)
 {
     //const struct particle *p = exposable->particle;
     const struct private *e = exposable->private;
 
     if (exposable->on_click != NULL) {
-        exposable_default_on_mouse(exposable, bar, event, x, y);
+        exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }
 
@@ -82,7 +82,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
         if (x >= px && x < px + e->exposables[i]->width) {
             if (e->exposables[i]->on_mouse != NULL) {
                 e->exposables[i]->on_mouse(
-                    e->exposables[i], bar, event, x - px, y);
+                    e->exposables[i], bar, event, btn, x - px, y);
             }
             return;
         }
@@ -91,7 +91,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
     }
 
     LOG_DBG("on_mouse missed all sub-particles");
-    exposable_default_on_mouse(exposable, bar, event, x, y);
+    exposable_default_on_mouse(exposable, bar, event, btn, x, y);
 }
 
 struct exposable *

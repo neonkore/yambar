@@ -61,26 +61,26 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
 
 static void
 on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
-         int x, int y)
+         enum mouse_button btn, int x, int y)
 {
     const struct particle *p = exposable->particle;
     const struct eprivate *e = exposable->private;
 
     if (exposable->on_click != NULL) {
         /* We have our own handler */
-        exposable_default_on_mouse(exposable, bar, event, x, y);
+        exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }
 
     int px = p->left_margin;
     if (x >= px && x < px + e->exposable->width) {
         if (e->exposable->on_mouse != NULL)
-            e->exposable->on_mouse(e->exposable, bar, event, x - px, y);
+            e->exposable->on_mouse(e->exposable, bar, event, btn, x - px, y);
         return;
     }
 
     /* In the left- or right margin */
-    exposable_default_on_mouse(exposable, bar, event, x, y);
+    exposable_default_on_mouse(exposable, bar, event, btn, x, y);
 }
 
 static struct exposable *

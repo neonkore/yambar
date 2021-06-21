@@ -141,10 +141,11 @@ err:
 
 void
 exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
-                           enum mouse_event event, int x, int y)
+                           enum mouse_event event, enum mouse_button btn,
+                           int x, int y)
 {
-    LOG_DBG("on_mouse: exposable=%p, event=%s, x=%d, y=%d (on-click=%s)",
-            exposable, event == ON_MOUSE_MOTION ? "motion" : "click", x, y,
+    LOG_DBG("on_mouse: exposable=%p, event=%s, btn=%d, x=%d, y=%d (on-click=%s)",
+            exposable, event == ON_MOUSE_MOTION ? "motion" : "click", btn, x, y,
             exposable->on_click);
 
     /* If we have a handler, change cursor to a hand */

@@ -29,6 +29,13 @@ enum mouse_event {
     ON_MOUSE_CLICK,
 };
 
+enum mouse_button {
+    MOUSE_BTN_NONE,
+    MOUSE_BTN_LEFT,
+    MOUSE_BTN_MIDDLE,
+    MOUSE_BTN_RIGHT,
+};
+
 struct exposable {
     const struct particle *particle;
     void *private;
@@ -42,7 +49,7 @@ struct exposable {
                    int x, int y, int height);
 
     void (*on_mouse)(struct exposable *exposable, struct bar *bar,
-                     enum mouse_event event, int x, int y);
+                     enum mouse_event event, enum mouse_button btn, int x, int y);
 };
 
 struct particle *particle_common_new(
@@ -59,7 +66,7 @@ void exposable_render_deco(
 
 void exposable_default_on_mouse(
     struct exposable *exposable, struct bar *bar,
-    enum mouse_event event, int x, int y);
+    enum mouse_event event, enum mouse_button btn, int x, int y);
 
 /* List of attributes *all* particles implement */
 #define PARTICLE_COMMON_ATTRS                      \

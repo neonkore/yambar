@@ -85,10 +85,10 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
 
 static void
 on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
-         int x, int y)
+         enum mouse_button btn, int x, int y)
 {
     if (exposable->on_click == NULL) {
-        exposable_default_on_mouse(exposable, bar, event, x, y);
+        exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }
 
@@ -120,7 +120,7 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
             /* Mouse is over the start-marker */
             struct exposable *start = e->exposables[0];
             if (start->on_mouse != NULL)
-                start->on_mouse(start, bar, event, x - p->left_margin, y);
+                start->on_mouse(start, bar, event, btn, x - p->left_margin, y);
         } else {
             /* Mouse if over left margin */
             bar->set_cursor(bar, "left_ptr");
@@ -139,7 +139,7 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
             /* Mouse is over the end-marker */
             struct exposable *end = e->exposables[e->count - 1];
             if (end->on_mouse != NULL)
-                end->on_mouse(end, bar, event, x - x_offset - clickable_width, y);
+                end->on_mouse(end, bar, event, btn, x - x_offset - clickable_width, y);
         } else {
             /* Mouse is over the right margin */
             bar->set_cursor(bar, "left_ptr");
@@ -165,7 +165,7 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
     }
 
     /* Call default implementation, which will execute our handler */
-    exposable_default_on_mouse(exposable, bar, event, x, y);
+    exposable_default_on_mouse(exposable, bar, event, btn, x, y);
 
     if (event == ON_MOUSE_CLICK) {
         /* Reset handler string */
