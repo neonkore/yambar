@@ -160,6 +160,10 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
                     on_click_templates[MOUSE_BTN_MIDDLE] = template;
                 else if (strcmp(key, "right") == 0)
                     on_click_templates[MOUSE_BTN_RIGHT] = template;
+                else if (strcmp(key, "wheel-up") == 0)
+                    on_click_templates[MOUSE_BTN_WHEEL_UP] = template;
+                else if (strcmp(key, "wheel-down") == 0)
+                    on_click_templates[MOUSE_BTN_WHEEL_DOWN] = template;
                 else
                     assert(false);
             }

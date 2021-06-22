@@ -17,6 +17,8 @@ enum mouse_button {
     MOUSE_BTN_LEFT,
     MOUSE_BTN_MIDDLE,
     MOUSE_BTN_RIGHT,
+    MOUSE_BTN_WHEEL_UP,
+    MOUSE_BTN_WHEEL_DOWN,
 
     MOUSE_BTN_COUNT,
 };
