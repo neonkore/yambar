@@ -574,7 +574,7 @@ handle_global(void *data, struct wl_registry *registry,
     }
 
     else if (strcmp(interface, wl_seat_interface.name) == 0) {
-        const uint32_t required = 3;
+        const uint32_t required = 5;
         if (!verify_iface_version(interface, version, required))
             return;
 
