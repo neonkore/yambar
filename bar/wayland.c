@@ -113,6 +113,9 @@ struct wayland_backend {
     struct buffer *next_buffer;     /* Bar is rendering to this one */
     struct buffer *pending_buffer;  /* Finished, but not yet rendered */
 
+    double aggregated_scroll;
+    bool have_discrete;
+
     void (*bar_expose)(const struct bar *bar);
     void (*bar_on_mouse)(struct bar *bar, enum mouse_event event,
                          enum mouse_button btn, int x, int y);
@@ -248,6 +251,8 @@ wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
     struct wayland_backend *backend = seat->backend;
 
+    backend->have_discrete = false;
+
     if (backend->active_seat == seat)
         backend->active_seat = NULL;
 }
@@ -297,11 +302,46 @@ static void
 wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
                 uint32_t time, uint32_t axis, wl_fixed_t value)
 {
+    if (axis != WL_POINTER_AXIS_VERTICAL_SCROLL)
+        return;
+
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
+    backend->active_seat = seat;
+
+    if (backend->have_discrete)
+        return;
+
+    const double amount = wl_fixed_to_double(value);
+
+    if ((backend->aggregated_scroll > 0 && amount < 0) ||
+        (backend->aggregated_scroll < 0 && amount > 0))
+    {
+        backend->aggregated_scroll = amount;
+    } else
+        backend->aggregated_scroll += amount;
+
+    enum mouse_button btn = backend->aggregated_scroll > 0
+        ? MOUSE_BTN_WHEEL_DOWN
+        : MOUSE_BTN_WHEEL_UP;
+
+    const double step = 20.;
+    const double adjust = backend->aggregated_scroll > 0 ? -step : step;
+
+    while (fabs(backend->aggregated_scroll) >= step) {
+        backend->bar_on_mouse(
+            backend->bar, ON_MOUSE_CLICK, btn,
+            seat->pointer.x, seat->pointer.y);
+        backend->aggregated_scroll += adjust;
+    }
 }
 
 static void
 wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 {
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
+    backend->have_discrete = false;
 }
 
 static void
@@ -314,12 +354,34 @@ static void
 wl_pointer_axis_stop(void *data, struct wl_pointer *wl_pointer,
                      uint32_t time, uint32_t axis)
 {
+    if (axis != WL_POINTER_AXIS_VERTICAL_SCROLL)
+        return;
+
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
+    backend->aggregated_scroll = 0.;
 }
 
 static void
 wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
                          uint32_t axis, int32_t discrete)
 {
+    if (axis != WL_POINTER_AXIS_VERTICAL_SCROLL)
+        return;
+
+    struct seat *seat = data;
+    struct wayland_backend *backend = seat->backend;
+    backend->have_discrete = true;
+
+    enum mouse_button btn = discrete > 0
+        ? MOUSE_BTN_WHEEL_DOWN
+        : MOUSE_BTN_WHEEL_UP;
+
+    for (int32_t i = 0; i < discrete; i++) {
+        backend->bar_on_mouse(
+            backend->bar, ON_MOUSE_CLICK, btn,
+            seat->pointer.x, seat->pointer.y);
+    }
 }
 
 static const struct wl_pointer_listener pointer_listener = {
