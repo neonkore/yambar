@@ -295,6 +295,8 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 
                 int _errno = 0;
                 ssize_t ret = read(pipe_fds[0], &_errno, sizeof(_errno));
+                close(pipe_fds[0]);
+
                 if (ret == 0) {
                     /* Pipe was closed - child succeeded with exec() */
                     _exit(0);
