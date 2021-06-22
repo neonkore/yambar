@@ -369,7 +369,7 @@ loop(struct bar *_bar,
                 const xcb_button_release_event_t *evt = (void *)e;
 
                 switch (evt->detail) {
-                case 1: case 2: case 3:
+                case 1: case 2: case 3: case 4: case 5:
                     on_mouse(_bar, ON_MOUSE_CLICK,
                              evt->detail, evt->event_x, evt->event_y);
                     break;
