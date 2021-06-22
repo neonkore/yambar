@@ -72,7 +72,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
     //const struct particle *p = exposable->particle;
     const struct private *e = exposable->private;
 
-    if (exposable->on_click != NULL) {
+    if (exposable->on_click[btn] != NULL) {
         exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }

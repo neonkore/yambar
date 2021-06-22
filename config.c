@@ -139,8 +139,33 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
     int right = margin != NULL ? yml_value_as_int(margin) :
         right_margin != NULL ? yml_value_as_int(right_margin) : 0;
 
-    const char *on_click_template
-        = on_click != NULL ? yml_value_as_string(on_click) : NULL;
+    const char *on_click_templates[MOUSE_BTN_COUNT] = {NULL};
+    if (on_click != NULL) {
+        const char *legacy = yml_value_as_string(on_click);
+
+        if (legacy != NULL)
+            on_click_templates[MOUSE_BTN_LEFT] = legacy;
+
+        if (yml_is_dict(on_click)) {
+            for (struct yml_dict_iter it = yml_dict_iter(on_click);
+                 it.key != NULL;
+                 yml_dict_next(&it))
+            {
+                const char *key = yml_value_as_string(it.key);
+                const char *template = yml_value_as_string(it.value);
+
+                if (strcmp(key, "left") == 0)
+                    on_click_templates[MOUSE_BTN_LEFT] = template;
+                else if (strcmp(key, "middle") == 0)
+                    on_click_templates[MOUSE_BTN_MIDDLE] = template;
+                else if (strcmp(key, "right") == 0)
+                    on_click_templates[MOUSE_BTN_RIGHT] = template;
+                else
+                    assert(false);
+            }
+        }
+    }
+
     struct deco *deco = deco_node != NULL ? conf_to_deco(deco_node) : NULL;
 
     /*
@@ -159,7 +184,7 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
 
     /* Instantiate base/common particle */
     struct particle *common = particle_common_new(
-        left, right, on_click_template, font, foreground, deco);
+        left, right, on_click_templates, font, foreground, deco);
 
     const struct particle_iface *iface = plugin_load_particle(type);
 

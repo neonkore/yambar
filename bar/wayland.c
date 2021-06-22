@@ -272,26 +272,25 @@ static void
 wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                   uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
 {
-    if (state != WL_POINTER_BUTTON_STATE_PRESSED)
-        return;
-
     struct seat *seat = data;
     struct wayland_backend *backend = seat->backend;
 
-    backend->active_seat = seat;
+    if (state == WL_POINTER_BUTTON_STATE_PRESSED)
+        backend->active_seat = seat;
+    else {
+        enum mouse_button btn;
 
-    enum mouse_button btn;
+        switch (button) {
+        case BTN_LEFT:   btn = MOUSE_BTN_LEFT; break;
+        case BTN_MIDDLE: btn = MOUSE_BTN_MIDDLE; break;
+        case BTN_RIGHT:  btn = MOUSE_BTN_RIGHT; break;
+        default:
+            return;
+        }
 
-    switch (button) {
-    case BTN_LEFT:   btn = MOUSE_BTN_LEFT; break;
-    case BTN_MIDDLE: btn = MOUSE_BTN_MIDDLE; break;
-    case BTN_RIGHT:  btn = MOUSE_BTN_RIGHT; break;
-    default:
-        return;
+        backend->bar_on_mouse(
+            backend->bar, ON_MOUSE_CLICK, btn, seat->pointer.x, seat->pointer.y);
     }
-
-    backend->bar_on_mouse(
-        backend->bar, ON_MOUSE_CLICK, btn, seat->pointer.x, seat->pointer.y);
 }
 
 static void

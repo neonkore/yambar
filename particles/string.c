@@ -269,15 +269,11 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         }
     }
 
-    char *on_click = tags_expand_template(particle->on_click_template, tags);
-
-    struct exposable *exposable = exposable_common_new(particle, on_click);
+    struct exposable *exposable = exposable_common_new(particle, tags);
     exposable->private = e;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
-
-    free(on_click);
     return exposable;
 }
 

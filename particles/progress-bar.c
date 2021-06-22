@@ -148,7 +148,9 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
     }
 
     /* Remember the original handler, so that we can restore it */
-    char *original = exposable->on_click;
+    char *original[MOUSE_BTN_COUNT];
+    for (size_t i = 0; i < MOUSE_BTN_COUNT; i++)
+        original[i] = exposable->on_click[i];
 
     if (event == ON_MOUSE_CLICK) {
         long where = clickable_width > 0
@@ -160,7 +162,9 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
             .count = 1,
         };
 
-        exposable->on_click = tags_expand_template(exposable->on_click, &tags);
+        tags_expand_templates(
+            exposable->on_click, (const char **)exposable->on_click,
+            MOUSE_BTN_COUNT, &tags);
         tag_set_destroy(&tags);
     }
 
@@ -169,8 +173,10 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
 
     if (event == ON_MOUSE_CLICK) {
         /* Reset handler string */
-        free(exposable->on_click);
-        exposable->on_click = original;
+        for (size_t i = 0; i < MOUSE_BTN_COUNT; i++) {
+            free(exposable->on_click[i]);
+            exposable->on_click[i] = original[i];
+        }
     }
 }
 
@@ -213,10 +219,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     for (size_t i = 0; i < epriv->count; i++)
         assert(epriv->exposables[i] != NULL);
 
-    char *on_click = tags_expand_template(particle->on_click_template, tags);
-
-    struct exposable *exposable = exposable_common_new(particle, on_click);
-    free(on_click);
+    struct exposable *exposable = exposable_common_new(particle, tags);
 
     exposable->private = epriv;
     exposable->destroy = &exposable_destroy;

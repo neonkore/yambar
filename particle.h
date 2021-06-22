@@ -7,23 +7,6 @@
 #include "decoration.h"
 #include "tag.h"
 
-struct bar;
-
-struct particle {
-    void *private;
-
-    int left_margin, right_margin;
-    char *on_click_template;
-
-    pixman_color_t foreground;
-    struct fcft_font *font;
-    struct deco *deco;
-
-    void (*destroy)(struct particle *particle);
-    struct exposable *(*instantiate)(const struct particle *particle,
-                                     const struct tag_set *tags);
-};
-
 enum mouse_event {
     ON_MOUSE_MOTION,
     ON_MOUSE_CLICK,
@@ -34,14 +17,36 @@ enum mouse_button {
     MOUSE_BTN_LEFT,
     MOUSE_BTN_MIDDLE,
     MOUSE_BTN_RIGHT,
+
+    MOUSE_BTN_COUNT,
 };
+
+struct bar;
+
+struct particle {
+    void *private;
+
+    int left_margin, right_margin;
+
+    bool have_on_click_template;
+    char *on_click_templates[MOUSE_BTN_COUNT];
+
+    pixman_color_t foreground;
+    struct fcft_font *font;
+    struct deco *deco;
+
+    void (*destroy)(struct particle *particle);
+    struct exposable *(*instantiate)(const struct particle *particle,
+                                     const struct tag_set *tags);
+};
+
 
 struct exposable {
     const struct particle *particle;
     void *private;
 
     int width; /* Should be set by begin_expose(), at latest */
-    char *on_click;
+    char *on_click[MOUSE_BTN_COUNT];
 
     void (*destroy)(struct exposable *exposable);
     int (*begin_expose)(struct exposable *exposable);
@@ -53,13 +58,13 @@ struct exposable {
 };
 
 struct particle *particle_common_new(
-    int left_margin, int right_margin, const char *on_click_template,
+    int left_margin, int right_margin, const char *on_click_templates[],
     struct fcft_font *font, pixman_color_t foreground, struct deco *deco);
 
 void particle_default_destroy(struct particle *particle);
 
 struct exposable *exposable_common_new(
-    const struct particle *particle, const char *on_click);
+    const struct particle *particle, const struct tag_set *tags);
 void exposable_default_destroy(struct exposable *exposable);
 void exposable_render_deco(
     const struct exposable *exposable, pixman_image_t *pix, int x, int y, int height);
@@ -73,7 +78,7 @@ void exposable_default_on_mouse(
     {"margin", false, &conf_verify_int},           \
     {"left-margin", false, &conf_verify_int},      \
     {"right-margin", false, &conf_verify_int},     \
-    {"on-click", false, &conf_verify_string},      \
+    {"on-click", false, &conf_verify_on_click},    \
     {"font", false, &conf_verify_font},            \
     {"foreground", false, &conf_verify_color},     \
     {"deco", false, &conf_verify_decoration},      \

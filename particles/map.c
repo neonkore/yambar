@@ -66,7 +66,7 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
     const struct particle *p = exposable->particle;
     const struct eprivate *e = exposable->private;
 
-    if (exposable->on_click != NULL) {
+    if (exposable->on_click[btn] != NULL) {
         /* We have our own handler */
         exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
@@ -119,15 +119,12 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     assert(e->exposable != NULL);
 
-    char *on_click = tags_expand_template(particle->on_click_template, tags);
-    struct exposable *exposable = exposable_common_new(particle, on_click);
+    struct exposable *exposable = exposable_common_new(particle, tags);
     exposable->private = e;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
     exposable->on_mouse = &on_mouse;
-
-    free(on_click);
     return exposable;
 }
 

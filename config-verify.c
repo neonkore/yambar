@@ -153,6 +153,24 @@ conf_verify_dict(keychain_t *chain, const struct yml_node *node,
 }
 
 bool
+conf_verify_on_click(keychain_t *chain, const struct yml_node *node)
+{
+    /* on-click: <command> */
+    const char *s = yml_value_as_string(node);
+    if (s != NULL)
+        return true;
+
+    static const struct attr_info info[] = {
+        {"left", false, &conf_verify_string},
+        {"middle", false, &conf_verify_string},
+        {"right", false, &conf_verify_string},
+        {NULL, false, NULL},
+    };
+
+    return conf_verify_dict(chain, node, info);
+}
+
+bool
 conf_verify_color(keychain_t *chain, const struct yml_node *node)
 {
     const char *s = yml_value_as_string(node);

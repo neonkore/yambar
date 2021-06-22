@@ -50,3 +50,6 @@ void tag_set_destroy(struct tag_set *set);
 
 /* Utility functions */
 char *tags_expand_template(const char *template, const struct tag_set *tags);
+void tags_expand_templates(
+    char *expanded[], const char *template[], size_t nmemb,
+    const struct tag_set *tags);
