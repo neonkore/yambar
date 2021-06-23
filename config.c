@@ -252,6 +252,12 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
     if (right_margin != NULL)
         conf.right_margin = yml_value_as_int(right_margin);
 
+    const struct yml_node *trackpad_sensitivity =
+        yml_get_value(bar, "trackpad-sensitivity");
+    conf.trackpad_sensitivity = trackpad_sensitivity != NULL
+        ? yml_value_as_int(trackpad_sensitivity)
+        : 30;
+
     const struct yml_node *border = yml_get_value(bar, "border");
     if (border != NULL) {
         const struct yml_node *width = yml_get_value(border, "width");

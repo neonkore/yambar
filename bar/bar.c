@@ -408,6 +408,7 @@ bar_new(const struct bar_config *config)
     priv->right_spacing = config->right_spacing;
     priv->left_margin = config->left_margin;
     priv->right_margin = config->right_margin;
+    priv->trackpad_sensitivity = config->trackpad_sensitivity;
     priv->border.width = config->border.width;
     priv->border.color = config->border.color;
     priv->border.left_margin = config->border.left_margin;

@@ -307,6 +307,8 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
 
     struct seat *seat = data;
     struct wayland_backend *backend = seat->backend;
+    struct private *bar = backend->bar->private;
+
     backend->active_seat = seat;
 
     if (backend->have_discrete)
@@ -325,7 +327,7 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
         ? MOUSE_BTN_WHEEL_DOWN
         : MOUSE_BTN_WHEEL_UP;
 
-    const double step = 20.;
+    const double step = bar->trackpad_sensitivity;
     const double adjust = backend->aggregated_scroll > 0 ? -step : step;
 
     while (fabs(backend->aggregated_scroll) >= step) {

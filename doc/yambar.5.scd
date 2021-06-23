@@ -109,6 +109,12 @@ types that are frequently used:
 :  color
 :  no
 :  Default foreground (text) color to use
+|  trackpad-sensitivity
+:  int
+:  no
+:  How easy it is to trigger wheel-up and wheel-down on-click
+   handlers. Higher values means you need to drag your finger a longer
+   distance. The default is 30.
 |  left
 :  list
 :  no

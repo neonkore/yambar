@@ -423,6 +423,8 @@ conf_verify_bar(const struct yml_node *bar)
         {"center", false, &verify_module_list},
         {"right", false, &verify_module_list},
 
+        {"trackpad-sensitivity", false, &conf_verify_int},
+
         {NULL, false, NULL},
     };
 
