@@ -377,7 +377,9 @@ wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
         ? MOUSE_BTN_WHEEL_DOWN
         : MOUSE_BTN_WHEEL_UP;
 
-    for (int32_t i = 0; i < discrete; i++) {
+    int count = abs(discrete);
+
+    for (int32_t i = 0; i < count; i++) {
         backend->bar_on_mouse(
             backend->bar, ON_MOUSE_CLICK, btn,
             seat->pointer.x, seat->pointer.y);
