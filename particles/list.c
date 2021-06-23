@@ -80,7 +80,10 @@ on_mouse(struct exposable *exposable, struct bar *bar,
     const struct particle *p = exposable->particle;
     const struct eprivate *e = exposable->private;
 
-    if (exposable->on_click[btn] != NULL) {
+    if ((event == ON_MOUSE_MOTION &&
+         exposable->particle->have_on_click_template) ||
+        exposable->on_click[btn] != NULL)
+    {
         /* We have our own handler */
         exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
