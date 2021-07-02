@@ -69,7 +69,6 @@ static void
 on_mouse(struct exposable *exposable, struct bar *bar,
          enum mouse_event event, enum mouse_button btn, int x, int y)
 {
-    //const struct particle *p = exposable->particle;
     const struct private *e = exposable->private;
 
     if (exposable->on_click[btn] != NULL) {

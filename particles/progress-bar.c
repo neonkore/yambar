@@ -87,7 +87,10 @@ static void
 on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
          enum mouse_button btn, int x, int y)
 {
-    if (exposable->on_click == NULL) {
+    if ((event == ON_MOUSE_MOTION &&
+         exposable->particle->have_on_click_template) ||
+        exposable->on_click[btn] != NULL)
+    {
         exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }
