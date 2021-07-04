@@ -75,14 +75,17 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
 
 static void
 on_mouse(struct exposable *exposable, struct bar *bar,
-         enum mouse_event event, int x, int y)
+         enum mouse_event event, enum mouse_button btn, int x, int y)
 {
     const struct particle *p = exposable->particle;
     const struct eprivate *e = exposable->private;
 
-    if (exposable->on_click != NULL) {
+    if ((event == ON_MOUSE_MOTION &&
+         exposable->particle->have_on_click_template) ||
+        exposable->on_click[btn] != NULL)
+    {
         /* We have our own handler */
-        exposable_default_on_mouse(exposable, bar, event, x, y);
+        exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }
 
@@ -91,7 +94,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
         if (x >= px && x < px + e->exposables[i]->width) {
             if (e->exposables[i]->on_mouse != NULL) {
                 e->exposables[i]->on_mouse(
-                    e->exposables[i], bar, event, x - px, y);
+                    e->exposables[i], bar, event, btn, x - px, y);
             }
             return;
         }
@@ -100,7 +103,7 @@ on_mouse(struct exposable *exposable, struct bar *bar,
     }
 
     /* We're between sub-particles (or in the left/right margin) */
-    exposable_default_on_mouse(exposable, bar, event, x, y);
+    exposable_default_on_mouse(exposable, bar, event, btn, x, y);
 }
 
 static struct exposable *
@@ -121,16 +124,12 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         assert(e->exposables[i] != NULL);
     }
 
-    char *on_click = tags_expand_template(particle->on_click_template, tags);
-
-    struct exposable *exposable = exposable_common_new(particle, on_click);
+    struct exposable *exposable = exposable_common_new(particle, tags);
     exposable->private = e;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
     exposable->on_mouse = &on_mouse;
-
-    free(on_click);
     return exposable;
 }
 

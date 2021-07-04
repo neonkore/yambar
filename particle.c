@@ -22,31 +22,41 @@ particle_default_destroy(struct particle *particle)
     if (particle->deco != NULL)
         particle->deco->destroy(particle->deco);
     fcft_destroy(particle->font);
-    free(particle->on_click_template);
+    for (size_t i = 0; i < MOUSE_BTN_COUNT; i++)
+        free(particle->on_click_templates[i]);
     free(particle);
 }
 
 struct particle *
 particle_common_new(int left_margin, int right_margin,
-                    const char *on_click_template,
+                    const char **on_click_templates,
                     struct fcft_font *font, pixman_color_t foreground,
                     struct deco *deco)
 {
     struct particle *p = calloc(1, sizeof(*p));
     p->left_margin = left_margin;
     p->right_margin = right_margin;
-    p->on_click_template =
-        on_click_template != NULL ? strdup(on_click_template) : NULL;
     p->foreground = foreground;
     p->font = font;
     p->deco = deco;
+
+    if (on_click_templates != NULL) {
+        for (size_t i = 0; i < MOUSE_BTN_COUNT; i++) {
+            if (on_click_templates[i] != NULL) {
+                p->have_on_click_template = true;
+                p->on_click_templates[i] = strdup(on_click_templates[i]);
+            }
+        }
+    }
+
     return p;
 }
 
 void
 exposable_default_destroy(struct exposable *exposable)
 {
-    free(exposable->on_click);
+    for (size_t i = 0; i < MOUSE_BTN_COUNT; i++)
+        free(exposable->on_click[i]);
     free(exposable);
 }
 
@@ -141,20 +151,37 @@ err:
 
 void
 exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
-                           enum mouse_event event, int x, int y)
+                           enum mouse_event event, enum mouse_button btn,
+                           int x, int y)
 {
-    LOG_DBG("on_mouse: exposable=%p, event=%s, x=%d, y=%d (on-click=%s)",
-            exposable, event == ON_MOUSE_MOTION ? "motion" : "click", x, y,
-            exposable->on_click);
+#if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
+    static const char *button_name[] = {
+        [MOUSE_BTN_NONE] = "none",
+        [MOUSE_BTN_LEFT] = "left",
+        [MOUSE_BTN_MIDDLE] = "middle",
+        [MOUSE_BTN_RIGHT] = "right",
+        [MOUSE_BTN_COUNT] = "count",
+        [MOUSE_BTN_WHEEL_UP] = "wheel-up",
+        [MOUSE_BTN_WHEEL_DOWN] = "wheel-down",
+    };
+    LOG_DBG("on_mouse: exposable=%p, event=%s, btn=%s, x=%d, y=%d (on-click=%s)",
+            exposable, event == ON_MOUSE_MOTION ? "motion" : "click",
+            button_name[btn], x, y, exposable->on_click[btn]);
+#endif
 
     /* If we have a handler, change cursor to a hand */
-    bar->set_cursor(bar, exposable->on_click == NULL ? "left_ptr" : "hand2");
+    const char *cursor =
+        (exposable->particle != NULL &&
+         exposable->particle->have_on_click_template)
+        ? "hand2"
+        : "left_ptr";
+    bar->set_cursor(bar, cursor);
 
     /* If this is a mouse click, and we have a handler, execute it */
-    if (exposable->on_click != NULL && event == ON_MOUSE_CLICK) {
+    if (exposable->on_click[btn] != NULL && event == ON_MOUSE_CLICK) {
         /* Need a writeable copy, whose scope *we* control */
-        char *cmd = strdup(exposable->on_click);
-        LOG_DBG("cmd = \"%s\"", exposable->on_click);
+        char *cmd = strdup(exposable->on_click[btn]);
+        LOG_DBG("cmd = \"%s\"", exposable->on_click[btn]);
 
         char **argv;
         if (!tokenize_cmdline(cmd, &argv)) {
@@ -172,15 +199,15 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 
             int wstatus;
             if (waitpid(pid, &wstatus, 0) == -1)
-                LOG_ERRNO("%s: failed to wait for on_click handler", exposable->on_click);
+                LOG_ERRNO("%s: failed to wait for on_click handler", exposable->on_click[btn]);
 
             if (WIFEXITED(wstatus)) {
                 if (WEXITSTATUS(wstatus) != 0)
-                    LOG_ERRNO_P("%s: failed to execute", WEXITSTATUS(wstatus), exposable->on_click);
+                    LOG_ERRNO_P("%s: failed to execute", WEXITSTATUS(wstatus), exposable->on_click[btn]);
             } else
-                LOG_ERR("%s: did not exit normally", exposable->on_click);
+                LOG_ERR("%s: did not exit normally", exposable->on_click[btn]);
 
-            LOG_DBG("%s: launched", exposable->on_click);
+            LOG_DBG("%s: launched", exposable->on_click[btn]);
         } else {
             /*
              * Use a pipe with O_CLOEXEC to communicate exec() failure
@@ -250,7 +277,8 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 
                 /* Close *all* other FDs (e.g. script modules' FDs) */
                 for (int i = STDERR_FILENO + 1; i < 65536; i++)
-                    close(i);
+                    if (i != pipe_fds[1])
+                        close(i);
 
                 execvp(argv[0], argv);
 
@@ -267,6 +295,8 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 
                 int _errno = 0;
                 ssize_t ret = read(pipe_fds[0], &_errno, sizeof(_errno));
+                close(pipe_fds[0]);
+
                 if (ret == 0) {
                     /* Pipe was closed - child succeeded with exec() */
                     _exit(0);
@@ -281,11 +311,17 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 }
 
 struct exposable *
-exposable_common_new(const struct particle *particle, const char *on_click)
+exposable_common_new(const struct particle *particle, const struct tag_set *tags)
 {
     struct exposable *exposable = calloc(1, sizeof(*exposable));
     exposable->particle = particle;
-    exposable->on_click = on_click != NULL ? strdup(on_click) : NULL;
+
+    if (particle != NULL && particle->have_on_click_template) {
+        tags_expand_templates(
+            exposable->on_click,
+            (const char **)particle->on_click_templates,
+            MOUSE_BTN_COUNT, tags);
+    }
     exposable->destroy = &exposable_default_destroy;
     exposable->on_mouse = &exposable_default_on_mouse;
     return exposable;

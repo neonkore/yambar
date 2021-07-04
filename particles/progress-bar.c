@@ -85,10 +85,13 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
 
 static void
 on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
-         int x, int y)
+         enum mouse_button btn, int x, int y)
 {
-    if (exposable->on_click == NULL) {
-        exposable_default_on_mouse(exposable, bar, event, x, y);
+    if ((event == ON_MOUSE_MOTION &&
+         exposable->particle->have_on_click_template) ||
+        exposable->on_click[btn] != NULL)
+    {
+        exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }
 
@@ -120,7 +123,7 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
             /* Mouse is over the start-marker */
             struct exposable *start = e->exposables[0];
             if (start->on_mouse != NULL)
-                start->on_mouse(start, bar, event, x - p->left_margin, y);
+                start->on_mouse(start, bar, event, btn, x - p->left_margin, y);
         } else {
             /* Mouse if over left margin */
             bar->set_cursor(bar, "left_ptr");
@@ -139,7 +142,7 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
             /* Mouse is over the end-marker */
             struct exposable *end = e->exposables[e->count - 1];
             if (end->on_mouse != NULL)
-                end->on_mouse(end, bar, event, x - x_offset - clickable_width, y);
+                end->on_mouse(end, bar, event, btn, x - x_offset - clickable_width, y);
         } else {
             /* Mouse is over the right margin */
             bar->set_cursor(bar, "left_ptr");
@@ -148,7 +151,9 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
     }
 
     /* Remember the original handler, so that we can restore it */
-    char *original = exposable->on_click;
+    char *original[MOUSE_BTN_COUNT];
+    for (size_t i = 0; i < MOUSE_BTN_COUNT; i++)
+        original[i] = exposable->on_click[i];
 
     if (event == ON_MOUSE_CLICK) {
         long where = clickable_width > 0
@@ -160,17 +165,21 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
             .count = 1,
         };
 
-        exposable->on_click = tags_expand_template(exposable->on_click, &tags);
+        tags_expand_templates(
+            exposable->on_click, (const char **)exposable->on_click,
+            MOUSE_BTN_COUNT, &tags);
         tag_set_destroy(&tags);
     }
 
     /* Call default implementation, which will execute our handler */
-    exposable_default_on_mouse(exposable, bar, event, x, y);
+    exposable_default_on_mouse(exposable, bar, event, btn, x, y);
 
     if (event == ON_MOUSE_CLICK) {
         /* Reset handler string */
-        free(exposable->on_click);
-        exposable->on_click = original;
+        for (size_t i = 0; i < MOUSE_BTN_COUNT; i++) {
+            free(exposable->on_click[i]);
+            exposable->on_click[i] = original[i];
+        }
     }
 }
 
@@ -213,10 +222,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     for (size_t i = 0; i < epriv->count; i++)
         assert(epriv->exposables[i] != NULL);
 
-    char *on_click = tags_expand_template(particle->on_click_template, tags);
-
-    struct exposable *exposable = exposable_common_new(particle, on_click);
-    free(on_click);
+    struct exposable *exposable = exposable_common_new(particle, tags);
 
     exposable->private = epriv;
     exposable->destroy = &exposable_destroy;

@@ -151,7 +151,8 @@ set_cursor(struct bar *bar, const char *cursor)
 }
 
 static void
-on_mouse(struct bar *_bar, enum mouse_event event, int x, int y)
+on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
+         int x, int y)
 {
     struct private *bar = _bar->private;
 
@@ -173,7 +174,7 @@ on_mouse(struct bar *_bar, enum mouse_event event, int x, int y)
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
             if (e->on_mouse != NULL)
-                e->on_mouse(e, _bar, event, x - mx, y);
+                e->on_mouse(e, _bar, event, btn, x - mx, y);
             return;
         }
 
@@ -187,7 +188,7 @@ on_mouse(struct bar *_bar, enum mouse_event event, int x, int y)
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
             if (e->on_mouse != NULL)
-                e->on_mouse(e, _bar, event, x - mx, y);
+                e->on_mouse(e, _bar, event, btn, x - mx, y);
             return;
         }
 
@@ -205,7 +206,7 @@ on_mouse(struct bar *_bar, enum mouse_event event, int x, int y)
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
             if (e->on_mouse != NULL)
-                e->on_mouse(e, _bar, event, x - mx, y);
+                e->on_mouse(e, _bar, event, btn, x - mx, y);
             return;
         }
 
@@ -407,6 +408,7 @@ bar_new(const struct bar_config *config)
     priv->right_spacing = config->right_spacing;
     priv->left_margin = config->left_margin;
     priv->right_margin = config->right_margin;
+    priv->trackpad_sensitivity = config->trackpad_sensitivity;
     priv->border.width = config->border.width;
     priv->border.color = config->border.color;
     priv->border.left_margin = config->border.left_margin;

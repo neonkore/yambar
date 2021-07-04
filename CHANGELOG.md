@@ -11,6 +11,8 @@
 ### Added
 
 * Text shaping support.
+* Support for middle and right mouse buttons, mouse wheel and trackpad
+  scrolling (https://codeberg.org/dnkl/yambar/issues/39).
 
 
 ### Changed

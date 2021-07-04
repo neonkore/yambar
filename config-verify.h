@@ -40,6 +40,7 @@ bool conf_verify_list(keychain_t *chain, const struct yml_node *node,
 bool conf_verify_dict(keychain_t *chain, const struct yml_node *node,
                       const struct attr_info info[]); /* NULL-terminated list */
 
+bool conf_verify_on_click(keychain_t *chain, const struct yml_node *node);
 bool conf_verify_color(keychain_t *chain, const struct yml_node *node);
 bool conf_verify_font(keychain_t *chain, const struct yml_node *node);
 

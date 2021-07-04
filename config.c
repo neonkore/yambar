@@ -139,8 +139,37 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
     int right = margin != NULL ? yml_value_as_int(margin) :
         right_margin != NULL ? yml_value_as_int(right_margin) : 0;
 
-    const char *on_click_template
-        = on_click != NULL ? yml_value_as_string(on_click) : NULL;
+    const char *on_click_templates[MOUSE_BTN_COUNT] = {NULL};
+    if (on_click != NULL) {
+        const char *legacy = yml_value_as_string(on_click);
+
+        if (legacy != NULL)
+            on_click_templates[MOUSE_BTN_LEFT] = legacy;
+
+        if (yml_is_dict(on_click)) {
+            for (struct yml_dict_iter it = yml_dict_iter(on_click);
+                 it.key != NULL;
+                 yml_dict_next(&it))
+            {
+                const char *key = yml_value_as_string(it.key);
+                const char *template = yml_value_as_string(it.value);
+
+                if (strcmp(key, "left") == 0)
+                    on_click_templates[MOUSE_BTN_LEFT] = template;
+                else if (strcmp(key, "middle") == 0)
+                    on_click_templates[MOUSE_BTN_MIDDLE] = template;
+                else if (strcmp(key, "right") == 0)
+                    on_click_templates[MOUSE_BTN_RIGHT] = template;
+                else if (strcmp(key, "wheel-up") == 0)
+                    on_click_templates[MOUSE_BTN_WHEEL_UP] = template;
+                else if (strcmp(key, "wheel-down") == 0)
+                    on_click_templates[MOUSE_BTN_WHEEL_DOWN] = template;
+                else
+                    assert(false);
+            }
+        }
+    }
+
     struct deco *deco = deco_node != NULL ? conf_to_deco(deco_node) : NULL;
 
     /*
@@ -159,7 +188,7 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
 
     /* Instantiate base/common particle */
     struct particle *common = particle_common_new(
-        left, right, on_click_template, font, foreground, deco);
+        left, right, on_click_templates, font, foreground, deco);
 
     const struct particle_iface *iface = plugin_load_particle(type);
 
@@ -222,6 +251,12 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
     const struct yml_node *right_margin = yml_get_value(bar, "right-margin");
     if (right_margin != NULL)
         conf.right_margin = yml_value_as_int(right_margin);
+
+    const struct yml_node *trackpad_sensitivity =
+        yml_get_value(bar, "trackpad-sensitivity");
+    conf.trackpad_sensitivity = trackpad_sensitivity != NULL
+        ? yml_value_as_int(trackpad_sensitivity)
+        : 30;
 
     const struct yml_node *border = yml_get_value(bar, "border");
     if (border != NULL) {
