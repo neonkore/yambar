@@ -13,6 +13,8 @@
 * Text shaping support.
 * Support for middle and right mouse buttons, mouse wheel and trackpad
   scrolling (https://codeberg.org/dnkl/yambar/issues/39).
+* script: polling mode. See the new `poll-interval` option
+  (https://codeberg.org/dnkl/yambar/issues/67).
 
 
 ### Changed
