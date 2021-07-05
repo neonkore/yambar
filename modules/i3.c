@@ -29,6 +29,7 @@ struct ws_content {
 };
 
 struct workspace {
+    int id;
     char *name;
     int name_as_int; /* -1 if name is not a decimal number */
     bool persistent;
@@ -103,8 +104,9 @@ static bool
 workspace_from_json(const struct json_object *json, struct workspace *ws)
 {
     /* Always present */
-    struct json_object *name, *output;
-    if (!json_object_object_get_ex(json, "name", &name) ||
+    struct json_object *id, *name, *output;
+    if (!json_object_object_get_ex(json, "id", &id) ||
+        !json_object_object_get_ex(json, "name", &name) ||
         !json_object_object_get_ex(json, "output", &output))
     {
         LOG_ERR("workspace reply/event without 'name' and/or 'output' "
@@ -132,6 +134,7 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
     int name_as_int = workspace_name_as_int(name_as_string);
 
     *ws = (struct workspace) {
+        .id = json_object_get_int(id),
         .name = strdup(name_as_string),
         .name_as_int = name_as_int,
         .persistent = false,
@@ -222,12 +225,12 @@ workspace_add(struct private *m, struct workspace ws)
 }
 
 static void
-workspace_del(struct private *m, const char *name)
+workspace_del(struct private *m, int id)
 {
     tll_foreach(m->workspaces, it) {
         struct workspace *ws = &it->item;
 
-        if (strcmp(ws->name, name) != 0)
+        if (ws->id != id)
             continue;
 
         workspace_free(ws);
@@ -237,11 +240,11 @@ workspace_del(struct private *m, const char *name)
 }
 
 static struct workspace *
-workspace_lookup(struct private *m, const char *name)
+workspace_lookup(struct private *m, int id)
 {
     tll_foreach(m->workspaces, it) {
         struct workspace *ws = &it->item;
-        if (strcmp(ws->name, name) == 0)
+        if (ws->id == id)
             return ws;
     }
     return NULL;
@@ -280,12 +283,12 @@ handle_subscribe_reply(int type, const struct json_object *json, void *_m)
 static bool
 workspace_update_or_add(struct private *m, const struct json_object *ws_json)
 {
-    struct json_object *name;
-    if (!json_object_object_get_ex(ws_json, "name", &name))
+    struct json_object *_id;
+    if (!json_object_object_get_ex(ws_json, "id", &_id))
         return false;
 
-    const char *name_as_string = json_object_get_string(name);
-    struct workspace *already_exists = workspace_lookup(m, name_as_string);
+    const int id = json_object_get_int(_id);
+    struct workspace *already_exists = workspace_lookup(m, id);
 
     if (already_exists != NULL) {
         bool persistent = already_exists->persistent;
@@ -350,6 +353,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     bool is_init = strcmp(change_str, "init") == 0;
     bool is_empty = strcmp(change_str, "empty") == 0;
     bool is_focused = strcmp(change_str, "focus") == 0;
+    bool is_rename = strcmp(change_str, "rename") == 0;
     bool is_urgent = strcmp(change_str, "urgent") == 0;
     bool is_reload = strcmp(change_str, "reload") == 0;
 
@@ -358,15 +362,15 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         return true;
     }
 
-    struct json_object *current, *_current_name;
+    struct json_object *current, *_current_id;
     if (!json_object_object_get_ex(json, "current", &current) ||
-        !json_object_object_get_ex(current, "name", &_current_name))
+        !json_object_object_get_ex(current, "id", &_current_id))
     {
-        LOG_ERR("workspace event without 'current' and/or 'name' properties");
+        LOG_ERR("workspace event without 'current' and/or 'id' properties");
         return false;
     }
 
-    const char *current_name = json_object_get_string(_current_name);
+    int current_id = json_object_get_int(_current_id);
 
     mtx_lock(&mod->lock);
 
@@ -376,23 +380,22 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     }
 
     else if (is_empty) {
-        struct workspace *ws = workspace_lookup(m, current_name);
+        struct workspace *ws = workspace_lookup(m, current_id);
         assert(ws != NULL);
 
         if (!ws->persistent)
-            workspace_del(m, current_name);
+            workspace_del(m, current_id);
         else {
             workspace_free(ws);
-            ws->name = strdup(current_name);
             ws->empty = true;
             assert(ws->persistent);
         }
     }
 
     else if (is_focused) {
-        struct json_object *old, *_old_name, *urgent;
+        struct json_object *old, *_old_id, *urgent;
         if (!json_object_object_get_ex(json, "old", &old) ||
-            !json_object_object_get_ex(old, "name", &_old_name) ||
+            !json_object_object_get_ex(old, "id", &_old_id) ||
             !json_object_object_get_ex(current, "urgent", &urgent))
         {
             LOG_ERR("workspace 'focused' event without 'old', 'name' and/or 'urgent' property");
@@ -400,7 +403,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
             return false;
         }
 
-        struct workspace *w = workspace_lookup(m, current_name);
+        struct workspace *w = workspace_lookup(m, current_id);
         assert(w != NULL);
 
         LOG_DBG("w: %s", w->name);
@@ -417,10 +420,36 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         w->visible = true;
 
         /* Old workspace is no longer focused */
-        const char *old_name = json_object_get_string(_old_name);
-        struct workspace *old_w = workspace_lookup(m, old_name);
+        int old_id = json_object_get_int(_old_id);
+        struct workspace *old_w = workspace_lookup(m, old_id);
         if (old_w != NULL)
             old_w->focused = false;
+    }
+
+    else if (is_rename) {
+        struct workspace *w = workspace_lookup(m, current_id);
+        assert(w != NULL);
+
+        struct json_object *_current_name;
+        if (!json_object_object_get_ex(current, "name", &_current_name)) {
+            LOG_ERR("workspace 'rename' event without 'name' property");
+            mtx_unlock(&mod->lock);
+            return false;
+        }
+
+        free(w->name);
+        w->name = strdup(json_object_get_string(_current_name));
+        w->name_as_int = workspace_name_as_int(w->name);
+
+        /* Re-add the workspace to ensure correct sorting */
+        struct workspace ws = *w;
+        tll_foreach(m->workspaces, it) {
+            if (it->item.id == current_id) {
+                tll_remove(m->workspaces, it);
+                break;
+            }
+        }
+        workspace_add(m, ws);
     }
 
     else if (is_urgent) {
@@ -431,7 +460,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
             return false;
         }
 
-        struct workspace *w = workspace_lookup(m, current_name);
+        struct workspace *w = workspace_lookup(m, current_id);
         w->urgent = json_object_get_boolean(urgent);
     }
 
