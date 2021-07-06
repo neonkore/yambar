@@ -355,12 +355,6 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     bool is_focused = strcmp(change_str, "focus") == 0;
     bool is_rename = strcmp(change_str, "rename") == 0;
     bool is_urgent = strcmp(change_str, "urgent") == 0;
-    bool is_reload = strcmp(change_str, "reload") == 0;
-
-    if (is_reload) {
-        LOG_WARN("unimplemented: 'reload' event");
-        return true;
-    }
 
     struct json_object *current, *_current_id;
     if (!json_object_object_get_ex(json, "current", &current) ||
@@ -462,6 +456,10 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
 
         struct workspace *w = workspace_lookup(m, current_id);
         w->urgent = json_object_get_boolean(urgent);
+    }
+
+    else {
+        LOG_WARN("unimplemented workspace event '%s'", change_str);
     }
 
     m->dirty = true;
