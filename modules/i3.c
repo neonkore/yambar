@@ -251,7 +251,7 @@ workspace_lookup(struct private *m, int id)
 }
 
 static bool
-handle_get_version_reply(int type, const struct json_object *json, void *_m)
+handle_get_version_reply(int sock, int type, const struct json_object *json, void *_m)
 {
     struct json_object *version;
     if (!json_object_object_get_ex(json, "human_readable", &version)) {
@@ -264,7 +264,7 @@ handle_get_version_reply(int type, const struct json_object *json, void *_m)
 }
 
 static bool
-handle_subscribe_reply(int type, const struct json_object *json, void *_m)
+handle_subscribe_reply(int sock, int type, const struct json_object *json, void *_m)
 {
     struct json_object *success;
     if (!json_object_object_get_ex(json, "success", &success)) {
@@ -310,7 +310,7 @@ workspace_update_or_add(struct private *m, const struct json_object *ws_json)
 }
 
 static bool
-handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod)
+handle_get_workspaces_reply(int sock, int type, const struct json_object *json, void *_mod)
 {
     struct module *mod = _mod;
     struct private *m = mod->private;
@@ -337,7 +337,7 @@ err:
 }
 
 static bool
-handle_workspace_event(int type, const struct json_object *json, void *_mod)
+handle_workspace_event(int sock, int type, const struct json_object *json, void *_mod)
 {
     struct module *mod = _mod;
     struct private *m = mod->private;
@@ -354,6 +354,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     bool is_empty = strcmp(change_str, "empty") == 0;
     bool is_focused = strcmp(change_str, "focus") == 0;
     bool is_rename = strcmp(change_str, "rename") == 0;
+    bool is_move = strcmp(change_str, "move") == 0;
     bool is_urgent = strcmp(change_str, "urgent") == 0;
 
     struct json_object *current, *_current_id;
@@ -446,6 +447,29 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         workspace_add(m, ws);
     }
 
+    else if (is_move) {
+        struct workspace *w = workspace_lookup(m, current_id);
+        assert(w != NULL);
+
+        struct json_object *_current_output;
+        if (!json_object_object_get_ex(current, "output", &_current_output)) {
+            LOG_ERR("workspace 'move' event without 'output' property");
+            mtx_unlock(&mod->lock);
+            return false;
+        }
+
+        free(w->output);
+        w->output = strdup(json_object_get_string(_current_output));
+
+        /*
+         * If the moved workspace was focused, schedule a full update because
+         * visibility for other workspaces may have changed.
+         */
+        if (w->focused) {
+            i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
+        }
+    }
+
     else if (is_urgent) {
         struct json_object *urgent;
         if (!json_object_object_get_ex(current, "urgent", &urgent)) {
@@ -472,7 +496,7 @@ err:
 }
 
 static bool
-handle_window_event(int type, const struct json_object *json, void *_mod)
+handle_window_event(int sock, int type, const struct json_object *json, void *_mod)
 {
     struct module *mod = _mod;
     struct private *m = mod->private;
@@ -606,7 +630,7 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
 }
 
 static bool
-handle_mode_event(int type, const struct json_object *json, void *_mod)
+handle_mode_event(int sock, int type, const struct json_object *json, void *_mod)
 {
     struct module *mod = _mod;
     struct private *m = mod->private;

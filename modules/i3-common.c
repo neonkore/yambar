@@ -309,7 +309,7 @@ i3_receive_loop(int abort_fd, int sock,
             }
 
             if (pkt_handler != NULL)
-                err = !pkt_handler(hdr->type, json, data);
+                err = !pkt_handler(sock, hdr->type, json, data);
             else
                 LOG_DBG("no handler for reply/event %d; ignoring", hdr->type);
 

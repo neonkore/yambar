@@ -11,7 +11,7 @@
 bool i3_get_socket_address(struct sockaddr_un *addr);
 bool i3_send_pkg(int sock, int cmd, char *data);
 
-typedef bool (*i3_ipc_callback_t)(int type, const struct json_object *json, void *data);
+typedef bool (*i3_ipc_callback_t)(int sock, int type, const struct json_object *json, void *data);
 
 struct i3_ipc_callbacks {
     void (*burst_done)(void *data);
