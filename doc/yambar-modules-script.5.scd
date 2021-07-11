@@ -8,12 +8,12 @@ script - This module executes a user-provided script (or binary!)
 This module executes a user-provided script (or binary!) that writes
 tags on its stdout.
 
-Scripts can be run in two modes: yambar polled, or continously. In the
+Scripts can be run in two modes: yambar polled, or continuously. In the
 yambar polled mode, the script is expected to write one set of tags
 and then exit. Yambar will execute the script again after a
 configurable amount of time.
 
-In continous mode, the script is executed once. It will typically run
+In continuous mode, the script is executed once. It will typically run
 in a loop, sending an updated tag set whenever it needs, or wants
 to. The last tag set is used (displayed) by yambar until a new tag set
 is received. This mode is intended to be used by scripts that depends
@@ -77,7 +77,7 @@ User defined.
 :  Arguments to pass to the script/binary.
 |  poll-interval
 :  integer
-:  Number of seconds between each script run. If unset, continous mode
+:  Number of seconds between each script run. If unset, continuous mode
    is used.
 
 # EXAMPLES
@@ -98,7 +98,7 @@ while true; do
 done
 ```
 
-This script runs in continous mode, and will emit a single string tag,
+This script runs in continuous mode, and will emit a single string tag,
 _test_, and alternate its value between *hello* and *world* every
 three seconds.
 
