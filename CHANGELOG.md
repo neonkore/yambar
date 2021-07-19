@@ -30,6 +30,9 @@
 * battery: differentiate "Not Charging" and "Discharging" in state
   tag of battery module.
   (https://codeberg.org/dnkl/yambar/issues/57).
+* string: use HORIZONTAL ELLIPSIS instead of three regular periods
+  when truncating a string
+  (https://codeberg.org/dnkl/yambar/issues/73).
 
 
 ### Deprecated
