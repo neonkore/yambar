@@ -26,9 +26,6 @@ struct private {
 };
 
 struct eprivate {
-    /* Set when instantiating */
-    char *text;
-
     ssize_t cache_idx;
     const struct fcft_glyph **glyphs;
     const struct fcft_glyph **allocated_glyphs;
@@ -36,25 +33,11 @@ struct eprivate {
     int num_glyphs;
 };
 
-static uint64_t
-sdbm_hash(const char *s)
-{
-    uint64_t hash = 0;
-
-    for (; *s != '\0'; s++) {
-        int c = *s;
-        hash = c + (hash << 6) + (hash << 16) - hash;
-    }
-
-    return hash;
-}
-
 static void
 exposable_destroy(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
 
-    free(e->text);
     free(e->allocated_glyphs);
     free(e->kern_x);
     free(e);
@@ -66,108 +49,18 @@ begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
     struct private *p = exposable->particle->private;
-    struct fcft_font *font = exposable->particle->font;
 
-    e->glyphs = e->allocated_glyphs = NULL;
-    e->num_glyphs = 0;
-    e->kern_x = NULL;
-    e->cache_idx = -1;
-
-    uint64_t hash = sdbm_hash(e->text);
-
-    for (size_t i = 0; i < p->cache_size; i++) {
-        if (p->cache[i].hash == hash) {
-            assert(p->cache[i].run != NULL);
-
-            p->cache[i].in_use = true;
-            e->cache_idx = i;
-            e->glyphs = p->cache[i].run->glyphs;
-            e->num_glyphs = p->cache[i].run->count;
-            e->kern_x = calloc(p->cache[i].run->count, sizeof(e->kern_x[0]));
-
-            exposable->width =
-                exposable->particle->left_margin +
-                p->cache[i].width +
-                exposable->particle->right_margin;
-
-            return exposable->width;
-        }
-    }
-
-    size_t chars = mbstowcs(NULL, e->text, 0);
-    if (chars != (size_t)-1) {
-        wchar_t wtext[chars + 1];
-        mbstowcs(wtext, e->text, chars + 1);
-
-        e->kern_x = calloc(chars, sizeof(e->kern_x[0]));
-
-        if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
-            struct fcft_text_run *run = fcft_text_run_rasterize(font, chars, wtext, FCFT_SUBPIXEL_NONE);
-            if (run != NULL) {
-                int w = 0;
-                for (size_t i = 0; i < run->count; i++)
-                    w += run->glyphs[i]->advance.x;
-
-                ssize_t cache_idx = -1;
-                for (size_t i = 0; i < p->cache_size; i++) {
-                    if (p->cache[i].run == NULL || !p->cache[i].in_use) {
-                        fcft_text_run_destroy(p->cache[i].run);
-                        cache_idx = i;
-                        break;
-                    }
-                }
-
-                if (cache_idx < 0) {
-                    size_t new_size = p->cache_size + 1;
-                    struct text_run_cache *new_cache = realloc(
-                        p->cache, new_size * sizeof(new_cache[0]));
-
-                    p->cache_size = new_size;
-                    p->cache = new_cache;
-                    cache_idx = new_size - 1;
-                }
-
-                assert(cache_idx >= 0 && cache_idx < p->cache_size);
-                p->cache[cache_idx].hash = hash;
-                p->cache[cache_idx].run = run;
-                p->cache[cache_idx].width = w;
-                p->cache[cache_idx].in_use = true;
-
-                e->cache_idx = cache_idx;
-                e->num_glyphs = run->count;
-                e->glyphs = run->glyphs;
-            }
-        }
-
-        if (e->glyphs == NULL) {
-            e->allocated_glyphs = malloc(chars * sizeof(e->glyphs[0]));
-
-            /* Convert text to glyph masks/images. */
-            for (size_t i = 0; i < chars; i++) {
-                const struct fcft_glyph *glyph = fcft_glyph_rasterize(
-                    font, wtext[i], FCFT_SUBPIXEL_NONE);
-
-                if (glyph == NULL)
-                    continue;
-
-                e->allocated_glyphs[e->num_glyphs++] = glyph;
-
-                if (i == 0)
-                    continue;
-
-                fcft_kerning(font, wtext[i - 1], wtext[i], &e->kern_x[i], NULL);
-            }
-
-            e->glyphs = e->allocated_glyphs;
-        }
-    }
-
-    exposable->width = exposable->particle->left_margin +
+    exposable->width =
+        exposable->particle->left_margin +
         exposable->particle->right_margin;
 
-    /* Calculate the size we need to render the glyphs */
-    for (int i = 0; i < e->num_glyphs; i++)
-        exposable->width += e->kern_x[i] + e->glyphs[i]->advance.x;
+    if (e->cache_idx >= 0) {
+        exposable->width += p->cache[e->cache_idx].width;
+    } else {
+        /* Calculate the size we need to render the glyphs */
+        for (int i = 0; i < e->num_glyphs; i++)
+            exposable->width += e->kern_x[i] + e->glyphs[i]->advance.x;
+    }
 
     return exposable->width;
 }
@@ -236,38 +129,147 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
     }
 }
 
+static uint64_t
+sdbm_hash(const char *s)
+{
+    uint64_t hash = 0;
+
+    for (; *s != '\0'; s++) {
+        int c = *s;
+        hash = c + (hash << 6) + (hash << 16) - hash;
+    }
+
+    return hash;
+}
+
 static struct exposable *
 instantiate(const struct particle *particle, const struct tag_set *tags)
 {
-    const struct private *p = particle->private;
+    struct private *p = (struct private *)particle->private;
     struct eprivate *e = calloc(1, sizeof(*e));
+    struct fcft_font *font = particle->font;
 
-    e->text = tags_expand_template(p->text, tags);
-    e->glyphs = NULL;
+    wchar_t *wtext = NULL;
+    char *text = tags_expand_template(p->text, tags);
+
+    e->glyphs = e->allocated_glyphs = NULL;
     e->num_glyphs = 0;
+    e->kern_x = NULL;
+    e->cache_idx = -1;
 
+    uint64_t hash = sdbm_hash(text);
+
+    /* First, check if we have this string cached */
+    for (size_t i = 0; i < p->cache_size; i++) {
+        if (p->cache[i].hash == hash) {
+            assert(p->cache[i].run != NULL);
+
+            p->cache[i].in_use = true;
+            e->cache_idx = i;
+            e->glyphs = p->cache[i].run->glyphs;
+            e->num_glyphs = p->cache[i].run->count;
+            e->kern_x = calloc(p->cache[i].run->count, sizeof(e->kern_x[0]));
+            goto done;
+        }
+    }
+
+    /* Not in cache - we need to rasterize it. First, convert to wchar */
+    size_t chars = mbstowcs(NULL, text, 0);
+    if (chars == (size_t)-1)
+        goto done;
+
+    wtext = malloc((chars + 1) * sizeof(wtext[0]));
+    mbstowcs(wtext, text, chars + 1);
+
+    /* Truncate, if necessary */
     if (p->max_len > 0) {
-        const size_t len = strlen(e->text);
+        const size_t len = wcslen(wtext);
         if (len > p->max_len) {
 
             size_t end = p->max_len;
-            if (end >= 3) {
+            if (end >= 1) {
                 /* "allocate" room for three dots at the end */
-                end -= 3;
+                end -= 1;
             }
 
-            /* Mucho importante - don't cut in the middle of a utf8 multibyte */
-            while (end > 0 && e->text[end - 1] >> 7)
-                end--;
-
-            if (p->max_len > 3) {
-                for (size_t i = 0; i < 3; i++)
-                    e->text[end + i] = '.';
-                e->text[end + 3] = '\0';
-            } else
-                e->text[end] = '\0';
+            if (p->max_len > 1) {
+                wtext[end] = L'…';
+                wtext[end + 1] = L'\0';
+                chars = end + 1;
+            } else {
+                wtext[end] = L'\0';
+                chars = 0;
+            }
         }
     }
+
+    e->kern_x = calloc(chars, sizeof(e->kern_x[0]));
+
+    if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
+        struct fcft_text_run *run = fcft_text_run_rasterize(
+            font, chars, wtext, FCFT_SUBPIXEL_NONE);
+
+        if (run != NULL) {
+            int w = 0;
+            for (size_t i = 0; i < run->count; i++)
+                w += run->glyphs[i]->advance.x;
+
+            ssize_t cache_idx = -1;
+            for (size_t i = 0; i < p->cache_size; i++) {
+                if (p->cache[i].run == NULL || !p->cache[i].in_use) {
+                    fcft_text_run_destroy(p->cache[i].run);
+                    cache_idx = i;
+                    break;
+                }
+            }
+
+            if (cache_idx < 0) {
+                size_t new_size = p->cache_size + 1;
+                struct text_run_cache *new_cache = realloc(
+                    p->cache, new_size * sizeof(new_cache[0]));
+
+                p->cache_size = new_size;
+                p->cache = new_cache;
+                cache_idx = new_size - 1;
+            }
+
+            assert(cache_idx >= 0 && cache_idx < p->cache_size);
+            p->cache[cache_idx].hash = hash;
+            p->cache[cache_idx].run = run;
+            p->cache[cache_idx].width = w;
+            p->cache[cache_idx].in_use = true;
+
+            e->cache_idx = cache_idx;
+            e->num_glyphs = run->count;
+            e->glyphs = run->glyphs;
+        }
+    }
+
+    if (e->glyphs == NULL) {
+        e->allocated_glyphs = malloc(chars * sizeof(e->glyphs[0]));
+
+        /* Convert text to glyph masks/images. */
+        for (size_t i = 0; i < chars; i++) {
+            const struct fcft_glyph *glyph = fcft_glyph_rasterize(
+                font, wtext[i], FCFT_SUBPIXEL_NONE);
+
+            if (glyph == NULL)
+                continue;
+
+            e->allocated_glyphs[e->num_glyphs++] = glyph;
+
+            if (i == 0)
+                continue;
+
+            fcft_kerning(font, wtext[i - 1], wtext[i], &e->kern_x[i], NULL);
+        }
+
+        e->glyphs = e->allocated_glyphs;
+    }
+
+done:
+    free(wtext);
+    free(text);
 
     struct exposable *exposable = exposable_common_new(particle, tags);
     exposable->private = e;
