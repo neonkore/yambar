@@ -1,4 +1,4 @@
-image: alpine/edge
+image: alpine/latest
 packages:
   - musl-dev
   - eudev-libs
@@ -21,20 +21,22 @@ packages:
   - alsa-lib-dev
   - ttf-dejavu
   - gcovr
+  - python3
+  - py3-pip
 
 sources:
-  - https://git.sr.ht/~dnkl/yambar
+  - https://codeberg.org/dnkl/yambar
 
-triggers:
-  - action: email
-    condition: failure
-    to: daniel@ekloef.se
+# triggers:
+#   - action: email
+#     condition: failure
+#     to: <comitter>
 
 tasks:
-  - install-gcovr: |
-      python2 -m ensurepip --user --upgrade
-      python2 -m pip install --user --upgrade pip
-      python2 -m pip install --user --upgrade setuptools
+  - codespell: |
+      pip install codespell
+      cd yambar
+      ~/.local/bin/codespell README.md CHANGELOG.md *.c *.h doc/*.scd
   - setup: |
       mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
       meson --buildtype=debug -Db_coverage=true yambar bld/debug

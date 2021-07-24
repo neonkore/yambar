@@ -9,18 +9,51 @@
 ## Unreleased
 
 ### Added
+
+* Text shaping support.
+* Support for middle and right mouse buttons, mouse wheel and trackpad
+  scrolling (https://codeberg.org/dnkl/yambar/issues/39).
+* script: polling mode. See the new `poll-interval` option
+  (https://codeberg.org/dnkl/yambar/issues/67).
+
+
 ### Changed
+
+* doc: split up **yambar-modules**(5) into multiple man pages, one for
+  each module (https://codeberg.org/dnkl/yambar/issues/15).
+* fcft >= 2.4.0 is now required.
+* sway-xkb: non-keyboard inputs are now ignored
+  (https://codeberg.org/dnkl/yambar/issues/51).
+* battery: don’t terminate (causing last status to “freeze”) when
+  failing to update; retry again later
+  (https://codeberg.org/dnkl/yambar/issues/44).
+* battery: differentiate "Not Charging" and "Discharging" in state
+  tag of battery module.
+  (https://codeberg.org/dnkl/yambar/issues/57).
+* string: use HORIZONTAL ELLIPSIS instead of three regular periods
+  when truncating a string
+  (https://codeberg.org/dnkl/yambar/issues/73).
+
+
 ### Deprecated
 ### Removed
 ### Fixed
 
 * Crash when merging non-dictionary anchors in the YAML configuration
   (https://codeberg.org/dnkl/yambar/issues/32).
+* Crash in the `ramp` particle when the tag’s value was out-of-bounds
+  (https://codeberg.org/dnkl/yambar/issues/45).
+* Crash when a string particle contained `{}`
+  (https://codeberg.org/dnkl/yambar/issues/48).
+* `script` module rejecting range tag end values containing the digit
+  `9` (https://codeberg.org/dnkl/yambar/issues/60).
 
 
 ### Security
 ### Contributors
 
+* [novakane](https://codeberg.org/novakane)
+* [mz](https://codeberg.org/mz)
 
 ## 1.6.1
 

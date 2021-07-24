@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 #include <poll.h>
+#include <pthread.h>
 
 #include <pixman.h>
 #include <xcb/xcb.h>
@@ -311,10 +312,13 @@ cleanup(struct bar *_bar)
 static void
 loop(struct bar *_bar,
      void (*expose)(const struct bar *bar),
-     void (*on_mouse)(struct bar *bar, enum mouse_event event, int x, int y))
+     void (*on_mouse)(struct bar *bar, enum mouse_event event,
+                      enum mouse_button btn, int x, int y))
 {
     struct private *bar = _bar->private;
     struct xcb_backend *backend = bar->backend.data;
+
+    pthread_setname_np(pthread_self(), "bar(xcb)");
 
     const int fd = xcb_get_file_descriptor(backend->conn);
 
@@ -354,7 +358,7 @@ loop(struct bar *_bar,
 
             case XCB_MOTION_NOTIFY: {
                 const xcb_motion_notify_event_t *evt = (void *)e;
-                on_mouse(_bar, ON_MOUSE_MOTION, evt->event_x, evt->event_y);
+                on_mouse(_bar, ON_MOUSE_MOTION, MOUSE_BTN_NONE, evt->event_x, evt->event_y);
                 break;
             }
 
@@ -363,7 +367,13 @@ loop(struct bar *_bar,
 
             case XCB_BUTTON_RELEASE: {
                 const xcb_button_release_event_t *evt = (void *)e;
-                on_mouse(_bar, ON_MOUSE_CLICK, evt->event_x, evt->event_y);
+
+                switch (evt->detail) {
+                case 1: case 2: case 3: case 4: case 5:
+                    on_mouse(_bar, ON_MOUSE_CLICK,
+                             evt->detail, evt->event_x, evt->event_y);
+                    break;
+                }
                 break;
             }
 

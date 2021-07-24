@@ -25,6 +25,7 @@ struct bar_config {
     int height;
     int left_spacing, right_spacing;
     int left_margin, right_margin;
+    int trackpad_sensitivity;
 
     pixman_color_t background;
 

@@ -52,6 +52,12 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    return "sway-xkb";
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -99,6 +105,15 @@ handle_input_reply(int type, const struct json_object *json, void *_mod)
             return false;
 
         const char *id = json_object_get_string(identifier);
+
+        struct json_object *type;
+        if (!json_object_object_get_ex(obj, "type", &type))
+            return false;
+        if (strcmp(json_object_get_string(type), "keyboard") != 0) {
+            LOG_DBG("ignoring non-keyboard input '%s'", id);
+            continue;
+        }
+
         struct input *input = NULL;
         for (size_t i = 0; i < m->num_inputs; i++) {
             struct input *maybe_input = &m->inputs[i];
@@ -166,6 +181,15 @@ handle_input_event(int type, const struct json_object *json, void *_mod)
         return false;
 
     const char *id = json_object_get_string(identifier);
+
+    struct json_object *input_type;
+    if (!json_object_object_get_ex(obj, "type", &input_type))
+        return false;
+    if (strcmp(json_object_get_string(input_type), "keyboard") != 0) {
+        LOG_DBG("ignoring non-keyboard input '%s'", id);
+        return true;
+    }
+
     struct input *input = NULL;
     for (size_t i = 0; i < m->num_inputs; i++) {
         struct input *maybe_input = &m->inputs[i];
@@ -289,6 +313,7 @@ sway_xkb_new(struct particle *template, const char *identifiers[],
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

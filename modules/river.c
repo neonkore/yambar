@@ -8,7 +8,7 @@
 #include <tllist.h>
 
 #define LOG_MODULE "river"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../log.h"
 #include "../plugin.h"
 #include "../particles/dynlist.h"
@@ -63,6 +63,12 @@ destroy(struct module *mod)
         m->title->destroy(m->title);
     free(m);
     module_default_destroy(mod);
+}
+
+static const char *
+description(struct module *mod)
+{
+    return "river";
 }
 
 static struct exposable *
@@ -184,14 +190,15 @@ focused_tags(void *data, struct zriver_output_status_v1 *zriver_output_status_v1
              uint32_t tags)
 {
     struct output *output = data;
-    struct module *mod = output->m->mod;
+
+    if (output->focused == tags)
+        return;
 
     LOG_DBG("output: %s: focused tags: 0x%08x", output->name, tags);
 
+    struct module *mod = output->m->mod;
     mtx_lock(&mod->lock);
-    {
-        output->focused = tags;
-    }
+    output->focused = tags;
     mtx_unlock(&mod->lock);
     mod->bar->refresh(mod->bar);
 }
@@ -310,25 +317,25 @@ focused_output(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
     struct private *m = seat->m;
     struct module *mod = m->mod;
 
-    mtx_lock(&mod->lock);
-    {
-        struct output *output = NULL;
-        tll_foreach(m->outputs, it) {
-            if (it->item.wl_output == wl_output) {
-                output = &it->item;
-                break;
-            }
+    struct output *output = NULL;
+    tll_foreach(m->outputs, it) {
+        if (it->item.wl_output == wl_output) {
+            output = &it->item;
+            break;
         }
-
-        LOG_DBG("seat: %s: focused output: %s", seat->name, output != NULL ? output->name : "<unknown>");
-
-        if (output == NULL)
-            LOG_WARN("seat: %s: couldn't find output we are mapped on", seat->name);
-
-        seat->output = output;
     }
-    mtx_unlock(&mod->lock);
-    mod->bar->refresh(mod->bar);
+
+    LOG_DBG("seat: %s: focused output: %s", seat->name, output != NULL ? output->name : "<unknown>");
+
+    if (output == NULL)
+        LOG_WARN("seat: %s: couldn't find output we are mapped on", seat->name);
+
+    if (seat->output != output) {
+        mtx_lock(&mod->lock);
+        seat->output = output;
+        mtx_unlock(&mod->lock);
+        mod->bar->refresh(mod->bar);
+    }
 }
 
 static void
@@ -366,6 +373,12 @@ focused_view(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
 {
     struct seat *seat = data;
     struct module *mod = seat->m->mod;
+
+    if (seat->title == NULL && title == NULL)
+        return;
+
+    if (seat->title != NULL && title != NULL && strcmp(seat->title, title) == 0)
+        return;
 
     LOG_DBG("seat: %s: focused view: %s", seat->name, title);
 
@@ -645,6 +658,7 @@ river_new(struct particle *template, struct particle *title)
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     m->mod = mod;
     return mod;
 }

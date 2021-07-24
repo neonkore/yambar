@@ -4,6 +4,9 @@
 
 #include <stdio.h>
 
+#define LOG_MODULE "ramp"
+#define LOG_ENABLE_DBG 0
+#include "../log.h"
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particle.h"
@@ -54,26 +57,29 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
 
 static void
 on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
-         int x, int y)
+         enum mouse_button btn, int x, int y)
 {
     const struct particle *p = exposable->particle;
     const struct eprivate *e = exposable->private;
 
-    if (exposable->on_click != NULL) {
+    if ((event == ON_MOUSE_MOTION &&
+         exposable->particle->have_on_click_template) ||
+        exposable->on_click[btn] != NULL)
+    {
         /* We have our own handler */
-        exposable_default_on_mouse(exposable, bar, event, x, y);
+        exposable_default_on_mouse(exposable, bar, event, btn, x, y);
         return;
     }
 
     int px = p->left_margin;
     if (x >= px && x < px + e->exposable->width) {
         if (e->exposable->on_mouse != NULL)
-            e->exposable->on_mouse(e->exposable, bar, event, x - px, y);
+            e->exposable->on_mouse(e->exposable, bar, event, btn, x - px, y);
         return;
     }
 
     /* In the left- or right margin */
-    exposable_default_on_mouse(exposable, bar, event, x, y);
+    exposable_default_on_mouse(exposable, bar, event, btn, x, y);
 }
 
 static void
@@ -102,6 +108,26 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     long min = tag != NULL ? tag->min(tag) : 0;
     long max = tag != NULL ? tag->max(tag) : 0;
 
+    if (min > max) {
+        LOG_WARN(
+            "tag's minimum value is greater than its maximum: "
+            "tag=\"%s\", min=%ld, max=%ld", p->tag, min, max);
+        min = max;
+    }
+
+    if (value < min) {
+        LOG_WARN(
+            "tag's value is less than its minimum value: "
+            "tag=\"%s\", min=%ld, value=%ld", p->tag, min, value);
+        value = min;
+    }
+    if (value > max) {
+        LOG_WARN(
+            "tag's value is greater than its maximum value: "
+            "tag=\"%s\", max=%ld, value=%ld", p->tag, max, value);
+        value = max;
+    }
+
     assert(value >= min && value <= max);
     assert(max >= min);
 
@@ -123,15 +149,12 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     e->exposable = pp->instantiate(pp, tags);
     assert(e->exposable != NULL);
 
-    char *on_click = tags_expand_template(particle->on_click_template, tags);
-    struct exposable *exposable = exposable_common_new(particle, on_click);
+    struct exposable *exposable = exposable_common_new(particle, tags);
     exposable->private = e;
     exposable->destroy = &exposable_destroy;
     exposable->begin_expose = &begin_expose;
     exposable->expose = &expose;
     exposable->on_mouse = &on_mouse;
-
-    free(on_click);
     return exposable;
 }
 

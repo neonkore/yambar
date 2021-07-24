@@ -25,6 +25,8 @@ struct private {
     char *path;
     size_t argc;
     char **argv;
+    int poll_interval;
+    bool aborted;
 
     struct particle *content;
 
@@ -54,6 +56,19 @@ destroy(struct module *mod)
     free(m->path);
     free(m);
     module_default_destroy(mod);
+}
+
+static const char *
+description(struct module *mod)
+{
+    static char desc[32];
+    struct private *m = mod->private;
+
+    char *path = strdup(m->path);
+    snprintf(desc, sizeof(desc), "script(%s)", basename(path));
+
+    free(path);
+    return desc;
 }
 
 static struct exposable *
@@ -180,7 +195,7 @@ process_line(struct module *mod, const char *line, size_t len)
 
         long end = 0;
         for (size_t i = 0; i < end_len; i++) {
-            if (!(_end[i] >= '0' && _end[i] < '9')) {
+            if (!(_end[i] >= '0' && _end[i] <= '9')) {
                 LOG_ERR(
                     "tag range end is not an integer: %.*s",
                     (int)end_len, _end);
@@ -318,7 +333,7 @@ data_received(struct module *mod, const char *data, size_t len)
 static int
 run_loop(struct module *mod, pid_t pid, int comm_fd)
 {
-    int ret = 0;
+    int ret = 1;
 
     while (true) {
         struct pollfd fds[] = {
@@ -347,19 +362,18 @@ run_loop(struct module *mod, pid_t pid, int comm_fd)
             data_received(mod, data, amount);
         }
 
-        if (fds[0].revents & POLLHUP) {
+        if (fds[0].revents & (POLLHUP | POLLIN)) {
             /* Aborted */
+            struct private *m = mod->private;
+            m->aborted = true;
+            ret = 0;
             break;
         }
 
         if (fds[1].revents & POLLHUP) {
             /* Child's stdout closed */
             LOG_DBG("script pipe closed (script terminated?)");
-            break;
-        }
-
-        if (fds[0].revents & POLLIN) {
-            /* Aborted */
+            ret = 0;
             break;
         }
     }
@@ -368,7 +382,7 @@ run_loop(struct module *mod, pid_t pid, int comm_fd)
 }
 
 static int
-run(struct module *mod)
+execute_script(struct module *mod)
 {
     struct private *m = mod->private;
 
@@ -552,9 +566,75 @@ run(struct module *mod)
     return ret;
 }
 
+static int
+run(struct module *mod)
+{
+    struct private *m = mod->private;
+
+    int ret = 1;
+    bool keep_going = true;
+
+    while (keep_going && !m->aborted) {
+        ret = execute_script(mod);
+
+        if (ret != 0)
+            break;
+        if (m->aborted)
+            break;
+        if (m->poll_interval < 0)
+            break;
+
+        struct timeval now;
+        if (gettimeofday(&now, NULL)  < 0) {
+            LOG_ERRNO("failed to get current time");
+            break;
+        }
+
+        struct timeval poll_interval = {.tv_sec = m->poll_interval};
+
+        struct timeval timeout;
+        timeradd(&now, &poll_interval, &timeout);
+
+        while (true) {
+            struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
+
+            struct timeval now;
+            if (gettimeofday(&now, NULL) < 0) {
+                LOG_ERRNO("failed to get current time");
+                keep_going = false;
+                break;
+            }
+
+            if (!timercmp(&now, &timeout, <)) {
+                /* We’ve reached the timeout, it’s time to execute the script again */
+                break;
+            }
+
+            struct timeval time_left;
+            timersub(&timeout, &now, &time_left);
+
+            int r = poll(fds, 1, time_left.tv_sec * 1000 + time_left.tv_usec / 1000);
+            if (r < 0) {
+                if (errno == EINTR)
+                    continue;
+                LOG_ERRNO("failed to poll");
+                keep_going = false;
+                break;
+            }
+
+            if (r > 0) {
+                m->aborted = true;
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
 static struct module *
 script_new(const char *path, size_t argc, const char *const argv[static argc],
-           struct particle *_content)
+           int poll_interval, struct particle *_content)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->path = strdup(path);
@@ -563,12 +643,14 @@ script_new(const char *path, size_t argc, const char *const argv[static argc],
     m->argv = malloc(argc * sizeof(m->argv[0]));
     for (size_t i = 0; i < argc; i++)
         m->argv[i] = strdup(argv[i]);
+    m->poll_interval = poll_interval;
 
     struct module *mod = module_common_new();
     mod->private = m;
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 
@@ -578,6 +660,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *path = yml_get_value(node, "path");
     const struct yml_node *args = yml_get_value(node, "args");
     const struct yml_node *c = yml_get_value(node, "content");
+    const struct yml_node *poll_interval = yml_get_value(node, "poll-interval");
 
     size_t argc = args != NULL ? yml_list_length(args) : 0;
     const char *argv[argc];
@@ -593,7 +676,9 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     }
 
     return script_new(
-        yml_value_as_string(path), argc, argv, conf_to_particle(c, inherited));
+        yml_value_as_string(path), argc, argv,
+        poll_interval != NULL ? yml_value_as_int(poll_interval) : -1,
+        conf_to_particle(c, inherited));
 }
 
 static bool
@@ -623,6 +708,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"path", true, &conf_verify_path},
         {"args", false, &conf_verify_args},
+        {"poll-interval", false, &conf_verify_int},
         MODULE_COMMON_ATTRS,
     };
 

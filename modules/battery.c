@@ -20,7 +20,7 @@
 #include "../config-verify.h"
 #include "../plugin.h"
 
-enum state { STATE_FULL, STATE_CHARGING, STATE_DISCHARGING };
+enum state { STATE_FULL, STATE_NOTCHARGING, STATE_CHARGING, STATE_DISCHARGING };
 
 struct private {
     struct particle *label;
@@ -57,6 +57,15 @@ destroy(struct module *mod)
     module_default_destroy(mod);
 }
 
+static const char *
+description(struct module *mod)
+{
+    static char desc[32];
+    struct private *m = mod->private;
+    snprintf(desc, sizeof(desc), "bat(%s)", m->battery);
+    return desc;
+}
+
 static struct exposable *
 content(struct module *mod)
 {
@@ -65,6 +74,7 @@ content(struct module *mod)
     mtx_lock(&mod->lock);
 
     assert(m->state == STATE_FULL ||
+           m->state == STATE_NOTCHARGING ||
            m->state == STATE_CHARGING ||
            m->state == STATE_DISCHARGING);
 
@@ -79,7 +89,7 @@ content(struct module *mod)
             ? m->energy_full - m->energy : m->energy;
 
         double hours_as_float;
-        if (m->state == STATE_FULL)
+        if (m->state == STATE_FULL || m->state == STATE_NOTCHARGING)
             hours_as_float = 0.0;
         else if (m->power > 0)
             hours_as_float = (double)energy / m->power;
@@ -93,7 +103,7 @@ content(struct module *mod)
             ? m->charge_full - m->charge : m->charge;
 
         double hours_as_float;
-        if (m->state == STATE_FULL)
+        if (m->state == STATE_FULL || m->state == STATE_NOTCHARGING)
             hours_as_float = 0.0;
         else if (m->current > 0)
             hours_as_float = (double)charge / m->current;
@@ -117,6 +127,7 @@ content(struct module *mod)
             tag_new_string(mod, "model", m->model),
             tag_new_string(mod, "state",
                            m->state == STATE_FULL ? "full" :
+                           m->state == STATE_NOTCHARGING ? "not charging" :
                            m->state == STATE_CHARGING ? "charging" :
                            m->state == STATE_DISCHARGING ? "discharging" :
                            "unknown"),
@@ -349,11 +360,11 @@ update_status(struct module *mod)
         state = STATE_DISCHARGING;
     } else if (strcmp(status, "Full") == 0)
         state = STATE_FULL;
+    else if (strcmp(status, "Not charging") == 0)
+        state = STATE_NOTCHARGING;
     else if (strcmp(status, "Charging") == 0)
         state = STATE_CHARGING;
     else if (strcmp(status, "Discharging") == 0)
-        state = STATE_DISCHARGING;
-    else if (strcmp(status, "Not charging") == 0)
         state = STATE_DISCHARGING;
     else if (strcmp(status, "Unknown") == 0)
         state = STATE_DISCHARGING;
@@ -434,9 +445,8 @@ run(struct module *mod)
                 continue;
         }
 
-        if (!update_status(mod))
-            break;
-        bar->refresh(bar);
+        if (update_status(mod))
+            bar->refresh(bar);
     }
 
 out:
@@ -461,6 +471,7 @@ battery_new(const char *battery, struct particle *label, int poll_interval_secs)
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

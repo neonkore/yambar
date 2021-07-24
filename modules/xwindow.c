@@ -36,6 +36,12 @@ struct private {
     xcb_window_t active_win;
 };
 
+static const char *
+description(struct module *mod)
+{
+    return "xwindow";
+}
+
 static void
 update_active_window(struct private *m)
 {
@@ -332,6 +338,7 @@ xwindow_new(struct particle *label)
     mod->run = &run;
     mod->destroy = &destroy;
     mod->content = &content;
+    mod->description = &description;
     return mod;
 }
 

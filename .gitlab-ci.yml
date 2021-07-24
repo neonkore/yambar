@@ -1,4 +1,4 @@
-image: alpine:edge
+image: alpine:latest
 
 stages:
   - info
@@ -8,7 +8,6 @@ variables:
   GIT_SUBMODULE_STRATEGY: normal
 
 before_script:
-  - echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
   - apk update
   - apk add musl-dev eudev-libs eudev-dev linux-headers meson ninja gcc scdoc
   - apk add pixman-dev freetype-dev fontconfig-dev
@@ -17,10 +16,6 @@ before_script:
   - apk add json-c-dev libmpdclient-dev alsa-lib-dev
   - apk add ttf-dejavu
   - apk add git
-  - mkdir -p subprojects && cd subprojects
-  - git clone https://codeberg.org/dnkl/tllist.git
-  - git clone https://codeberg.org/dnkl/fcft.git
-  - cd ..
 
 versions:
   stage: info
@@ -92,3 +87,12 @@ plugins_as_shared_modules:
     - meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true ../../
     - ninja -k0
     - meson test --print-errorlogs
+
+codespell:
+  image: alpine:latest
+  stage: build
+  script:
+    - apk add python3
+    - apk add py3-pip
+    - pip install codespell
+    - codespell README.md CHANGELOG.md *.c *.h doc/*.scd

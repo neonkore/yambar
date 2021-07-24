@@ -65,7 +65,7 @@ backend_wayland = wayland_client.found() and wayland_cursor.found()
 
 # "My" dependencies, fallback to subproject
 tllist = dependency('tllist', version: '>=1.0.1', fallback: 'tllist')
-fcft = dependency('fcft', version: ['>=2.0.0', '<3.0.0'], fallback: 'fcft')
+fcft = dependency('fcft', version: ['>=2.4.0', '<3.0.0'], fallback: 'fcft')
 
 add_project_arguments(
   ['-D_GNU_SOURCE'] +
@@ -100,7 +100,7 @@ version = custom_target(
   'generate_version',
   build_always_stale: true,
   output: 'version.h',
-  command: [generate_version_sh, meson.project_version(), '@SOURCE_DIR@', '@OUTPUT@'])
+  command: [generate_version_sh, meson.project_version(), '@SOURCE_ROOT@', '@OUTPUT@'])
 
 yambar = executable(
   'yambar',

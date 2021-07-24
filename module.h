@@ -26,6 +26,8 @@ struct module {
     /* refresh_in() should schedule a module content refresh after the
      * specified number of milliseconds */
     bool (*refresh_in)(struct module *mod, long milli_seconds);
+
+    const char *(*description)(struct module *mod);
 };
 
 struct module *module_common_new(void);
