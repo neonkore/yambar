@@ -1,12 +1,12 @@
 # Changelog
 
-* [Unreleased](#Unreleased)
+* [1.6.2](#1-6-2)
 * [1.6.1](#1-6-1)
 * [1.6.0](#1-6-0)
 * [1.5.0](#1-5-0)
 
 
-## Unreleased
+## 1.6.2
 
 ### Added
 
@@ -35,8 +35,6 @@
   (https://codeberg.org/dnkl/yambar/issues/73).
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * Crash when merging non-dictionary anchors in the YAML configuration
@@ -49,11 +47,11 @@
   `9` (https://codeberg.org/dnkl/yambar/issues/60).
 
 
-### Security
 ### Contributors
 
 * [novakane](https://codeberg.org/novakane)
 * [mz](https://codeberg.org/mz)
+
 
 ## 1.6.1
 
