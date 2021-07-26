@@ -9,6 +9,11 @@
 
 ## Unreleased
 ### Added
+
+* i3: `persistent` attribute, allowing persistent workspaces
+  (https://codeberg.org/dnkl/yambar/issues/72).
+
+
 ### Changed
 ### Deprecated
 ### Removed
