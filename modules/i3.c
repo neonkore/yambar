@@ -30,7 +30,8 @@ struct ws_content {
 
 struct workspace {
     char *name;
-    int name_as_int; /* -1 is name is not a decimal number */
+    int name_as_int; /* -1 if name is not a decimal number */
+    bool persistent;
 
     char *output;
     bool visible;
@@ -60,7 +61,25 @@ struct private {
 
     enum sort_mode sort_mode;
     tll(struct workspace) workspaces;
+
+    size_t persistent_count;
+    char **persistent_workspaces;
 };
+
+static int
+workspace_name_as_int(const char *name)
+{
+    int name_as_int = 0;
+    for (const char *p = name; *p != '\0'; p++) {
+        if (!(*p >= '0' && *p <= '9'))
+            return -1;
+
+        name_as_int *= 10;
+        name_as_int += *p - '0';
+    }
+
+    return name_as_int;
+}
 
 static bool
 workspace_from_json(const struct json_object *json, struct workspace *ws)
@@ -82,20 +101,10 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
 
     const char *name_as_string = json_object_get_string(name);
 
-    int name_as_int = 0;
-    for (const char *p = name_as_string; *p != '\0'; p++) {
-        if (!(*p >= '0' && *p <= '9')) {
-            name_as_int = -1;
-            break;
-        }
-
-        name_as_int *= 10;
-        name_as_int += *p - '0';
-    }
-
     *ws = (struct workspace) {
         .name = strdup(name_as_string),
-        .name_as_int = name_as_int,
+        .name_as_int = workspace_name_as_int(name_as_string),
+        .persistent = false,
         .output = strdup(json_object_get_string(output)),
         .visible = json_object_get_boolean(visible),
         .focused = json_object_get_boolean(focused),
@@ -109,18 +118,21 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
 static void
 workspace_free(struct workspace *ws)
 {
-    free(ws->name);
-    free(ws->output);
-    free(ws->window.title);
-    free(ws->window.application);
+    free(ws->name); ws->name = NULL;
+    free(ws->output); ws->output = NULL;
+    free(ws->window.title); ws->window.title = NULL;
+    free(ws->window.application); ws->window.application = NULL;
 }
 
 static void
-workspaces_free(struct private *m)
+workspaces_free(struct private *m, bool free_persistent)
 {
-    tll_foreach(m->workspaces, it)
-        workspace_free(&it->item);
-    tll_free(m->workspaces);
+    tll_foreach(m->workspaces, it) {
+        if (free_persistent || !it->item.persistent) {
+            workspace_free(&it->item);
+            tll_remove(m->workspaces, it);
+        }
+    }
 }
 
 
@@ -235,6 +247,35 @@ handle_subscribe_reply(int type, const struct json_object *json, void *_m)
 }
 
 static bool
+workspace_update_or_add(struct private *m, const struct json_object *ws_json)
+{
+    struct json_object *name;
+    if (!json_object_object_get_ex(ws_json, "name", &name))
+        return false;
+
+    const char *name_as_string = json_object_get_string(name);
+    struct workspace *already_exists = workspace_lookup(m, name_as_string);
+
+    if (already_exists != NULL) {
+        bool persistent = already_exists->persistent;
+        assert(persistent);
+
+        workspace_free(already_exists);
+        if (!workspace_from_json(ws_json, already_exists))
+            return false;
+        already_exists->persistent = persistent;
+    } else {
+        struct workspace ws;
+        if (!workspace_from_json(ws_json, &ws))
+            return false;
+
+        workspace_add(m, ws);
+    }
+
+    return true;
+}
+
+static bool
 handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod)
 {
     struct module *mod = _mod;
@@ -242,25 +283,23 @@ handle_get_workspaces_reply(int type, const struct json_object *json, void *_mod
 
     mtx_lock(&mod->lock);
 
-    workspaces_free(m);
+    workspaces_free(m, false);
     m->dirty = true;
 
     size_t count = json_object_array_length(json);
 
     for (size_t i = 0; i < count; i++) {
-        struct workspace ws = {};
-        if (!workspace_from_json(json_object_array_get_idx(json, i), &ws)) {
-            workspaces_free(m);
-            mtx_unlock(&mod->lock);
-            return false;
-        }
-
-        LOG_DBG("#%zu: %s", i, m->workspaces.v[i].name);
-        workspace_add(m, ws);
+        if (!workspace_update_or_add(m, json_object_array_get_idx(json, i)))
+            goto err;
     }
 
     mtx_unlock(&mod->lock);
     return true;
+
+err:
+    workspaces_free(m, false);
+    mtx_unlock(&mod->lock);
+    return false;
 }
 
 static bool
@@ -301,24 +340,21 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
     mtx_lock(&mod->lock);
 
     if (is_init) {
-        struct workspace *already_exists = workspace_lookup(m, current_name);
-        if (already_exists != NULL) {
-            LOG_WARN("workspace 'init' event for already existing workspace: %s", current_name);
-            workspace_free(already_exists);
-            if (!workspace_from_json(current, already_exists))
-                goto err;
-        } else {
-            struct workspace ws;
-            if (!workspace_from_json(current, &ws))
-                goto err;
-
-            workspace_add(m, ws);
-        }
+        if (!workspace_update_or_add(m, current))
+            goto err;
     }
 
     else if (is_empty) {
-        assert(workspace_lookup(m, current_name) != NULL);
-        workspace_del(m, current_name);
+        struct workspace *ws = workspace_lookup(m, current_name);
+        assert(ws != NULL);
+
+        if (!ws->persistent)
+            workspace_del(m, current_name);
+        else {
+            workspace_free(ws);
+            ws->name = strdup(current_name);
+            assert(ws->persistent);
+        }
     }
 
     else if (is_focused) {
@@ -340,7 +376,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         /* Mark all workspaces on current's output invisible */
         tll_foreach(m->workspaces, it) {
             struct workspace *ws = &it->item;
-            if (strcmp(ws->output, w->output) == 0)
+            if (ws->output != NULL && strcmp(ws->output, w->output) == 0)
                 ws->visible = false;
         }
 
@@ -558,6 +594,18 @@ run(struct module *mod)
         return 1;
     }
 
+    struct private *m = mod->private;
+    for (size_t i = 0; i < m->persistent_count; i++) {
+        const char *name_as_string = m->persistent_workspaces[i];
+
+        struct workspace ws = {
+            .name = strdup(name_as_string),
+            .name_as_int = workspace_name_as_int(name_as_string),
+            .persistent = true,
+        };
+        workspace_add(m, ws);
+    }
+
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_VERSION, NULL);
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[\"workspace\", \"window\", \"mode\"]");
     i3_send_pkg(sock, I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
@@ -589,7 +637,11 @@ destroy(struct module *mod)
     }
 
     free(m->ws_content.v);
-    workspaces_free(m);
+    workspaces_free(m, true);
+
+    for (size_t i = 0; i < m->persistent_count; i++)
+        free(m->persistent_workspaces[i]);
+    free(m->persistent_workspaces);
 
     free(m->mode);
     free(m);
@@ -693,7 +745,9 @@ struct i3_workspaces {
 
 static struct module *
 i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
-       int left_spacing, int right_spacing, enum sort_mode sort_mode)
+       int left_spacing, int right_spacing, enum sort_mode sort_mode,
+       size_t persistent_count,
+       const char *persistent_workspaces[static persistent_count])
 {
     struct private *m = calloc(1, sizeof(*m));
 
@@ -710,6 +764,13 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
     }
 
     m->sort_mode = sort_mode;
+
+    m->persistent_count = persistent_count;
+    m->persistent_workspaces = calloc(
+        persistent_count, sizeof(m->persistent_workspaces[0]));
+
+    for (size_t i = 0; i < persistent_count; i++)
+        m->persistent_workspaces[i] = strdup(persistent_workspaces[i]);
 
     struct module *mod = module_common_new();
     mod->private = m;
@@ -728,6 +789,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *left_spacing = yml_get_value(node, "left-spacing");
     const struct yml_node *right_spacing = yml_get_value(node, "right-spacing");
     const struct yml_node *sort = yml_get_value(node, "sort");
+    const struct yml_node *persistent = yml_get_value(node, "persistent");
 
     int left = spacing != NULL ? yml_value_as_int(spacing) :
         left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
@@ -740,6 +802,20 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
         strcmp(sort_value, "none") == 0 ? SORT_NONE :
         strcmp(sort_value, "ascending") == 0 ? SORT_ASCENDING : SORT_DESCENDING;
 
+    const size_t persistent_count =
+        persistent != NULL ? yml_list_length(persistent) : 0;
+    const char *persistent_workspaces[persistent_count];
+
+    if (persistent != NULL) {
+        size_t idx = 0;
+        for (struct yml_list_iter it = yml_list_iter(persistent);
+             it.node != NULL;
+             yml_list_next(&it), idx++)
+        {
+            persistent_workspaces[idx] = yml_value_as_string(it.node);
+        }
+    }
+
     struct i3_workspaces workspaces[yml_dict_length(c)];
 
     size_t idx = 0;
@@ -751,7 +827,8 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
         workspaces[idx].content = conf_to_particle(it.value, inherited);
     }
 
-    return i3_new(workspaces, yml_dict_length(c), left, right, sort_mode);
+    return i3_new(workspaces, yml_dict_length(c), left, right, sort_mode,
+                  persistent_count, persistent_workspaces);
 }
 
 static bool
@@ -792,6 +869,12 @@ verify_sort(keychain_t *chain, const struct yml_node *node)
 }
 
 static bool
+verify_persistent(keychain_t *chain, const struct yml_node *node)
+{
+    return conf_verify_list(chain, node, &conf_verify_string);
+}
+
+static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
@@ -799,6 +882,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
         {"left-spacing", false, &conf_verify_int},
         {"right-spacing", false, &conf_verify_int},
         {"sort", false, &verify_sort},
+        {"persistent", false, &verify_persistent},
         {"content", true, &verify_content},
         {"anchors", false, NULL},
         {NULL, false, NULL},

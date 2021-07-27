@@ -65,6 +65,10 @@ with the _application_ and _title_ tags to replace the X11-only
 :  enum
 :  no
 :  How to sort the list of workspaces; one of _none_, _ascending_ or _descending_, defaults to _none_.
+|  persistent
+:  list of strings
+:  no
+:  Persistent workspaces. I.e. workspaces that are never removed, even if empty.
 |  left-spacing
 :  int
 :  no
