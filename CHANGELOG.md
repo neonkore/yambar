@@ -12,6 +12,11 @@
 
 * i3: `persistent` attribute, allowing persistent workspaces
   (https://codeberg.org/dnkl/yambar/issues/72).
+* bar: `border.{left,right,top,bottom}-width`, allowing the width of
+  each side of the border to be configured
+  individually. `border.width` is now a short-hand for setting all
+  four borders to the same value
+  (https://codeberg.org/dnkl/yambar/issues/77).
 
 
 ### Changed

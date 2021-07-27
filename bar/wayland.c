@@ -891,7 +891,7 @@ update_size(struct wayland_backend *backend)
     int height = bar->height_with_border;
     height /= scale;
     height *= scale;
-    bar->height = height - 2 * bar->border.width;
+    bar->height = height - bar->border.top_width - bar->border.bottom_width;
     bar->height_with_border = height;
 
     zwlr_layer_surface_v1_set_size(
