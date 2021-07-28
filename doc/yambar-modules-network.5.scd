@@ -48,6 +48,7 @@ address.
 :[ *Description*
 |  name
 :  string
+:  yes
 :  Name of network interface to monitor
 
 # EXAMPLES

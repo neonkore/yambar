@@ -82,7 +82,7 @@ content:
 # EMPTY
 
 This particle is a place-holder. While it does not render any tags,
-margins and decortions are rendered.
+margins and decorations are rendered.
 
 ## CONFIGURATION
 
