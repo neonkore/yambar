@@ -261,6 +261,10 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
     const struct yml_node *border = yml_get_value(bar, "border");
     if (border != NULL) {
         const struct yml_node *width = yml_get_value(border, "width");
+        const struct yml_node *left_width = yml_get_value(border, "left-width");
+        const struct yml_node *right_width = yml_get_value(border, "right-width");
+        const struct yml_node *top_width = yml_get_value(border, "top-width");
+        const struct yml_node *bottom_width = yml_get_value(border, "bottom-width");
         const struct yml_node *color = yml_get_value(border, "color");
         const struct yml_node *margin = yml_get_value(border, "margin");
         const struct yml_node *left_margin = yml_get_value(border, "left-margin");
@@ -269,7 +273,19 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
         const struct yml_node *bottom_margin = yml_get_value(border, "bottom-margin");
 
         if (width != NULL)
-            conf.border.width = yml_value_as_int(width);
+            conf.border.left_width =
+                conf.border.right_width =
+                conf.border.top_width =
+                conf.border.bottom_width = yml_value_as_int(width);
+
+        if (left_width != NULL)
+            conf.border.left_width = yml_value_as_int(left_width);
+        if (right_width != NULL)
+            conf.border.right_width = yml_value_as_int(right_width);
+        if (top_width != NULL)
+            conf.border.top_width = yml_value_as_int(top_width);
+        if (bottom_width != NULL)
+            conf.border.bottom_width = yml_value_as_int(bottom_width);
 
         if (color != NULL)
             conf.border.color = conf_to_color(color);

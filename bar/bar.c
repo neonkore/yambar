@@ -67,16 +67,28 @@ expose(const struct bar *_bar)
         PIXMAN_OP_SRC, pix, &bar->background, 1,
         &(pixman_rectangle16_t){0, 0, bar->width, bar->height_with_border});
 
-    if (bar->border.width > 0) {
-        pixman_image_fill_rectangles(
-            PIXMAN_OP_OVER, pix, &bar->border.color, 4,
-            (pixman_rectangle16_t[]){
-                {0, 0, bar->width, bar->border.width},
-                {0, 0, bar->border.width, bar->height_with_border},
-                {bar->width - bar->border.width, 0, bar->border.width, bar->height_with_border},
-                {0, bar->height_with_border - bar->border.width, bar->width, bar->border.width},
-            });
-    }
+    pixman_image_fill_rectangles(
+        PIXMAN_OP_OVER, pix, &bar->border.color, 4,
+        (pixman_rectangle16_t[]){
+            /* Left */
+            {0, 0, bar->border.left_width, bar->height_with_border},
+
+            /* Right */
+            {bar->width - bar->border.right_width,
+             0, bar->border.right_width, bar->height_with_border},
+
+            /* Top */
+            {bar->border.left_width,
+             0,
+             bar->width - bar->border.left_width - bar->border.right_width,
+             bar->border.top_width},
+
+            /* Bottom */
+            {bar->border.left_width,
+             bar->height_with_border - bar->border.bottom_width,
+             bar->width - bar->border.left_width - bar->border.right_width,
+             bar->border.bottom_width},
+        });
 
     for (size_t i = 0; i < bar->left.count; i++) {
         struct module *m = bar->left.mods[i];
@@ -105,8 +117,8 @@ expose(const struct bar *_bar)
     int left_width, center_width, right_width;
     calculate_widths(bar, &left_width, &center_width, &right_width);
 
-    int y = bar->border.width;
-    int x = bar->border.width + bar->left_margin - bar->left_spacing;
+    int y = bar->border.top_width;
+    int x = bar->border.left_width + bar->left_margin - bar->left_spacing;
     for (size_t i = 0; i < bar->left.count; i++) {
         const struct exposable *e = bar->left.exps[i];
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
@@ -124,7 +136,7 @@ expose(const struct bar *_bar)
         right_width +
         bar->left_spacing +
         bar->right_margin +
-        bar->border.width);
+        bar->border.right_width);
 
     for (size_t i = 0; i < bar->right.count; i++) {
         const struct exposable *e = bar->right.exps[i];
@@ -156,9 +168,9 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
 {
     struct private *bar = _bar->private;
 
-    if ((y < bar->border.width ||
-         y >= (bar->height_with_border - bar->border.width)) ||
-        (x < bar->border.width || x >= (bar->width - bar->border.width)))
+    if ((y < bar->border.top_width ||
+         y >= (bar->height_with_border - bar->border.bottom_width)) ||
+        (x < bar->border.left_width || x >= (bar->width - bar->border.right_width)))
     {
         set_cursor(_bar, "left_ptr");
         return;
@@ -167,7 +179,7 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
     int left_width, center_width, right_width;
     calculate_widths(bar, &left_width, &center_width, &right_width);
 
-    int mx = bar->border.width + bar->left_margin - bar->left_spacing;
+    int mx = bar->border.left_width + bar->left_margin - bar->left_spacing;
     for (size_t i = 0; i < bar->left.count; i++) {
         struct exposable *e = bar->left.exps[i];
 
@@ -198,7 +210,7 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
     mx = bar->width - (right_width
                        + bar->left_spacing +
                        bar->right_margin +
-                       bar->border.width);
+                       bar->border.right_width);
 
     for (size_t i = 0; i < bar->right.count; i++) {
         struct exposable *e = bar->right.exps[i];
@@ -236,7 +248,8 @@ run(struct bar *_bar)
 {
     struct private *bar = _bar->private;
 
-    bar->height_with_border = bar->height + 2 * bar->border.width;
+    bar->height_with_border =
+        bar->height + bar->border.top_width + bar->border.bottom_width;
 
     if (!bar->backend.iface->setup(_bar)) {
         bar->backend.iface->cleanup(_bar);
@@ -409,7 +422,10 @@ bar_new(const struct bar_config *config)
     priv->left_margin = config->left_margin;
     priv->right_margin = config->right_margin;
     priv->trackpad_sensitivity = config->trackpad_sensitivity;
-    priv->border.width = config->border.width;
+    priv->border.left_width = config->border.left_width;
+    priv->border.right_width = config->border.right_width;
+    priv->border.top_width = config->border.top_width;
+    priv->border.bottom_width = config->border.bottom_width;
     priv->border.color = config->border.color;
     priv->border.left_margin = config->border.left_margin;
     priv->border.right_margin = config->border.right_margin;

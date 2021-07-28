@@ -73,10 +73,26 @@ types that are frequently used:
 :  associative array
 :  no
 :  Configures the border around the status bar
+|  border.left-width
+:  int
+:  no
+:  Width of the border on the left side, in pixels
+|  border.right-width
+:  int
+:  no
+:  Width of the border on the right side, in pixels
+|  border.top-width
+:  int
+:  no
+:  Width of the border on the top side, in pixels
+|  border.bottom-width
+:  int
+:  no
+:  Width of the border on the bottom side, in pixels
 |  border.width
 :  int
 :  no
-:  Width, in pixels, of the border
+:  Short-hand for setting _border.left/right/top/bottom-width_
 |  border.color
 :  color
 :  no

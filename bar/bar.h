@@ -30,7 +30,8 @@ struct bar_config {
     pixman_color_t background;
 
     struct {
-        int width;
+        int left_width, right_width;
+        int top_width, bottom_width;
         pixman_color_t color;
         int left_margin, right_margin;
         int top_margin, bottom_margin;
