@@ -21,6 +21,8 @@
 ### Security
 ### Contributors
 
+* [paemuri](https://codeberg.org/paemuri)
+
 
 ## 1.6.2
 
