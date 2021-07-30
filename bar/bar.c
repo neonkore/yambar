@@ -399,7 +399,7 @@ bar_new(const struct bar_config *config)
         break;
 
     case BAR_BACKEND_WAYLAND:
-#if defined(BAR_WAYLAND)
+#if defined(ENABLE_WAYLAND)
         backend_data = bar_backend_wayland_new();
         backend_iface = &wayland_backend_iface;
 #else
