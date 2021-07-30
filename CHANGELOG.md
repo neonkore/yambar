@@ -23,10 +23,16 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* `yambar --backend=wayland` always erroring out with _”yambar was
+  compiled without the Wayland backend”_.
+
+
 ### Security
 ### Contributors
 
 * [paemuri](https://codeberg.org/paemuri)
+* [ericonr](https://codeberg.org/ericonr)
 
 
 ## 1.6.2
