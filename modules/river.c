@@ -48,6 +48,7 @@ struct private {
     struct zriver_status_manager_v1 *status_manager;
     struct particle *template;
     struct particle *title;
+    bool per_output;
 
     bool is_starting_up;
     tll(struct output) outputs;
@@ -76,6 +77,8 @@ content(struct module *mod)
 {
     const struct private *m = mod->private;
 
+    const char *output_bar_is_on = mod->bar->output_name(mod->bar);
+
     mtx_lock(&m->mod->lock);
 
     uint32_t output_focused = 0;
@@ -84,6 +87,13 @@ content(struct module *mod)
 
     tll_foreach(m->outputs, it) {
         const struct output *output = &it->item;
+
+        if (m->per_output &&
+            output_bar_is_on != NULL && output->name != NULL &&
+            strcmp(output->name, output_bar_is_on) != 0)
+        {
+            continue;
+        }
 
         output_focused |= output->focused;
         occupied |= output->occupied;
@@ -348,7 +358,6 @@ unfocused_output(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1
 
     mtx_lock(&mod->lock);
     {
-
         struct output *output = NULL;
         tll_foreach(m->outputs, it) {
             if (it->item.wl_output == wl_output) {
@@ -382,13 +391,21 @@ focused_view(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
 
     LOG_DBG("seat: %s: focused view: %s", seat->name, title);
 
-    mtx_lock(&mod->lock);
+    const char *output_bar_is_on = mod->bar->output_name(mod->bar);
+
+    if (!seat->m->per_output ||
+        (output_bar_is_on != NULL &&
+         seat->output != NULL && seat->output->name != NULL &&
+         strcmp(output_bar_is_on, seat->output->name) == 0))
     {
-        free(seat->title);
-        seat->title = title != NULL ? strdup(title) : NULL;
+        mtx_lock(&mod->lock);
+        {
+            free(seat->title);
+            seat->title = title != NULL ? strdup(title) : NULL;
+        }
+        mtx_unlock(&mod->lock);
+        mod->bar->refresh(mod->bar);
     }
-    mtx_unlock(&mod->lock);
-    mod->bar->refresh(mod->bar);
 }
 
 static const struct zriver_seat_status_v1_listener river_seat_status_listener = {
@@ -646,11 +663,12 @@ out:
 }
 
 static struct module *
-river_new(struct particle *template, struct particle *title)
+river_new(struct particle *template, struct particle *title, bool per_output)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->template = template;
     m->title = title;
+    m->per_output = per_output;
     m->is_starting_up = true;
 
     struct module *mod = module_common_new();
@@ -668,9 +686,12 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *title = yml_get_value(node, "title");
+    const struct yml_node *per_output = yml_get_value(node, "per-output");
+
     return river_new(
         conf_to_particle(c, inherited),
-        title != NULL ? conf_to_particle(title, inherited) : NULL);
+        title != NULL ? conf_to_particle(title, inherited) : NULL,
+        per_output != NULL ? yml_value_as_bool(per_output) : false);
 }
 
 static bool
@@ -678,6 +699,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"title", false, &conf_verify_particle},
+        {"per-output", false, &conf_verify_bool},
         MODULE_COMMON_ATTRS,
     };
 
