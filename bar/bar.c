@@ -162,6 +162,13 @@ set_cursor(struct bar *bar, const char *cursor)
     b->backend.iface->set_cursor(bar, cursor);
 }
 
+static const char *
+output_name(const struct bar *bar)
+{
+    const struct private *b = bar->private;
+    return b->backend.iface->output_name(bar);
+}
+
 static void
 on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
          int x, int y)
@@ -456,6 +463,7 @@ bar_new(const struct bar_config *config)
     bar->destroy = &destroy;
     bar->refresh = &refresh;
     bar->set_cursor = &set_cursor;
+    bar->output_name = &output_name;
 
     for (size_t i = 0; i < priv->left.count; i++)
         priv->left.mods[i]->bar = bar;

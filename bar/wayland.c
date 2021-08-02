@@ -1308,6 +1308,15 @@ set_cursor(struct bar *_bar, const char *cursor)
     update_cursor_surface(backend, seat);
 }
 
+static const char *
+output_name(const struct bar *_bar)
+{
+    const struct private *bar = _bar->private;
+    const struct wayland_backend *backend = bar->backend.data;
+
+    return backend->monitor != NULL ? backend->monitor->name : NULL;
+}
+
 const struct backend wayland_backend_iface = {
     .setup = &setup,
     .cleanup = &cleanup,
@@ -1315,4 +1324,5 @@ const struct backend wayland_backend_iface = {
     .commit = &commit,
     .refresh = &refresh,
     .set_cursor = &set_cursor,
+    .output_name = &output_name,
 };

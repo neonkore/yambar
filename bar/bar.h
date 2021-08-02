@@ -12,6 +12,8 @@ struct bar {
 
     void (*refresh)(const struct bar *bar);
     void (*set_cursor)(struct bar *bar, const char *cursor);
+
+    const char *(*output_name)(const struct bar *bar);
 };
 
 enum bar_location { BAR_TOP, BAR_BOTTOM };
