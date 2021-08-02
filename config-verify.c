@@ -51,6 +51,17 @@ conf_verify_int(keychain_t *chain, const struct yml_node *node)
 }
 
 bool
+conf_verify_bool(keychain_t *chain, const struct yml_node *node)
+{
+    if (yml_value_is_bool(node))
+        return true;
+
+    LOG_ERR("%s: value is not a boolean: '%s'",
+            conf_err_prefix(chain, node), yml_value_as_string(node));
+    return false;
+}
+
+bool
 conf_verify_list(keychain_t *chain, const struct yml_node *node,
                  bool (*verify)(keychain_t *chain, const struct yml_node *node))
 {
