@@ -462,6 +462,13 @@ set_cursor(struct bar *_bar, const char *cursor)
         backend->conn, backend->win, XCB_CW_CURSOR, &backend->cursor);
 }
 
+static const char *
+output_name(const struct bar *_bar)
+{
+    /* Not implemented */
+    return NULL;
+}
+
 const struct backend xcb_backend_iface = {
     .setup = &setup,
     .cleanup = &cleanup,
@@ -469,4 +476,5 @@ const struct backend xcb_backend_iface = {
     .commit = &commit,
     .refresh = &refresh,
     .set_cursor = &set_cursor,
+    .output_name = &output_name,
 };

@@ -17,6 +17,7 @@
   individually. `border.width` is now a short-hand for setting all
   four borders to the same value
   (https://codeberg.org/dnkl/yambar/issues/77).
+* river: `per-output: false|true`.
 
 
 ### Changed

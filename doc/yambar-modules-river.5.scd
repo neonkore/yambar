@@ -12,8 +12,8 @@ about the river tags.
 It has an interface similar to the i3/sway module.
 
 The configuration for the river module specifies one _title_ particle,
-which will be instantiated with tags representing the currently active
-seat and the currently focused view's title.
+which will be instantiated once for each seat, with tags representing
+the seats' name and the title of the seats' currently focused view.
 
 It also specifies a _content_ template particle, which is instantiated
 once for all 32 river tags. This means you probably want to use a
@@ -41,10 +41,10 @@ once for all 32 river tags. This means you probably want to use a
 :  Set to *focused* if _focused_ is true, *unfocused* if _visible_ is true, but _focused_ is false, or *invisible* if the river tag is not visible on any monitors.
 |  seat
 :  string
-:  The name of the currently active seat (*title* particle only, see CONFIGURATION)
+:  The name of the seat (*title* particle only, see CONFIGURATION)
 |  title
 :  string
-:  The focused view's title (*title* particle only, see CONFIGURATION)
+:  The seat's focused view's title (*title* particle only, see CONFIGURATION)
 
 # CONFIGURATION
 
@@ -60,6 +60,12 @@ once for all 32 river tags. This means you probably want to use a
 :  particle
 :  yes
 :  Template particle that will be instantiated once for all of the 32 river tags.
+|  per-output
+:  bool
+:  no
+:  When set to false (the default), tags reflect the union of all
+   outputs. When set to true, tags reflect river tags and seats for
+   the output yambar is on only.
 
 # EXAMPLES
 
