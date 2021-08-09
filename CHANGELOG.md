@@ -26,6 +26,8 @@
 
 * `yambar --backend=wayland` always erroring out with _”yambar was
   compiled without the Wayland backend”_.
+* Regression: `{where}` tag not being expanded in progress-bar
+  `on-click` handlers.
 
 
 ### Security

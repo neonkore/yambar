@@ -87,30 +87,6 @@ static void
 on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
          enum mouse_button btn, int x, int y)
 {
-    if ((event == ON_MOUSE_MOTION &&
-         exposable->particle->have_on_click_template) ||
-        exposable->on_click[btn] != NULL)
-    {
-        exposable_default_on_mouse(exposable, bar, event, btn, x, y);
-        return;
-    }
-
-    /*
-     * Hack-warning!
-     *
-     * In order to pass the *clicked* position to the on_click
-     * handler, we expand the handler *again* (first time would be
-     * when the particle instantiated us).
-     *
-     * We pass a single tag, "where", which is a percentage value.
-     *
-     * Keep a reference to the un-expanded string, to be able to reset
-     * it after executing the handler.
-     *
-     * Note that we only consider the actual progress bar to be
-     * clickable. This means we ignore the start and end markers.
-     */
-
     const struct particle *p = exposable->particle;
     const struct eprivate *e = exposable->private;
 
@@ -149,6 +125,22 @@ on_mouse(struct exposable *exposable, struct bar *bar, enum mouse_event event,
         }
         return;
     }
+
+    /*
+     * Hack-warning!
+     *
+     * In order to pass the *clicked* position to the on_click
+     * handler, we expand the handler *again* (first time would be
+     * when the particle instantiated us).
+     *
+     * We pass a single tag, "where", which is a percentage value.
+     *
+     * Keep a reference to the un-expanded string, to be able to
+     * reset it after executing the handler.
+     *
+     * Note that we only consider the actual progress bar to be
+     * clickable. This means we ignore the start and end markers.
+     */
 
     /* Remember the original handler, so that we can restore it */
     char *original[MOUSE_BTN_COUNT];
