@@ -38,17 +38,20 @@ calculate_widths(const struct private *b, int *left, int *center, int *right)
 
     for (size_t i = 0; i < b->left.count; i++) {
         struct exposable *e = b->left.exps[i];
-        *left += b->left_spacing + e->width + b->right_spacing;
+        if (e->width > 0)
+            *left += b->left_spacing + e->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->center.count; i++) {
         struct exposable *e = b->center.exps[i];
-        *center += b->left_spacing + e->width + b->right_spacing;
+        if (e->width > 0)
+            *center += b->left_spacing + e->width + b->right_spacing;
     }
 
     for (size_t i = 0; i < b->right.count; i++) {
         struct exposable *e = b->right.exps[i];
-        *right += b->left_spacing + e->width + b->right_spacing;
+        if (e->width > 0)
+            *right += b->left_spacing + e->width + b->right_spacing;
     }
 
     /* No spacing on the edges (that's what the margins are for) */
@@ -122,14 +125,16 @@ expose(const struct bar *_bar)
     for (size_t i = 0; i < bar->left.count; i++) {
         const struct exposable *e = bar->left.exps[i];
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + e->width + bar->right_spacing;
+        if (e->width > 0)
+            x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     x = bar->width / 2 - center_width / 2 - bar->left_spacing;
     for (size_t i = 0; i < bar->center.count; i++) {
         const struct exposable *e = bar->center.exps[i];
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + e->width + bar->right_spacing;
+        if (e->width > 0)
+            x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     x = bar->width - (
@@ -141,7 +146,8 @@ expose(const struct bar *_bar)
     for (size_t i = 0; i < bar->right.count; i++) {
         const struct exposable *e = bar->right.exps[i];
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
-        x += bar->left_spacing + e->width + bar->right_spacing;
+        if (e->width > 0)
+            x += bar->left_spacing + e->width + bar->right_spacing;
     }
 
     bar->backend.iface->commit(_bar);
@@ -190,6 +196,8 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
     for (size_t i = 0; i < bar->left.count; i++) {
         struct exposable *e = bar->left.exps[i];
 
+        if (e->width == 0) continue;
+
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
             if (e->on_mouse != NULL)
@@ -203,6 +211,8 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
     mx = bar->width / 2 - center_width / 2 - bar->left_spacing;
     for (size_t i = 0; i < bar->center.count; i++) {
         struct exposable *e = bar->center.exps[i];
+
+        if (e->width == 0) continue;
 
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
@@ -221,6 +231,8 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
 
     for (size_t i = 0; i < bar->right.count; i++) {
         struct exposable *e = bar->right.exps[i];
+
+        if (e->width == 0) continue;
 
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {

@@ -21,6 +21,10 @@
 
 
 ### Changed
+
+* bar: hide spacing of modules which are empty (width = 0) 
+
+
 ### Deprecated
 ### Removed
 ### Fixed
@@ -36,6 +40,7 @@
 
 * [paemuri](https://codeberg.org/paemuri)
 * [ericonr](https://codeberg.org/ericonr)
+* [Nulo](https://nulo.in)
 
 
 ## 1.6.2
