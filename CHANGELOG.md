@@ -22,7 +22,7 @@
 
 ### Changed
 
-* bar: hide spacing of modules which are empty (width = 0) 
+* bar: do not add `spacing` around empty (zero-width) modules.
 
 
 ### Deprecated
