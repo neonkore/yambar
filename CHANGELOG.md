@@ -18,6 +18,8 @@
   four borders to the same value
   (https://codeberg.org/dnkl/yambar/issues/77).
 * river: `per-output: false|true`.
+* `-d,--log-level=info|warning|error|none` command line option
+  (https://codeberg.org/dnkl/yambar/issues/84).
 
 
 ### Changed

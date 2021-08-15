@@ -127,13 +127,14 @@ print_usage(const char *prog_name)
     printf("Usage: %s [OPTION]...\n", prog_name);
     printf("\n");
     printf("Options:\n");
-    printf("  -b,--backend={xcb,wayland,auto}       backend to use (default: auto)\n"
-           "  -c,--config=FILE                      alternative configuration file\n"
-           "  -C,--validate                         verify configuration then quit\n"
-           "  -p,--print-pid=FILE|FD                print PID to file or FD\n"
-           "  -l,--log-colorize=[never|always|auto] enable/disable colorization of log output on stderr\n"
-           "  -s,--log-no-syslog                    disable syslog logging\n"
-           "  -v,--version                          show the version number and quit\n");
+    printf("  -b,--backend={xcb,wayland,auto}          backend to use (default: auto)\n"
+           "  -c,--config=FILE                         alternative configuration file\n"
+           "  -C,--validate                            verify configuration then quit\n"
+           "  -p,--print-pid=FILE|FD                   print PID to file or FD\n"
+           "  -d,--log-level={info|warning|error|none} log level (info)\n"
+           "  -l,--log-colorize=[never|always|auto]    enable/disable colorization of log output on stderr\n"
+           "  -s,--log-no-syslog                       disable syslog logging\n"
+           "  -v,--version                             show the version number and quit\n");
 }
 
 static bool
@@ -181,6 +182,7 @@ main(int argc, char *const *argv)
         {"config",           required_argument, 0, 'c'},
         {"validate",         no_argument,       0, 'C'},
         {"print-pid",        required_argument, 0, 'p'},
+        {"log-level",        required_argument, 0, 'd'},
         {"log-colorize",     optional_argument, 0, 'l'},
         {"log-no-syslog",    no_argument,       0, 's'},
         {"version",          no_argument,       0, 'v'},
@@ -195,11 +197,12 @@ main(int argc, char *const *argv)
     char *config_path = NULL;
     enum bar_backend backend = BAR_BACKEND_AUTO;
 
+    enum log_class log_level = LOG_CLASS_INFO;
     enum log_colorize log_colorize = LOG_COLORIZE_AUTO;
     bool log_syslog = true;
 
     while (true) {
-        int c = getopt_long(argc, argv, ":b:c:Cp:l::svh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":b:c:Cp:d:l::svh", longopts, NULL);
         if (c == -1)
             break;
 
@@ -238,6 +241,20 @@ main(int argc, char *const *argv)
             pid_file = optarg;
             break;
 
+        case 'd': {
+            int lvl = log_level_from_string(optarg);
+            if (lvl < 0) {
+                fprintf(
+                    stderr,
+                    "-d,--log-level: %s: argument must be one of %s\n",
+                    optarg,
+                    log_level_string_hint());
+                return EXIT_FAILURE;
+            }
+            log_level = lvl;
+            break;
+        }
+
         case 'l':
             if (optarg == NULL || strcmp(optarg, "auto") == 0)
                 log_colorize = LOG_COLORIZE_AUTO;
@@ -273,14 +290,14 @@ main(int argc, char *const *argv)
         }
     }
 
-    log_init(log_colorize, log_syslog, LOG_FACILITY_DAEMON, LOG_CLASS_INFO);
+    log_init(log_colorize, log_syslog, LOG_FACILITY_DAEMON, log_level);
 
     _Static_assert((int)LOG_CLASS_ERROR == (int)FCFT_LOG_CLASS_ERROR,
                    "fcft log level enum offset");
     _Static_assert((int)LOG_COLORIZE_ALWAYS == (int)FCFT_LOG_COLORIZE_ALWAYS,
                    "fcft colorize enum mismatch");
     fcft_log_init(
-        (enum fcft_log_colorize)log_colorize, log_syslog, FCFT_LOG_CLASS_INFO);
+        (enum fcft_log_colorize)log_colorize, log_syslog, (enum fcft_log_class)log_level);
 
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);
