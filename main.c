@@ -275,7 +275,7 @@ main(int argc, char *const *argv)
 
     log_init(log_colorize, log_syslog, LOG_FACILITY_DAEMON, LOG_CLASS_INFO);
 
-    _Static_assert(LOG_CLASS_ERROR + 1 == FCFT_LOG_CLASS_ERROR,
+    _Static_assert((int)LOG_CLASS_ERROR == (int)FCFT_LOG_CLASS_ERROR,
                    "fcft log level enum offset");
     _Static_assert((int)LOG_COLORIZE_ALWAYS == (int)FCFT_LOG_COLORIZE_ALWAYS,
                    "fcft colorize enum mismatch");
@@ -367,7 +367,7 @@ done:
     int res;
     int r = thrd_join(bar_thread, &res);
     if (r != 0)
-        LOG_ERRNO_P("failed to join bar thread", r);
+        LOG_ERRNO_P(r, "failed to join bar thread");
 
     bar->destroy(bar);
     close(abort_fd);
