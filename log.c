@@ -11,8 +11,6 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include "debug.h"
-
 #define ALEN(v) (sizeof(v) / sizeof((v)[0]))
 #define UNUSED __attribute__((unused))
 
