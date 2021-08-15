@@ -203,7 +203,7 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
 
             if (WIFEXITED(wstatus)) {
                 if (WEXITSTATUS(wstatus) != 0)
-                    LOG_ERRNO_P("%s: failed to execute", WEXITSTATUS(wstatus), exposable->on_click[btn]);
+                    LOG_ERRNO_P(WEXITSTATUS(wstatus), "%s: failed to execute", exposable->on_click[btn]);
             } else
                 LOG_ERR("%s: did not exit normally", exposable->on_click[btn]);
 

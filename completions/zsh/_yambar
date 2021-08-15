@@ -8,5 +8,6 @@ _arguments \
     '(-c --config)'{-c,--config}'[alternative configuration file]:filename:_files' \
     '(-C --validate)'{-C,--validate}'[verify configuration then quit]' \
     '(-p --print-pid)'{-p,--print-pid}'[print PID to this file or FD when up and running]:pidfile:_files' \
+    '(-d --log-level)'{-d,--log-level}'[log level (info)]:loglevel:(info warning error none)' \
     '(-l --log-colorize)'{-l,--log-colorize}'[enable or disable colorization of log output on stderr]:logcolor:(never always auto)' \
     '(-s --log-no-syslog)'{-s,--log-no-syslog}'[disable syslog logging]'

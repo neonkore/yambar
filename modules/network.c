@@ -451,7 +451,7 @@ parse_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 
         case NLMSG_ERROR:{
             const struct nlmsgerr *err = NLMSG_DATA(hdr);
-            LOG_ERRNO_P("netlink", err->error);
+            LOG_ERRNO_P(err->error, "netlink");
             return false;
         }
 
