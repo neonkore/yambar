@@ -8,6 +8,9 @@ alsa - Monitors an alsa soundcard for volume and mute/unmute changes
 [[ *Name*
 :[ *Type*
 :[ *Description*
+|  online
+:  bool
+:  True when the ALSA device has successfully been opened
 |  volume
 :  range
 :  Volume level, with min and max as start and end range values

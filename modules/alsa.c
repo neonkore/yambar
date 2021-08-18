@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include <alsa/asoundlib.h>
 
@@ -21,6 +22,7 @@ struct private {
 
     tll(snd_mixer_selem_channel_id_t) channels;
 
+    bool online;
     long vol_min;
     long vol_max;
     long vol_cur;
@@ -60,11 +62,12 @@ content(struct module *mod)
     mtx_lock(&mod->lock);
     struct tag_set tags = {
         .tags = (struct tag *[]){
+            tag_new_bool(mod, "online", m->online),
             tag_new_int_range(mod, "volume", m->vol_cur, m->vol_min, m->vol_max),
             tag_new_int_range(mod, "percent", percent, 0, 100),
             tag_new_bool(mod, "muted", m->muted),
         },
-        .count = 3,
+        .count = 4,
     };
     mtx_unlock(&mod->lock);
 
@@ -186,22 +189,30 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
     m->vol_min = min;
     m->vol_max = max;
     m->vol_cur = cur[0];
+    m->online = true;
     m->muted = !unmuted[0];
     mtx_unlock(&mod->lock);
 
     mod->bar->refresh(mod->bar);
 }
 
-static int
-run(struct module *mod)
+enum run_state {
+    RUN_ERROR,
+    RUN_FAILED_CONNECT,
+    RUN_DISCONNECTED,
+    RUN_DONE,
+};
+
+static enum run_state
+run_while_online(struct module *mod)
 {
     struct private *m = mod->private;
-    int ret = 1;
+    enum run_state ret = RUN_ERROR;
 
     snd_mixer_t *handle;
     if (snd_mixer_open(&handle, 0) != 0) {
         LOG_ERR("failed to open handle");
-        return 1;
+        return ret;
     }
 
     if (snd_mixer_attach(handle, m->card) != 0 ||
@@ -209,6 +220,7 @@ run(struct module *mod)
         snd_mixer_load(handle) != 0)
     {
         LOG_ERR("failed to attach to card");
+        ret = RUN_FAILED_CONNECT;
         goto err;
     }
 
@@ -260,27 +272,120 @@ run(struct module *mod)
         fds[0] = (struct pollfd){.fd = mod->abort_fd, .events = POLLIN};
         snd_mixer_poll_descriptors(handle, &fds[1], fd_count);
 
-        poll(fds, fd_count + 1, -1);
+        int r = poll(fds, fd_count + 1, -1);
+        if (r < 0) {
+            if (errno == EINTR)
+                continue;
 
-        if (fds[0].revents & POLLIN)
+            LOG_ERRNO("failed to poll");
             break;
+        }
 
-        if (fds[1].revents & POLLHUP) {
-            /* Don't know if this can happen */
-            LOG_ERR("disconnected from alsa");
+        if (fds[0].revents & POLLIN) {
+            ret = RUN_DONE;
             break;
+        }
+
+        for (size_t i = 0; i < fd_count; i++) {
+            if (fds[1 + i].revents & (POLLHUP | POLLERR | POLLNVAL)) {
+                LOG_ERR("disconnected from alsa");
+
+                mtx_lock(&mod->lock);
+                m->online = false;
+                mtx_unlock(&mod->lock);
+                mod->bar->refresh(mod->bar);
+
+                ret = RUN_DISCONNECTED;
+                goto err;
+            }
         }
 
         snd_mixer_handle_events(handle);
         update_state(mod, elem);
     }
 
-    ret = 0;
-
 err:
     snd_mixer_close(handle);
     snd_config_update_free_global();
     return ret;
+}
+
+static int
+run(struct module *mod)
+{
+    static const int min_timeout_ms = 500;
+    static const int max_timeout_ms = 30000;
+    int timeout_ms = min_timeout_ms;
+
+    while (true) {
+        enum run_state state = run_while_online(mod);
+
+        switch (state) {
+        case RUN_DONE:
+            return 0;
+
+        case RUN_ERROR:
+            return 1;
+
+        case RUN_FAILED_CONNECT:
+            timeout_ms *= 2;
+            break;
+
+        case RUN_DISCONNECTED:
+            timeout_ms = min_timeout_ms;
+            break;
+        }
+
+        if (timeout_ms > max_timeout_ms)
+            timeout_ms = max_timeout_ms;
+
+        struct timeval now;
+        gettimeofday(&now, NULL);
+
+        struct timeval timeout = {
+            .tv_sec = timeout_ms / 1000,
+            .tv_usec = (timeout_ms % 1000) * 1000,
+        };
+
+        struct timeval deadline;
+        timeradd(&now, &timeout, &deadline);
+
+        LOG_DBG("timeout is now %dms", timeout_ms);
+
+        while (true) {
+
+            struct timeval n;
+            gettimeofday(&n, NULL);
+
+            struct timeval left;
+            timersub(&deadline, &n, &left);
+
+            int poll_timeout = timercmp(&left, &(struct timeval){0}, <)
+                ? 0
+                : left.tv_sec * 1000 + left.tv_usec / 1000;
+
+            LOG_DBG(
+                "polling for alsa device to become available (timeout=%dms)",
+                poll_timeout);
+
+            struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
+            int r = poll(fds, 1, poll_timeout);
+
+            if (r < 0) {
+                if (errno == EINTR)
+                    continue;
+
+                LOG_ERRNO("failed to poll");
+                return 1;
+            }
+
+            if (fds[0].revents & POLLIN)
+                return 0;
+
+            assert(r == 0);
+            break;
+        }
+    }
 }
 
 static struct module *
