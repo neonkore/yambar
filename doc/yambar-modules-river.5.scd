@@ -27,6 +27,9 @@ once for all 32 river tags. This means you probably want to use a
 |  id
 :  int
 :  River tag number
+|  urgent
+:  bool
+:  True if the river tag has at least one urgent view.
 |  visible
 :  bool
 :  True if the river tag is focused by at least one output (i.e. visible on at least one monitor).
@@ -38,7 +41,7 @@ once for all 32 river tags. This means you probably want to use a
 :  True if the river tag has views (i.e. windows).
 |  state
 :  string
-:  Set to *focused* if _focused_ is true, *unfocused* if _visible_ is true, but _focused_ is false, or *invisible* if the river tag is not visible on any monitors.
+:  Set to *urgent* if _urgent_ is true, *focused* if _focused_ is true, *unfocused* if _visible_ is true, but _focused_ is false, or *invisible* if the river tag is not visible on any monitors.
 |  seat
 :  string
 :  The name of the seat (*title* particle only, see CONFIGURATION)

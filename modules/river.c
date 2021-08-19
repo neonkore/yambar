@@ -29,6 +29,7 @@ struct output {
     /* Tags */
     uint32_t occupied;
     uint32_t focused;
+    uint32_t urgent;
 };
 
 struct seat {
@@ -81,9 +82,10 @@ content(struct module *mod)
 
     mtx_lock(&m->mod->lock);
 
+    uint32_t urgent = 0;
+    uint32_t occupied = 0;
     uint32_t output_focused = 0;
     uint32_t seat_focused = 0;
-    uint32_t occupied = 0;
 
     tll_foreach(m->outputs, it) {
         const struct output *output = &it->item;
@@ -96,6 +98,7 @@ content(struct module *mod)
         }
 
         output_focused |= output->focused;
+        urgent |= output->urgent;
         occupied |= output->occupied;
 
         tll_foreach(m->seats, it2) {
@@ -112,12 +115,18 @@ content(struct module *mod)
 
     for (unsigned i = 0; i < 32; i++) {
         /* It's visible if any output has it focused */
-        bool visible = output_focused & (1u << i);
+        bool is_visible = output_focused & (1u << i);
 
         /* It's focused if any output that has seat focus has it focused */
-        bool focused = seat_focused & (1u << i);
+        bool is_focused = seat_focused & (1u << i);
 
-        const char *state = visible ? focused ? "focused" : "unfocused" : "invisible";
+        bool is_urgent = urgent & (1u << i);
+        bool is_occupied = occupied & (1u << i);
+
+        const char *state =
+            is_urgent ? "urgent" :
+            is_visible ? is_focused ? "focused" : "unfocused" :
+            "invisible";
 
 #if 0
         LOG_DBG("tag: #%u, visible=%d, focused=%d, occupied=%d, state=%s",
@@ -127,12 +136,13 @@ content(struct module *mod)
         struct tag_set tags = {
             .tags = (struct tag *[]){
                 tag_new_int(mod, "id", i + 1),
-                tag_new_bool(mod, "visible", visible),
-                tag_new_bool(mod, "focused", focused),
-                tag_new_bool(mod, "occupied", occupied & (1u << i)),
+                tag_new_bool(mod, "urgent", is_urgent),
+                tag_new_bool(mod, "visible", is_visible),
+                tag_new_bool(mod, "focused", is_focused),
+                tag_new_bool(mod, "occupied", is_occupied),
                 tag_new_string(mod, "state", state),
             },
-            .count = 5,
+            .count = 6,
         };
 
         tag_parts[i] = m->template->instantiate(m->template, &tags);
@@ -156,7 +166,7 @@ content(struct module *mod)
             tag_set_destroy(&tags);
         }
     }
-    
+
     mtx_unlock(&m->mod->lock);
     return dynlist_exposable_new(tag_parts, 32 + seat_count, 0, 0);
 }
@@ -230,16 +240,33 @@ view_tags(void *data, struct zriver_output_status_v1 *zriver_output_status_v1,
         wl_array_for_each(set, tags) {
             output->occupied |= *set;
         }
-    
+
         LOG_DBG("output: %s: occupied tags: 0x%0x", output->name, output->occupied);
     }
     mtx_unlock(&mod->lock);
     mod->bar->refresh(mod->bar);
 }
 
+static void
+urgent_tags(void *data, struct zriver_output_status_v1 *zriver_output_status_v1,
+            uint32_t tags)
+{
+    struct output *output = data;
+    struct module *mod = output->m->mod;
+
+    mtx_lock(&mod->lock);
+    {
+        output->urgent = tags;
+    }
+    mtx_unlock(&mod->lock);
+    mod->bar->refresh(mod->bar);
+}
+
+
 static const struct zriver_output_status_v1_listener river_status_output_listener = {
     .focused_tags = &focused_tags,
     .view_tags = &view_tags,
+    .urgent_tags = &urgent_tags,
 };
 
 static void
@@ -519,7 +546,7 @@ handle_global(void *data, struct wl_registry *registry,
     }
 
     else if (strcmp(interface, zriver_status_manager_v1_interface.name) == 0) {
-        const uint32_t required = 1;
+        const uint32_t required = 2;
         if (!verify_iface_version(interface, version, required))
             return;
 

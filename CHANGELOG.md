@@ -20,6 +20,8 @@
 * river: `per-output: false|true`.
 * `-d,--log-level=info|warning|error|none` command line option
   (https://codeberg.org/dnkl/yambar/issues/84).
+* river: support for the river-status protocol, version 2 (‘urgent’
+  views).
 
 
 ### Changed
