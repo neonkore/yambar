@@ -22,11 +22,15 @@
   (https://codeberg.org/dnkl/yambar/issues/84).
 * river: support for the river-status protocol, version 2 (‘urgent’
   views).
+* `online` tag to the `alsa` module.
 
 
 ### Changed
 
 * bar: do not add `spacing` around empty (zero-width) modules.
+* alsa: do not error out if we fail to connect to the ALSA device, or
+  if we get disconnected. Instead, keep retrying until we succeed
+  (https://codeberg.org/dnkl/yambar/issues/86).
 
 
 ### Deprecated
@@ -37,6 +41,8 @@
   compiled without the Wayland backend”_.
 * Regression: `{where}` tag not being expanded in progress-bar
   `on-click` handlers.
+* `alsa` module causing yambar to use 100% CPU if the ALSA device is
+  disconnected (https://codeberg.org/dnkl/yambar/issues/61).
 
 
 ### Security
