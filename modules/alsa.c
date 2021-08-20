@@ -110,7 +110,7 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
     if (max > 0) {
         tll_foreach(m->channels, it) {
             const char *name = snd_mixer_selem_channel_name(it->item);
-            if (strcmp(name, m->volume_channel) != 0)
+            if (m->volume_channel != NULL && strcmp(name, m->volume_channel) != 0)
                 continue;
 
             int r = snd_mixer_selem_get_playback_volume(elem, it->item, &cur);
@@ -129,7 +129,7 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
     /* Get muted state */
     tll_foreach(m->channels, it) {
         const char *name = snd_mixer_selem_channel_name(it->item);
-        if (strcmp(name, m->muted_channel) != 0)
+        if (m->muted_channel != NULL && strcmp(name, m->muted_channel) != 0)
             continue;
 
         int r = snd_mixer_selem_get_playback_switch(elem, it->item, &unmuted);
@@ -233,36 +233,27 @@ run_while_online(struct module *mod)
     LOG_INFO("%s,%s: channels: %s", m->card, m->mixer, channels_str);
 
     /* Verify volume/muted channel names are valid and exists */
-    bool have_volume_channel = false;
-    bool have_muted_channel = false;
+    bool volume_channel_is_valid = m->volume_channel == NULL;
+    bool muted_channel_is_valid = m->muted_channel == NULL;
+
     tll_foreach(m->channels, it) {
         const char *chan_name = snd_mixer_selem_channel_name(it->item);
-        if (strcmp(chan_name, m->volume_channel) == 0)
-            have_volume_channel = true;
-        if (strcmp(chan_name, m->muted_channel) == 0)
-            have_muted_channel = true;
+        if (m->volume_channel != NULL && strcmp(chan_name, m->volume_channel) == 0)
+            volume_channel_is_valid = true;
+        if (m->muted_channel != NULL && strcmp(chan_name, m->muted_channel) == 0)
+            muted_channel_is_valid = true;
     }
 
-    if (!have_volume_channel) {
-        const char *first_chan_name =
-            snd_mixer_selem_channel_name(tll_front(m->channels));
-
-        LOG_WARN("%s: not a valid channel name, using '%s' as volume source",
-                 m->volume_channel, first_chan_name);
-
-        free(m->volume_channel);
-        m->volume_channel = strdup(first_chan_name);
+    if (!volume_channel_is_valid) {
+        assert(m->volume_channel != NULL);
+        LOG_ERR("volume: invalid channel name: %s", m->volume_channel);
+        goto err;
     }
 
-    if (!have_muted_channel) {
-        const char *first_chan_name =
-            snd_mixer_selem_channel_name(tll_front(m->channels));
-
-        LOG_WARN("%s: not a valid channel name, using '%s' as muted source",
-                 m->muted_channel, first_chan_name);
-
-        free(m->muted_channel);
-        m->muted_channel = strdup(first_chan_name);
+    if (!muted_channel_is_valid) {
+        assert(m->muted_channel != NULL);
+        LOG_ERR("muted: invalid channel name: %s", m->muted_channel);
+        goto err;
     }
 
     /* Initial state */
@@ -408,8 +399,8 @@ alsa_new(const char *card, const char *mixer,
     priv->label = label;
     priv->card = strdup(card);
     priv->mixer = strdup(mixer);
-    priv->volume_channel = strdup(volume_channel);
-    priv->muted_channel = strdup(muted_channel);
+    priv->volume_channel = volume_channel != NULL ? strdup(volume_channel) : NULL;
+    priv->muted_channel = muted_channel != NULL ?  strdup(muted_channel) : NULL;
 
     struct module *mod = module_common_new();
     mod->private = priv;
@@ -432,8 +423,8 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     return alsa_new(
         yml_value_as_string(card),
         yml_value_as_string(mixer),
-        volume != NULL ? yml_value_as_string(volume) : "Front Left",
-        muted != NULL ? yml_value_as_string(muted) : "Front Left",
+        volume != NULL ? yml_value_as_string(volume) : NULL,
+        muted != NULL ? yml_value_as_string(muted) : NULL,
         conf_to_particle(content, inherited));
 }
 

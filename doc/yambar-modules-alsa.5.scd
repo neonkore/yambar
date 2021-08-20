@@ -40,12 +40,12 @@ alsa - Monitors an alsa soundcard for volume and mute/unmute changes
 :  string
 :  no
 :  The name of the channel to use as source for the volume level
-   (default: *Front Left*).
+   (default: first available channel, usually "Front Left").
 |  muted
 :  string
 :  no
 :  The name of the channel to use as source for the muted state
-   (default: *Front Left*).
+   (default: first available channel, usually "Front Left").
 
 
 # EXAMPLES
