@@ -36,6 +36,17 @@ alsa - Monitors an alsa soundcard for volume and mute/unmute changes
 :  string
 :  yes
 :  Mixer channel to monitor. _Master_ might work.
+|  volume
+:  string
+:  no
+:  The name of the channel to use as source for the volume level
+   (default: *Front Left*).
+|  muted
+:  string
+:  no
+:  The name of the channel to use as source for the muted state
+   (default: *Front Left*).
+
 
 # EXAMPLES
 

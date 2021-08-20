@@ -23,6 +23,8 @@
 * river: support for the river-status protocol, version 2 (‘urgent’
   views).
 * `online` tag to the `alsa` module.
+* alsa: `volume` and `muted` options, allowing you to configure which
+  channels to use as source for the volume level and muted state.
 
 
 ### Changed

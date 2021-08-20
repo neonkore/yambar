@@ -18,6 +18,8 @@
 struct private {
     char *card;
     char *mixer;
+    char *volume_channel;
+    char *muted_channel;
     struct particle *label;
 
     tll(snd_mixer_selem_channel_id_t) channels;
@@ -37,6 +39,8 @@ destroy(struct module *mod)
     m->label->destroy(m->label);
     free(m->card);
     free(m->mixer);
+    free(m->volume_channel);
+    free(m->muted_channel);
     free(m);
     module_default_destroy(mod);
 }
@@ -82,8 +86,6 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
 {
     struct private *m = mod->private;
 
-    int idx = 0;
-
     /* Get min/max volume levels */
     long min = 0, max = 0;
     int r = snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
@@ -101,96 +103,72 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
         min = max;
     }
 
-    long cur[tll_length(m->channels)];
-    memset(cur, 0, sizeof(cur));
+    long cur = 0;
 
     /* If volume level can be changed (i.e. this isn't just a switch;
      * e.g. a digital channel), get current level */
     if (max > 0) {
         tll_foreach(m->channels, it) {
-            int r = snd_mixer_selem_get_playback_volume(
-                elem, it->item, &cur[idx]);
+            const char *name = snd_mixer_selem_channel_name(it->item);
+            if (strcmp(name, m->volume_channel) != 0)
+                continue;
+
+            int r = snd_mixer_selem_get_playback_volume(elem, it->item, &cur);
 
             if (r < 0) {
                 LOG_WARN("%s,%s: %s: failed to get current volume",
-                         m->card, m->mixer,
-                         snd_mixer_selem_channel_name(it->item));
+                         m->card, m->mixer, name);
             }
 
-            LOG_DBG("%s,%s: %s: volume: %ld", m->card, m->mixer,
-                    snd_mixer_selem_channel_name(it->item), cur[idx]);
-            idx++;
+            LOG_DBG("%s,%s: %s: volume: %ld", m->card, m->mixer, name, cur);
         }
     }
 
-    int unmuted[tll_length(m->channels)];
-    memset(unmuted, 0, sizeof(unmuted));
+    int unmuted = 0;
 
     /* Get muted state */
-    idx = 0;
     tll_foreach(m->channels, it) {
-        int r = snd_mixer_selem_get_playback_switch(
-            elem, it->item, &unmuted[idx]);
+        const char *name = snd_mixer_selem_channel_name(it->item);
+        if (strcmp(name, m->muted_channel) != 0)
+            continue;
+
+        int r = snd_mixer_selem_get_playback_switch(elem, it->item, &unmuted);
 
         if (r < 0) {
             LOG_WARN("%s,%s: %s: failed to get muted state",
-                     m->card, m->mixer, snd_mixer_selem_channel_name(it->item));
-            unmuted[idx] = 1;
+                     m->card, m->mixer, name);
+            unmuted = 1;
         }
 
-        LOG_DBG("%s,%s: %s: muted: %d", m->card, m->mixer,
-                snd_mixer_selem_channel_name(it->item), !unmuted[idx]);
-
-        idx++;
-    }
-
-    /* Warn if volume level is inconsistent across the channels */
-    for (size_t i = 1; i < tll_length(m->channels); i++) {
-        if (cur[i] != cur[i - 1]) {
-            LOG_WARN("%s,%s: channel volume mismatch, using value from %s",
-                     m->card, m->mixer,
-                     snd_mixer_selem_channel_name(tll_front(m->channels)));
-            break;
-        }
-    }
-
-    /* Warn if muted state is inconsistent across the channels */
-    for (size_t i = 1; i < tll_length(m->channels); i++) {
-        if (unmuted[i] != unmuted[i - 1]) {
-            LOG_WARN("%s,%s: channel muted mismatch, using value from %s",
-                     m->card, m->mixer,
-                     snd_mixer_selem_channel_name(tll_front(m->channels)));
-            break;
-        }
+        LOG_DBG("%s,%s: %s: muted: %d", m->card, m->mixer, name, !unmuted);
     }
 
     /* Make sure min <= cur <= max */
-    if (cur[0] < min) {
+    if (cur < min) {
         LOG_WARN(
             "%s,%s: current volume is less than the indicated minimum: "
-            "%ld < %ld", m->card, m->mixer, cur[0], min);
-        cur[0] = min;
+            "%ld < %ld", m->card, m->mixer, cur, min);
+        cur = min;
     }
 
-    if (cur[0] > max) {
+    if (cur > max) {
         LOG_WARN(
             "%s,%s: current volume is greater than the indicated maximum: "
-            "%ld > %ld", m->card, m->mixer, cur[0], max);
-        cur[0] = max;
+            "%ld > %ld", m->card, m->mixer, cur, max);
+        cur = max;
     }
 
-    assert(cur[0] >= min);
-    assert(cur[0] <= max);
+    assert(cur >= min);
+    assert(cur <= max);
 
-    LOG_DBG(
-        "muted=%d, cur=%ld, min=%ld, max=%ld", !unmuted[0], cur[0], min, max);
+    LOG_DBG("muted=%d, cur=%ld, min=%ld, max=%ld", !unmuted, cur, min, max);
 
     mtx_lock(&mod->lock);
     m->vol_min = min;
     m->vol_max = max;
-    m->vol_cur = cur[0];
+    m->vol_cur = cur;
     m->online = true;
-    m->muted = !unmuted[0];
+    m->muted = !unmuted;
     mtx_unlock(&mod->lock);
 
     mod->bar->refresh(mod->bar);
@@ -253,6 +231,39 @@ run_while_online(struct module *mod)
     }
 
     LOG_INFO("%s,%s: channels: %s", m->card, m->mixer, channels_str);
+
+    /* Verify volume/muted channel names are valid and exists */
+    bool have_volume_channel = false;
+    bool have_muted_channel = false;
+    tll_foreach(m->channels, it) {
+        const char *chan_name = snd_mixer_selem_channel_name(it->item);
+        if (strcmp(chan_name, m->volume_channel) == 0)
+            have_volume_channel = true;
+        if (strcmp(chan_name, m->muted_channel) == 0)
+            have_muted_channel = true;
+    }
+
+    if (!have_volume_channel) {
+        const char *first_chan_name =
+            snd_mixer_selem_channel_name(tll_front(m->channels));
+
+        LOG_WARN("%s: not a valid channel name, using '%s' as volume source",
+                 m->volume_channel, first_chan_name);
+
+        free(m->volume_channel);
+        m->volume_channel = strdup(first_chan_name);
+    }
+
+    if (!have_muted_channel) {
+        const char *first_chan_name =
+            snd_mixer_selem_channel_name(tll_front(m->channels));
+
+        LOG_WARN("%s: not a valid channel name, using '%s' as muted source",
+                 m->muted_channel, first_chan_name);
+
+        free(m->muted_channel);
+        m->muted_channel = strdup(first_chan_name);
+    }
 
     /* Initial state */
     update_state(mod, elem);
@@ -389,12 +400,16 @@ run(struct module *mod)
 }
 
 static struct module *
-alsa_new(const char *card, const char *mixer, struct particle *label)
+alsa_new(const char *card, const char *mixer,
+         const char *volume_channel, const char *muted_channel,
+         struct particle *label)
 {
     struct private *priv = calloc(1, sizeof(*priv));
     priv->label = label;
     priv->card = strdup(card);
     priv->mixer = strdup(mixer);
+    priv->volume_channel = strdup(volume_channel);
+    priv->muted_channel = strdup(muted_channel);
 
     struct module *mod = module_common_new();
     mod->private = priv;
@@ -410,11 +425,15 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *card = yml_get_value(node, "card");
     const struct yml_node *mixer = yml_get_value(node, "mixer");
+    const struct yml_node *volume = yml_get_value(node, "volume");
+    const struct yml_node *muted = yml_get_value(node, "muted");
     const struct yml_node *content = yml_get_value(node, "content");
 
     return alsa_new(
         yml_value_as_string(card),
         yml_value_as_string(mixer),
+        volume != NULL ? yml_value_as_string(volume) : "Front Left",
+        muted != NULL ? yml_value_as_string(muted) : "Front Left",
         conf_to_particle(content, inherited));
 }
 
@@ -424,6 +443,8 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"card", true, &conf_verify_string},
         {"mixer", true, &conf_verify_string},
+        {"volume", false, &conf_verify_string},
+        {"muted", false, &conf_verify_string},
         MODULE_COMMON_ATTRS,
     };
 
