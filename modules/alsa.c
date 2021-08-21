@@ -188,6 +188,9 @@ run_while_online(struct module *mod)
     struct private *m = mod->private;
     enum run_state ret = RUN_ERROR;
 
+    /* Make sure we aren’t still tracking channels from previous connects */
+    tll_free(m->channels);
+
     snd_mixer_t *handle;
     if (snd_mixer_open(&handle, 0) != 0) {
         LOG_ERR("failed to open handle");
