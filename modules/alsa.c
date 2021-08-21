@@ -318,10 +318,16 @@ run(struct module *mod)
 {
     int ret = 1;
 
-    int wd = -1;
-    int ifd = inotify_init();
+    int ifd = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
     if (ifd < 0) {
         LOG_ERRNO("failed to inotify");
+        return 1;
+    }
+
+    int wd = inotify_add_watch(ifd, "/dev/snd", IN_CREATE);
+    if (wd < 0) {
+        LOG_ERRNO("failed to create inotify watcher for /dev/snd");
+        close(ifd);
         return 1;
     }
 
@@ -331,25 +337,45 @@ run(struct module *mod)
         switch (state) {
         case RUN_DONE:
             ret = 0;
-            break;
+            goto out;
 
         case RUN_ERROR:
             ret = 1;
-            break;
+            goto out;
 
         case RUN_FAILED_CONNECT:
+            break;
+
         case RUN_DISCONNECTED:
+            /*
+             * We’ve been connected - drain the watcher
+             *
+             * We don’t want old, un-releated events (for other
+             * soundcards, for example) to trigger a storm of
+             * re-connect attempts.
+             */
+            while (true) {
+                uint8_t buf[1024];
+                ssize_t amount = read(ifd, buf, sizeof(buf));
+                if (amount < 0) {
+                    if (errno == EAGAIN)
+                        break;
+
+                    LOG_ERRNO("failed to drain inotify watcher");
+                    ret = 1;
+                    goto out;
+                }
+
+                if (amount == 0)
+                    break;
+            }
+
             break;
         }
 
-        wd = inotify_add_watch(ifd, "/dev/snd", IN_CREATE);
-        if (wd < 0) {
-            LOG_ERRNO("failed to create inotify watcher for /dev/snd");
-            ret = 1;
-            break;
-        }
+        bool have_create_event = false;
 
-        while (true) {
+        while (!have_create_event) {
             struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN},
                                    {.fd = ifd, .events = POLLIN}};
             int r = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
@@ -363,42 +389,45 @@ run(struct module *mod)
                 goto out;
             }
 
-            if (fds[0].revents & POLLIN) {
+            if (fds[0].revents & (POLLIN | POLLHUP)) {
                 ret = 0;
                 goto out;
             }
 
-            if (fds[1].revents & POLLIN) {
+            if (fds[1].revents & POLLHUP) {
+                LOG_ERR("inotify socket closed");
+                ret = 1;
+                goto out;
+            }
+
+            assert(fds[1].revents & POLLIN);
+
+            while (true) {
                 char buf[1024];
                 ssize_t len = read(ifd, buf, sizeof(buf));
 
                 if (len < 0) {
+                    if (errno == EAGAIN)
+                        break;
+
                     LOG_ERRNO("failed to read inotify events");
                     ret = 1;
                     goto out;
                 }
 
-                if (len == 0) {
-                    LOG_ERR("inotify FD closed");
-                    ret = 1;
-                    goto out;
-                }
+                if (len == 0)
+                    break;
 
                 /* Consume inotify data */
-                bool have_create_event = false;
                 for (const char *ptr = buf; ptr < buf + len; ) {
                     const struct inotify_event *e = (const struct inotify_event *)ptr;
+
                     if (e->mask & IN_CREATE) {
                         LOG_DBG("inotify: CREATED: /dev/snd/%.*s", e->len, e->name);
                         have_create_event = true;
                     }
-                    ptr += sizeof(*e) + e->len;
-                }
 
-                if (have_create_event) {
-                    inotify_rm_watch(ifd, wd);
-                    wd = -1;
-                    break;
+                    ptr += sizeof(*e) + e->len;
                 }
             }
         }
