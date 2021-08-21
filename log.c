@@ -84,7 +84,7 @@ _log(enum log_class log_class, const char *module, const char *file, int lineno,
     vfprintf(stderr, fmt, va);
 
     if (sys_errno != 0)
-        fprintf(stderr, ": %s", strerror(sys_errno));
+        fprintf(stderr, ": %s (%d)", strerror(sys_errno), sys_errno);
 
     fputc('\n', stderr);
 }
