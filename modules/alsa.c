@@ -2,6 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include <sys/time.h>
+#include <sys/inotify.h>
 
 #include <alsa/asoundlib.h>
 
@@ -315,79 +316,100 @@ err:
 static int
 run(struct module *mod)
 {
-    static const int min_timeout_ms = 500;
-    static const int max_timeout_ms = 30000;
-    int timeout_ms = min_timeout_ms;
+    int ret = 1;
+
+    int wd = -1;
+    int ifd = inotify_init();
+    if (ifd < 0) {
+        LOG_ERRNO("failed to inotify");
+        return 1;
+    }
 
     while (true) {
         enum run_state state = run_while_online(mod);
 
         switch (state) {
         case RUN_DONE:
-            return 0;
-
-        case RUN_ERROR:
-            return 1;
-
-        case RUN_FAILED_CONNECT:
-            timeout_ms *= 2;
+            ret = 0;
             break;
 
+        case RUN_ERROR:
+            ret = 1;
+            break;
+
+        case RUN_FAILED_CONNECT:
         case RUN_DISCONNECTED:
-            timeout_ms = min_timeout_ms;
             break;
         }
 
-        if (timeout_ms > max_timeout_ms)
-            timeout_ms = max_timeout_ms;
-
-        struct timeval now;
-        gettimeofday(&now, NULL);
-
-        struct timeval timeout = {
-            .tv_sec = timeout_ms / 1000,
-            .tv_usec = (timeout_ms % 1000) * 1000,
-        };
-
-        struct timeval deadline;
-        timeradd(&now, &timeout, &deadline);
-
-        LOG_DBG("timeout is now %dms", timeout_ms);
+        wd = inotify_add_watch(ifd, "/dev/snd", IN_CREATE);
+        if (wd < 0) {
+            LOG_ERRNO("failed to create inotify watcher for /dev/snd");
+            ret = 1;
+            break;
+        }
 
         while (true) {
-
-            struct timeval n;
-            gettimeofday(&n, NULL);
-
-            struct timeval left;
-            timersub(&deadline, &n, &left);
-
-            int poll_timeout = timercmp(&left, &(struct timeval){0}, <)
-                ? 0
-                : left.tv_sec * 1000 + left.tv_usec / 1000;
-
-            LOG_DBG(
-                "polling for alsa device to become available (timeout=%dms)",
-                poll_timeout);
-
-            struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
-            int r = poll(fds, 1, poll_timeout);
+            struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN},
+                                   {.fd = ifd, .events = POLLIN}};
+            int r = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
 
             if (r < 0) {
                 if (errno == EINTR)
                     continue;
 
                 LOG_ERRNO("failed to poll");
-                return 1;
+                ret = 1;
+                goto out;
             }
 
-            if (fds[0].revents & POLLIN)
-                return 0;
+            if (fds[0].revents & POLLIN) {
+                ret = 0;
+                goto out;
+            }
 
-            assert(r == 0);
-            break;
+            if (fds[1].revents & POLLIN) {
+                char buf[1024];
+                ssize_t len = read(ifd, buf, sizeof(buf));
+
+                if (len < 0) {
+                    LOG_ERRNO("failed to read inotify events");
+                    ret = 1;
+                    goto out;
+                }
+
+                if (len == 0) {
+                    LOG_ERR("inotify FD closed");
+                    ret = 1;
+                    goto out;
+                }
+
+                /* Consume inotify data */
+                bool have_create_event = false;
+                for (const char *ptr = buf; ptr < buf + len; ) {
+                    const struct inotify_event *e = (const struct inotify_event *)ptr;
+                    if (e->mask & IN_CREATE) {
+                        LOG_DBG("inotify: CREATED: /dev/snd/%.*s", e->len, e->name);
+                        have_create_event = true;
+                    }
+                    ptr += sizeof(*e) + e->len;
+                }
+
+                if (have_create_event) {
+                    inotify_rm_watch(ifd, wd);
+                    wd = -1;
+                    break;
+                }
+            }
         }
     }
+
+out:
+    if (wd >= 0)
+        inotify_rm_watch(ifd, wd);
+    if (ifd >= 0)
+        close (ifd);
+    return ret;
 }
 
 static struct module *
