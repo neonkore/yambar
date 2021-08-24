@@ -27,6 +27,8 @@
 * `online` tag to the `alsa` module.
 * alsa: `volume` and `muted` options, allowing you to configure which
   channels to use as source for the volume level and muted state.
+* foreign-toplevel: Wayland module that provides information about
+  currently opened windows.
 
 
 ### Changed
