@@ -37,11 +37,13 @@ begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
 
-    exposable->width = (
-        exposable->particle->left_margin +
-        e->exposable->begin_expose(e->exposable) +
-        exposable->particle->right_margin);
+    int width = e->exposable->begin_expose(e->exposable);
+    assert(width >= 0);
 
+    if (width > 0)
+        width += exposable->particle->left_margin + exposable->particle->right_margin;
+
+    exposable->width = width;
     return exposable->width;
 }
 
