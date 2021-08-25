@@ -52,6 +52,28 @@ if backend_wayland
   mod_data += {
     'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], [dynlist]],
   }
+
+  ftop_proto_headers = []
+  ftop_proto_src = []
+
+  foreach prot : ['../external/wlr-foreign-toplevel-management-unstable-v1.xml']
+
+    ftop_proto_headers += custom_target(
+      prot.underscorify() + '-client-header',
+      output: '@BASENAME@.h',
+      input: prot,
+      command: [wscanner_prog, 'client-header', '@INPUT@', '@OUTPUT@'])
+
+    ftop_proto_src += custom_target(
+      prot.underscorify() + '-private-code',
+      output: '@BASENAME@.c',
+      input: prot,
+      command: [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
+  endforeach
+
+  mod_data += {
+    'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [dynlist]],
+  }
 endif
 
 foreach mod, data : mod_data

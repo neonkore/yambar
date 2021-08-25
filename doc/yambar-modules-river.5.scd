@@ -1,7 +1,7 @@
 yambar-modules-river(5)
 
 # NAME
-river - This module provide information about the river tags
+river - This module provides information about the river tags
 
 # DESCRIPTION
 
