@@ -204,6 +204,7 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
 
     struct bar_config conf = {
         .backend = backend,
+        .layer = BAR_LAYER_BOTTOM,
     };
 
     /*
@@ -227,6 +228,18 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
     const struct yml_node *monitor = yml_get_value(bar, "monitor");
     if (monitor != NULL)
         conf.monitor = yml_value_as_string(monitor);
+
+    const struct yml_node *layer = yml_get_value(bar, "layer");
+    if (layer != NULL) {
+        const char *tmp = yml_value_as_string(layer);
+        if (strcmp(tmp, "top") == 0)
+            conf.layer = BAR_LAYER_TOP;
+        else if (strcmp(tmp, "bottom") == 0)
+            conf.layer = BAR_LAYER_BOTTOM;
+        else
+            assert(false);
+    }
+
 
     const struct yml_node *spacing = yml_get_value(bar, "spacing");
     if (spacing != NULL)

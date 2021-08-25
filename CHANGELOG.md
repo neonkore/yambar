@@ -17,6 +17,8 @@
   individually. `border.width` is now a short-hand for setting all
   four borders to the same value
   (https://codeberg.org/dnkl/yambar/issues/77).
+* bar: `layer: top|bottom`, allowing the layer which the bar is
+  rendered on to be changed. Wayland only - ignored on X11.
 * river: `per-output: false|true`.
 * `-d,--log-level=info|warning|error|none` command line option
   (https://codeberg.org/dnkl/yambar/issues/84).

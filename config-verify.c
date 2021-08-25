@@ -404,6 +404,12 @@ verify_bar_location(keychain_t *chain, const struct yml_node *node)
     return conf_verify_enum(chain, node, (const char *[]){"top", "bottom"}, 2);
 }
 
+static bool
+verify_bar_layer(keychain_t *chain, const struct yml_node *node)
+{
+    return conf_verify_enum(chain, node, (const char *[]){"top", "bottom"}, 2);
+}
+
 bool
 conf_verify_bar(const struct yml_node *bar)
 {
@@ -421,6 +427,7 @@ conf_verify_bar(const struct yml_node *bar)
         {"background", true, &conf_verify_color},
 
         {"monitor", false, &conf_verify_string},
+        {"layer", false, &verify_bar_layer},
 
         {"spacing", false, &conf_verify_int},
         {"left-spacing", false, &conf_verify_int},

@@ -45,6 +45,10 @@ types that are frequently used:
 :  no
 :  Monitor to place the bar on. If not specified, the primary monitor will be
    used
+|  layer
+:  string
+:  no
+:  Layer to put bar on. One of _top_ or _bottom_. Wayland only
 |  left-spacing
 :  int
 :  no

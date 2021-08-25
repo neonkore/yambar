@@ -6,6 +6,7 @@
 struct private {
     /* From bar_config */
     char *monitor;
+    enum bar_layer layer;
     enum bar_location location;
     int height;
     int left_spacing, right_spacing;
