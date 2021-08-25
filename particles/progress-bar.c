@@ -57,14 +57,27 @@ static int
 begin_expose(struct exposable *exposable)
 {
     struct eprivate *e = exposable->private;
+    bool have_at_least_one = false;
 
-    /* Margins */
-    exposable->width = exposable->particle->left_margin +
-        exposable->particle->right_margin;
+    exposable->width = 0;
 
     /* Sub-exposables */
-    for (size_t i = 0; i < e->count; i++)
-        exposable->width += e->exposables[i]->begin_expose(e->exposables[i]);
+    for (size_t i = 0; i < e->count; i++) {
+        int width = e->exposables[i]->begin_expose(e->exposables[i]);
+
+        assert(width >= 0);
+        if (width >= 0) {
+            exposable->width += width;
+            have_at_least_one = true;
+        }
+    }
+
+    /* Margins */
+    if (have_at_least_one) {
+        exposable->width = exposable->particle->left_margin +
+            exposable->particle->right_margin;
+    } else
+        assert(exposable->width == 0);
 
     return exposable->width;
 }
