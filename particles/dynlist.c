@@ -1,6 +1,7 @@
 #include "dynlist.h"
 
 #include <stdlib.h>
+#include <assert.h>
 
 #define LOG_MODULE "dynlist"
 #include "../log.h"
@@ -36,15 +37,24 @@ dynlist_begin_expose(struct exposable *exposable)
     const struct private *e = exposable->private;
 
     exposable->width = 0;
+    bool have_at_least_one = false;
 
     for (size_t i = 0; i < e->count; i++) {
         struct exposable *ee = e->exposables[i];
         e->widths[i] = ee->begin_expose(ee);
 
-        exposable->width += e->left_spacing + e->widths[i] + e->right_spacing;
+        assert(e->widths[i] >= 0);
+
+        if (e->widths[i] > 0) {
+            exposable->width += e->left_spacing + e->widths[i] + e->right_spacing;
+            have_at_least_one = true;
+        }
     }
 
-    exposable->width -= e->left_spacing + e->right_spacing;
+    if (have_at_least_one)
+        exposable->width -= e->left_spacing + e->right_spacing;
+    else
+        assert(exposable->width == 0);
     return exposable->width;
 }
 
