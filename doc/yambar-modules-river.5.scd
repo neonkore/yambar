@@ -63,12 +63,12 @@ once for all 32 river tags. This means you probably want to use a
 :  particle
 :  yes
 :  Template particle that will be instantiated once for all of the 32 river tags.
-|  per-output
+|  all-monitors
 :  bool
 :  no
-:  When set to false (the default), tags reflect the union of all
-   outputs. When set to true, tags reflect river tags and seats for
-   the output yambar is on only.
+:  When set to false (the default), tags reflect river tags and seats
+   for the monitor yambar is on only. When set to true, tags reflect
+   the union of all monitors.
 
 # EXAMPLES
 
