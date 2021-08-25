@@ -52,6 +52,11 @@ Note: Wayland only.
 :  particle
 :  yes
 :  Template particle that will be instantiated once for each window
+|  all-monitors
+:  bool
+:  no
+:  When set to true, only windows on the same monitor the bar will be
+   used. The default is false.
 
 
 # EXAMPLES

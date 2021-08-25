@@ -72,7 +72,7 @@ if backend_wayland
   endforeach
 
   mod_data += {
-    'foreign-toplevel': [[ftop_proto_headers + ftop_proto_src], [dynlist]],
+    'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [dynlist]],
   }
 endif
 
