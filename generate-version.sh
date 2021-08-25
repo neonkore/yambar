@@ -17,7 +17,7 @@ if [ -d "${src_dir}/.git" ] && command -v git > /dev/null; then
     git_branch=$(git rev-parse --abbrev-ref HEAD)
     cd "${workdir}"
 
-    new_version="${git_version} ($(env LC_TIME=C date "+%b %d %Y"), branch '${git_branch}')"
+    new_version="${git_version} ($(date "+%b %d %Y"), branch '${git_branch}')"
 else
     new_version="${default_version}"
 fi
