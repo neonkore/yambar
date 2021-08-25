@@ -29,7 +29,6 @@ struct output {
     struct zxdg_output_v1 *xdg_output;
 
     char *name;
-    bool use_output_release;
 };
 
 struct toplevel {
@@ -64,12 +63,8 @@ output_free(struct output *output)
     free(output->name);
     if (output->xdg_output != NULL)
         zxdg_output_v1_destroy(output->xdg_output);
-    if (output->wl_output != NULL) {
-        if (output->use_output_release)
-            wl_output_release(output->wl_output);
-        else
-            wl_output_destroy(output->wl_output);
-    }
+    if (output->wl_output != NULL)
+        wl_output_release(output->wl_output);
 }
 
 static void
@@ -468,7 +463,7 @@ handle_global(void *data, struct wl_registry *registry,
     }
 
     else if (strcmp(interface, wl_output_interface.name) == 0) {
-        const uint32_t required = 1;
+        const uint32_t required = 3;
         if (!verify_iface_version(interface, version, required))
             return;
 
@@ -476,9 +471,7 @@ handle_global(void *data, struct wl_registry *registry,
             .mod = mod,
             .wl_name = name,
             .wl_output = wl_registry_bind(
-                registry, name,
-                &wl_output_interface, min(version, WL_OUTPUT_RELEASE_SINCE_VERSION)),
-            .use_output_release = version >= WL_OUTPUT_RELEASE_SINCE_VERSION,
+                registry, name, &wl_output_interface, required),
         };
 
         mtx_lock(&mod->lock);
