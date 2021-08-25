@@ -191,7 +191,7 @@ output_destroy(struct output *output)
     if (output->xdg_output != NULL)
         zxdg_output_v1_destroy(output->xdg_output);
     if (output->wl_output != NULL)
-        wl_output_destroy(output->wl_output);
+        wl_output_release(output->wl_output);
 }
 
 static void
@@ -495,7 +495,7 @@ handle_global(void *data, struct wl_registry *registry,
     struct private *m = data;
 
     if (strcmp(interface, wl_output_interface.name) == 0) {
-        const uint32_t required = 1;
+        const uint32_t required = 3;
         if (!verify_iface_version(interface, version, required))
             return;
 
@@ -505,8 +505,14 @@ handle_global(void *data, struct wl_registry *registry,
         if (wl_output == NULL)
             return;
 
+        struct output output = {
+            .m = m,
+            .wl_output = wl_output,
+            .wl_name = name,
+        };
+
         mtx_lock(&m->mod->lock);
-        tll_push_back(m->outputs, ((struct output){.m = m, .wl_output = wl_output, .wl_name = name}));
+        tll_push_back(m->outputs, output);
         instantiate_output(&tll_back(m->outputs));
         mtx_unlock(&m->mod->lock);
     }
