@@ -55,9 +55,16 @@ calculate_widths(const struct private *b, int *left, int *center, int *right)
     }
 
     /* No spacing on the edges (that's what the margins are for) */
-    *left -= b->left_spacing + b->right_spacing;
-    *center -= b->left_spacing + b->right_spacing;
-    *right -= b->left_spacing + b->right_spacing;
+    if (*left > 0)
+        *left -= b->left_spacing + b->right_spacing;
+    if (*center > 0)
+        *center -= b->left_spacing + b->right_spacing;
+    if (*right > 0)
+        *right -= b->left_spacing + b->right_spacing;
+
+    assert(*left >= 0);
+    assert(*center >= 0);
+    assert(*right >= 0);
 }
 
 static void
@@ -99,6 +106,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
         bar->left.exps[i] = module_begin_expose(m);
+        assert(bar->left.exps[i]->width >= 0);
     }
 
     for (size_t i = 0; i < bar->center.count; i++) {
@@ -107,6 +115,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
         bar->center.exps[i] = module_begin_expose(m);
+        assert(bar->center.exps[i]->width >= 0);
     }
 
     for (size_t i = 0; i < bar->right.count; i++) {
@@ -115,6 +124,7 @@ expose(const struct bar *_bar)
         if (e != NULL)
             e->destroy(e);
         bar->right.exps[i] = module_begin_expose(m);
+        assert(bar->right.exps[i]->width >= 0);
     }
 
     int left_width, center_width, right_width;
@@ -196,7 +206,8 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
     for (size_t i = 0; i < bar->left.count; i++) {
         struct exposable *e = bar->left.exps[i];
 
-        if (e->width == 0) continue;
+        if (e->width == 0)
+            continue;
 
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
@@ -212,7 +223,8 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
     for (size_t i = 0; i < bar->center.count; i++) {
         struct exposable *e = bar->center.exps[i];
 
-        if (e->width == 0) continue;
+        if (e->width == 0)
+            continue;
 
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
@@ -224,15 +236,16 @@ on_mouse(struct bar *_bar, enum mouse_event event, enum mouse_button btn,
         mx += e->width + bar->right_spacing;
     }
 
-    mx = bar->width - (right_width
-                       + bar->left_spacing +
+    mx = bar->width - (right_width +
+                       bar->left_spacing +
                        bar->right_margin +
                        bar->border.right_width);
 
     for (size_t i = 0; i < bar->right.count; i++) {
         struct exposable *e = bar->right.exps[i];
 
-        if (e->width == 0) continue;
+        if (e->width == 0)
+            continue;
 
         mx += bar->left_spacing;
         if (x >= mx && x < mx + e->width) {
