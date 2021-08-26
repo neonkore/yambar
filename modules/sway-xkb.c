@@ -13,6 +13,8 @@
 #include "i3-ipc.h"
 #include "i3-common.h"
 
+#define max(x, y) ((x) > (y) ? (x) : (y))
+
 struct input {
     bool exists;
     char *identifier;
@@ -65,7 +67,8 @@ content(struct module *mod)
 
     mtx_lock(&mod->lock);
 
-    struct exposable *particles[m->num_existing_inputs];
+    struct exposable *particles[max(m->num_existing_inputs, 1)];
+
     for (size_t i = 0, j = 0; i < m->num_inputs; i++) {
         const struct input *input = &m->inputs[i];
 

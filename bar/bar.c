@@ -25,6 +25,8 @@
  #include "wayland.h"
 #endif
 
+#define max(x, y) ((x) > (y) ? (x) : (y))
+
 /*
  * Calculate total width of left/center/rigth groups.
  * Note: begin_expose() must have been called
@@ -293,9 +295,9 @@ run(struct bar *_bar)
     set_cursor(_bar, "left_ptr");
 
     /* Start modules */
-    thrd_t thrd_left[bar->left.count];
-    thrd_t thrd_center[bar->center.count];
-    thrd_t thrd_right[bar->right.count];
+    thrd_t thrd_left[max(bar->left.count, 1)];
+    thrd_t thrd_center[max(bar->center.count, 1)];
+    thrd_t thrd_right[max(bar->right.count, 1)];
 
     for (size_t i = 0; i < bar->left.count; i++) {
         struct module *mod = bar->left.mods[i];

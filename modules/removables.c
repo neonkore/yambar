@@ -23,6 +23,8 @@
 #include "../particles/dynlist.h"
 #include "../plugin.h"
 
+#define max(x, y) ((x) > (y) ? (x) : (y))
+
 typedef tll(char *) mount_point_list_t;
 
 struct partition {
@@ -116,7 +118,7 @@ content(struct module *mod)
         }
     }
 
-    struct exposable *exposables[tll_length(partitions)];
+    struct exposable *exposables[max(tll_length(partitions), 1)];
     size_t idx = 0;
 
     tll_foreach(partitions, it) {
@@ -621,7 +623,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
         right_spacing != NULL ? yml_value_as_int(right_spacing) : 0;
 
     size_t ignore_count = ignore_list != NULL ? yml_list_length(ignore_list) : 0;
-    const char *ignore[ignore_count];
+    const char *ignore[max(ignore_count, 1)];
 
     if (ignore_list != NULL) {
         size_t i = 0;
