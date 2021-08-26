@@ -16,6 +16,17 @@
 #include "../config.h"
 #include "../plugin.h"
 
+enum channel_type { CHANNEL_PLAYBACK, CHANNEL_CAPTURE };
+
+struct channel {
+    snd_mixer_selem_channel_id_t id;
+    enum channel_type type;
+    char *name;
+
+    long vol_cur;
+    bool muted;
+};
+
 struct private {
     char *card;
     char *mixer;
@@ -23,20 +34,36 @@ struct private {
     char *muted_name;
     struct particle *label;
 
-    tll(snd_mixer_selem_channel_id_t) channels;
+    tll(struct channel) channels;
 
     bool online;
-    long vol_min;
-    long vol_max;
-    long vol_cur;
-    bool muted;
+
+    bool has_playback_volume;
+    long playback_vol_min;
+    long playback_vol_max;
+
+    bool has_capture_volume;
+    long capture_vol_min;
+    long capture_vol_max;
+
+    const struct channel *volume_chan;
+    const struct channel *muted_chan;
 };
+
+static void
+channel_free(struct channel *chan)
+{
+    free(chan->name);
+}
 
 static void
 destroy(struct module *mod)
 {
     struct private *m = mod->private;
-    tll_free(m->channels);
+    tll_foreach(m->channels, it) {
+        channel_free(&it->item);
+        tll_remove(m->channels, it);
+    }
     m->label->destroy(m->label);
     free(m->card);
     free(m->mixer);
@@ -60,17 +87,35 @@ content(struct module *mod)
 {
     struct private *m = mod->private;
 
-    int percent = m->vol_max - m->vol_min > 0
-        ? round(100. * m->vol_cur / (m->vol_max - m->vol_min))
+    mtx_lock(&mod->lock);
+
+    const struct channel *volume_chan = m->volume_chan;
+    const struct channel *muted_chan = m->muted_chan;
+
+    bool muted = muted_chan != NULL ? muted_chan->muted : false;
+    long vol_min = 0, vol_max = 0, vol_cur = 0;
+
+    if (volume_chan != NULL) {
+        if (volume_chan->type == CHANNEL_PLAYBACK) {
+            vol_min = m->playback_vol_min;
+            vol_max = m->playback_vol_max;
+        } else {
+            vol_min = m->capture_vol_min;
+            vol_max = m->capture_vol_max;
+        }
+        vol_cur = volume_chan->vol_cur;
+    }
+
+    int percent = vol_max - vol_min > 0
+        ? round(100. * vol_cur / (vol_max - vol_min))
         : 0;
 
-    mtx_lock(&mod->lock);
     struct tag_set tags = {
         .tags = (struct tag *[]){
             tag_new_bool(mod, "online", m->online),
-            tag_new_int_range(mod, "volume", m->vol_cur, m->vol_min, m->vol_max),
+            tag_new_int_range(mod, "volume", vol_cur, vol_min, vol_max),
             tag_new_int_range(mod, "percent", percent, 0, 100),
-            tag_new_bool(mod, "muted", m->muted),
+            tag_new_bool(mod, "muted", muted),
         },
         .count = 4,
     };
@@ -87,89 +132,75 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
 {
     struct private *m = mod->private;
 
-    /* Get min/max volume levels */
-    long min = 0, max = 0;
-    int r = snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
-
-    if (r < 0) {
-        LOG_DBG("%s,%s: failed to get volume min/max (mixer is digital?)",
-                m->card, m->mixer);
-    }
-
-    /* Make sure min <= max */
-    if (min > max) {
-        LOG_WARN(
-            "%s,%s: indicated minimum volume is greater than the maximum: "
-            "%ld > %ld", m->card, m->mixer, min, max);
-        min = max;
-    }
-
-    long cur = 0;
-
     /* If volume level can be changed (i.e. this isn't just a switch;
-     * e.g. a digital channel), get current level */
-    if (max > 0) {
-        tll_foreach(m->channels, it) {
-            const char *name = snd_mixer_selem_channel_name(it->item);
-            if (m->volume_name != NULL && strcmp(name, m->volume_name) != 0)
-                continue;
-
-            int r = snd_mixer_selem_get_playback_volume(elem, it->item, &cur);
-
-            if (r < 0) {
-                LOG_WARN("%s,%s: %s: failed to get current volume",
-                         m->card, m->mixer, name);
-            }
-
-            LOG_DBG("%s,%s: %s: volume: %ld", m->card, m->mixer, name, cur);
-        }
-    }
-
-    int unmuted = 0;
-
-    /* Get muted state */
+     * e.g. a digital channel), get current channel levels */
     tll_foreach(m->channels, it) {
-        const char *name = snd_mixer_selem_channel_name(it->item);
-        if (m->muted_name != NULL && strcmp(name, m->muted_name) != 0)
+        struct channel *chan = &it->item;
+
+        const bool has_volume = chan->type == CHANNEL_PLAYBACK
+            ? m->has_playback_volume : m->has_capture_volume;
+        const long min = chan->type == CHANNEL_PLAYBACK
+            ? m->playback_vol_min : m->capture_vol_min;
+        const long max = chan->type == CHANNEL_PLAYBACK
+            ? m->playback_vol_max : m->capture_vol_max;
+
+        if (!has_volume)
             continue;
 
-        int r = snd_mixer_selem_get_playback_switch(elem, it->item, &unmuted);
+        assert(min <= max);
+
+        int r = chan->type == CHANNEL_PLAYBACK
+            ? snd_mixer_selem_get_playback_volume(elem, chan->id, &chan->vol_cur)
+            : snd_mixer_selem_get_capture_volume(elem, chan->id, &chan->vol_cur);
+
+        if (r < 0) {
+            LOG_ERR("%s,%s: %s: failed to get current volume",
+                    m->card, m->mixer, chan->name);
+        }
+
+        if (chan->vol_cur < min) {
+            LOG_WARN(
+                "%s,%s: %s: current volume is less than the indicated minimum: "
+                "%ld < %ld", m->card, m->mixer, chan->name, chan->vol_cur, min);
+            chan->vol_cur = min;
+        }
+
+        if (chan->vol_cur > max) {
+            LOG_WARN(
+                "%s,%s: %s: current volume is greater than the indicated maximum: "
+                "%ld > %ld", m->card, m->mixer, chan->name, chan->vol_cur, max);
+            chan->vol_cur = max;
+        }
+
+        assert(chan->vol_cur >= min);
+        assert(chan->vol_cur <= max );
+
+        LOG_DBG("%s,%s: %s: volume: %ld",
+                m->card, m->mixer, chan->name, chan->vol_cur);
+    }
+
+    /* Get channels’ muted state */
+    tll_foreach(m->channels, it) {
+        struct channel *chan = &it->item;
+
+        int unmuted;
+
+        int r = chan->type == CHANNEL_PLAYBACK
+            ? snd_mixer_selem_get_playback_switch(elem, chan->id, &unmuted)
+            : snd_mixer_selem_get_capture_switch(elem, chan->id, &unmuted);
 
         if (r < 0) {
             LOG_WARN("%s,%s: %s: failed to get muted state",
-                     m->card, m->mixer, name);
+                     m->card, m->mixer, chan->name);
             unmuted = 1;
         }
 
-        LOG_DBG("%s,%s: %s: muted: %d", m->card, m->mixer, name, !unmuted);
+        chan->muted = !unmuted;
+        LOG_DBG("%s,%s: %s: muted: %d", m->card, m->mixer, chan->name, !unmuted);
     }
-
-    /* Make sure min <= cur <= max */
-    if (cur < min) {
-        LOG_WARN(
-            "%s,%s: current volume is less than the indicated minimum: "
-            "%ld < %ld", m->card, m->mixer, cur, min);
-        cur = min;
-    }
-
-    if (cur > max) {
-        LOG_WARN(
-            "%s,%s: current volume is greater than the indicated maximum: "
-            "%ld > %ld", m->card, m->mixer, cur, max);
-        cur = max;
-    }
-
-    assert(cur >= min);
-    assert(cur <= max);
-
-    LOG_DBG("muted=%d, cur=%ld, min=%ld, max=%ld", !unmuted, cur, min, max);
 
     mtx_lock(&mod->lock);
-    m->vol_min = min;
-    m->vol_max = max;
-    m->vol_cur = cur;
     m->online = true;
-    m->muted = !unmuted;
     mtx_unlock(&mod->lock);
 
     mod->bar->refresh(mod->bar);
@@ -217,20 +248,77 @@ run_while_online(struct module *mod)
         goto err;
     }
 
+    /* Get playback volume range */
+    m->has_playback_volume = snd_mixer_selem_has_playback_volume(elem) > 0;
+    if (m->has_playback_volume) {
+        if (snd_mixer_selem_get_playback_volume_range(
+                elem, &m->playback_vol_min, &m->playback_vol_max) < 0)
+        {
+            LOG_ERR("%s,%s: failed to get playback volume range",
+                    m->card, m->mixer);
+            assert(m->playback_vol_min == 0);
+            assert(m->playback_vol_max == 0);
+        }
+
+        if (m->playback_vol_min > m->playback_vol_max) {
+            LOG_WARN(
+                "%s,%s: indicated minimum playback volume is greater than the "
+                "maximum: %ld > %ld",
+                m->card, m->mixer, m->playback_vol_min, m->playback_vol_max);
+            m->playback_vol_min = m->playback_vol_max;
+        }
+    }
+
+    /* Get capture volume range */
+    m->has_capture_volume = snd_mixer_selem_has_capture_volume(elem) > 0;
+    if (m->has_capture_volume) {
+        if (snd_mixer_selem_get_capture_volume_range(
+                elem, &m->capture_vol_min, &m->capture_vol_max) < 0)
+        {
+            LOG_ERR("%s,%s: failed to get capture volume range",
+                    m->card, m->mixer);
+            assert(m->capture_vol_min == 0);
+            assert(m->capture_vol_max == 0);
+        }
+
+        if (m->capture_vol_min > m->capture_vol_max) {
+            LOG_WARN(
+                "%s,%s: indicated minimum capture volume is greater than the "
+                "maximum: %ld > %ld",
+                m->card, m->mixer, m->capture_vol_min, m->capture_vol_max);
+            m->capture_vol_min = m->capture_vol_max;
+        }
+    }
+
     /* Get available channels */
     for (size_t i = 0; i < SND_MIXER_SCHN_LAST; i++) {
-        if (snd_mixer_selem_has_playback_channel(elem, i)) {
-            tll_push_back(m->channels, i);
+        bool is_playback = snd_mixer_selem_has_playback_channel(elem, i) == 1;
+        bool is_capture = snd_mixer_selem_has_capture_channel(elem, i) == 1;
+
+        if (is_playback || is_capture) {
+            struct channel chan = {
+                .id = i,
+                .type = is_playback ? CHANNEL_PLAYBACK : CHANNEL_CAPTURE,
+                .name = strdup(snd_mixer_selem_channel_name( i)),
+            };
+            tll_push_back(m->channels, chan);
         }
+    }
+
+    if (tll_length(m->channels) == 0) {
+        LOG_ERR("%s,%s: no channels", m->card, m->mixer);
+        goto err;
     }
 
     char channels_str[1024];
     int channels_idx = 0;
     tll_foreach(m->channels, it) {
+        const struct channel *chan = &it->item;
+
         channels_idx += snprintf(
             &channels_str[channels_idx], sizeof(channels_str) - channels_idx,
-            channels_idx == 0 ? "%s" : ", %s",
-            snd_mixer_selem_channel_name(it->item));
+            channels_idx == 0 ? "%s (%s)" : ", %s (%s)",
+            chan->name, chan->type == CHANNEL_PLAYBACK ? "🔊" : "🎤");
         assert(channels_idx <= sizeof(channels_str));
     }
 
@@ -241,12 +329,21 @@ run_while_online(struct module *mod)
     bool muted_channel_is_valid = m->muted_name == NULL;
 
     tll_foreach(m->channels, it) {
-        const char *chan_name = snd_mixer_selem_channel_name(it->item);
-        if (m->volume_name != NULL && strcmp(chan_name, m->volume_name) == 0)
+        const struct channel *chan = &it->item;
+        if (m->volume_name != NULL && strcmp(chan->name, m->volume_name) == 0) {
+            m->volume_chan = chan;
             volume_channel_is_valid = true;
-        if (m->muted_name != NULL && strcmp(chan_name, m->muted_name) == 0)
+        }
+        if (m->muted_name != NULL && strcmp(chan->name, m->muted_name) == 0) {
+            m->muted_chan = chan;
             muted_channel_is_valid = true;
+        }
     }
+
+    if (m->volume_name == NULL)
+        m->volume_chan = &tll_front(m->channels);
+    if (m->muted_name == NULL)
+        m->muted_chan = &tll_front(m->channels);
 
     if (!volume_channel_is_valid) {
         assert(m->volume_name != NULL);
@@ -263,9 +360,16 @@ run_while_online(struct module *mod)
     /* Initial state */
     update_state(mod, elem);
 
-    LOG_INFO("%s,%s: volume min=%ld, max=%ld, current=%ld%s",
-             m->card, m->mixer, m->vol_min, m->vol_max, m->vol_cur,
-             m->muted ? ", muted" : "");
+    LOG_INFO(
+        "%s,%s: volume range=%ld-%ld, current=%ld%s (sources: volume=%s, muted=%s)",
+        m->card, m->mixer,
+        m->volume_chan->type == CHANNEL_PLAYBACK
+        ? m->playback_vol_min : m->capture_vol_min,
+        m->volume_chan->type == CHANNEL_PLAYBACK
+        ? m->playback_vol_max : m->capture_vol_max,
+        m->volume_chan->vol_cur,
+        m->muted_chan->muted ? " (muted)" : "",
+        m->volume_chan->name, m->muted_chan->name);
 
     mod->bar->refresh(mod->bar);
 
