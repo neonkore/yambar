@@ -156,28 +156,51 @@ nl_pid_value(void)
 
 /* Connect and bind to netlink socket. Returns socket fd, or -1 on error */
 static int
-netlink_connect(int protocol, bool bind_socket)
+netlink_connect_rt(void)
 {
-    int sock = socket(AF_NETLINK, SOCK_RAW, protocol);
+    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
     if (sock == -1) {
         LOG_ERRNO("failed to create netlink socket");
         return -1;
     }
 
-    if (bind_socket) {
-        const struct sockaddr_nl addr = {
-            .nl_family = AF_NETLINK,
-            .nl_pid = nl_pid_value(),
-            .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
-        };
+    const struct sockaddr_nl addr = {
+        .nl_family = AF_NETLINK,
+        .nl_pid = nl_pid_value(),
+        .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
+    };
 
-        if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            LOG_ERRNO("failed to bind netlink socket");
-            close(sock);
-            return -1;
-        }
+    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        LOG_ERRNO("failed to bind netlink socket");
+        close(sock);
+        return -1;
     }
 
+    return sock;
+}
+
+static int
+netlink_connect_genl(void)
+{
+    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+    if (sock == -1) {
+        LOG_ERRNO("failed to create netlink socket");
+        return -1;
+    }
+
+#if 0
+    const struct sockaddr_nl addr = {
+        .nl_family = AF_NETLINK,
+        .nl_pid = nl_pid_value(),
+        .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
+    };
+
+    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        LOG_ERRNO("failed to bind netlink socket");
+        close(sock);
+        return -1;
+    }
+#endif
     return sock;
 }
 
@@ -734,8 +757,8 @@ run(struct module *mod)
     int ret = 1;
     struct private *m = mod->private;
 
-    m->rt_sock = netlink_connect(NETLINK_ROUTE, true);
-    m->genl_sock = netlink_connect(NETLINK_GENERIC, false);
+    m->rt_sock = netlink_connect_rt();
+    m->genl_sock = netlink_connect_genl();
 
     if (m->rt_sock < 0 || m->genl_sock < 0)
         goto out;
