@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include <assert.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <threads.h>
 #include <poll.h>
@@ -11,7 +13,9 @@
 #include <arpa/inet.h>
 #include <linux/if.h>
 #include <linux/netlink.h>
+#include <linux/genetlink.h>
 #include <linux/rtnetlink.h>
+#include <linux/nl80211.h>
 
 #include <tllist.h>
 
@@ -23,6 +27,8 @@
 #include "../config-verify.h"
 #include "../module.h"
 #include "../plugin.h"
+
+#define UNUSED __attribute__((unused))
 
 struct af_addr {
     int family;
@@ -36,7 +42,13 @@ struct private {
     char *iface;
     struct particle *label;
 
-    int nl_sock;
+    int genl_sock;
+    int rt_sock;
+
+    struct {
+        uint16_t family_id;
+        uint32_t seq_nr;
+    } nl80211;
 
     bool get_addresses;
 
@@ -47,6 +59,9 @@ struct private {
 
     /* IPv4 and IPv6 addresses */
     tll(struct af_addr) addrs;
+
+    /* WiFi extensions */
+    char *ssid;
 };
 
 static void
@@ -54,12 +69,12 @@ destroy(struct module *mod)
 {
     struct private *m = mod->private;
 
-    assert(m->nl_sock == -1);
+    assert(m->rt_sock == -1);
 
     m->label->destroy(m->label);
 
     tll_free(m->addrs);
-
+    free(m->ssid);
     free(m->iface);
     free(m);
 
@@ -120,8 +135,9 @@ content(struct module *mod)
             tag_new_string(mod, "mac", mac_str),
             tag_new_string(mod, "ipv4", ipv4_str),
             tag_new_string(mod, "ipv6", ipv6_str),
+            tag_new_string(mod, "ssid", m->ssid),
         },
-        .count = 7,
+        .count = 8,
     };
 
     mtx_unlock(&mod->lock);
@@ -140,35 +156,48 @@ nl_pid_value(void)
 
 /* Connect and bind to netlink socket. Returns socket fd, or -1 on error */
 static int
-netlink_connect(void)
+netlink_connect(int protocol, bool bind_socket)
 {
-    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    int sock = socket(AF_NETLINK, SOCK_RAW, protocol);
     if (sock == -1) {
         LOG_ERRNO("failed to create netlink socket");
         return -1;
     }
 
-    const struct sockaddr_nl addr = {
-        .nl_family = AF_NETLINK,
-        .nl_pid = nl_pid_value(),
-        .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
-    };
+    if (bind_socket) {
+        const struct sockaddr_nl addr = {
+            .nl_family = AF_NETLINK,
+            .nl_pid = nl_pid_value(),
+            .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
+        };
 
-    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOG_ERRNO("failed to bind netlink socket");
-        close(sock);
-        return -1;
+        if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
+            LOG_ERRNO("failed to bind netlink socket");
+            close(sock);
+            return -1;
+        }
     }
 
     return sock;
 }
 
 static bool
-send_rt_request(int nl_sock, int request)
+send_nlmsg(int sock, const void *nlmsg, size_t len)
+{
+    int r = sendto(
+        sock, nlmsg, len, 0,
+        (struct sockaddr *)&(struct sockaddr_nl){.nl_family = AF_NETLINK},
+        sizeof(struct sockaddr_nl));
+
+    return r == len;
+}
+
+static bool
+send_rt_request(struct private *m, int request)
 {
     struct {
         struct nlmsghdr hdr;
-        struct rtgenmsg rt;
+        struct rtgenmsg rt __attribute__((aligned(NLMSG_ALIGNTO)));
     } req = {
         .hdr = {
             .nlmsg_len = NLMSG_LENGTH(sizeof(req.rt)),
@@ -183,18 +212,126 @@ send_rt_request(int nl_sock, int request)
         },
     };
 
-    int r = sendto(
-        nl_sock, &req, req.hdr.nlmsg_len, 0,
-        (struct sockaddr *)&(struct sockaddr_nl){.nl_family = AF_NETLINK},
-        sizeof(struct sockaddr_nl));
-
-    if (r == -1) {
-        LOG_ERRNO("failed to send netlink request");
+    if (!send_nlmsg(m->rt_sock, &req, req.hdr.nlmsg_len)) {
+        LOG_ERRNO("%s: failed to send netlink RT request (%d)",
+                  m->iface, request);
         return false;
     }
 
     return true;
 }
+
+static bool
+send_ctrl_get_family_request(struct private *m)
+{
+    const struct {
+        struct nlmsghdr hdr;
+        struct {
+            struct genlmsghdr genl;
+            struct {
+                struct nlattr hdr;
+                char data[8] __attribute__((aligned(NLA_ALIGNTO)));
+            } family_name_attr __attribute__((aligned(NLA_ALIGNTO)));
+        } msg __attribute__((aligned(NLMSG_ALIGNTO)));
+    } req = {
+        .hdr = {
+            .nlmsg_len = NLMSG_LENGTH(sizeof(req.msg)),
+            .nlmsg_type = GENL_ID_CTRL,
+            .nlmsg_flags = NLM_F_REQUEST,
+            .nlmsg_seq = 1,
+            .nlmsg_pid = nl_pid_value(),
+        },
+
+        .msg = {
+            .genl = {
+                .cmd = CTRL_CMD_GETFAMILY,
+                .version = 1,
+            },
+
+            .family_name_attr = {
+                .hdr = {
+                    .nla_type = CTRL_ATTR_FAMILY_NAME,
+                    .nla_len = sizeof(req.msg.family_name_attr),
+                },
+
+                .data = NL80211_GENL_NAME,
+            },
+        },
+    };
+
+    _Static_assert(
+        sizeof(req.msg.family_name_attr) ==
+        NLA_HDRLEN + NLA_ALIGN(sizeof(req.msg.family_name_attr.data)),
+        "");
+
+    if (!send_nlmsg(m->genl_sock, &req, req.hdr.nlmsg_len)) {
+        LOG_ERRNO("%s: failed to send netlink ctrl-get-family request",
+                  m->iface);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
+send_nl80211_get_interface_request(struct private *m)
+{
+    assert(m->ifindex >= 0);
+
+    if (m->nl80211.seq_nr > 0) {
+        LOG_DBG(
+            "%s: nl80211 get-interface request already in progress", m->iface);
+        return true;
+    }
+
+    m->nl80211.seq_nr = time(NULL);
+    LOG_DBG("%s: sending nl80211 get-interface request", m->iface);
+
+    const struct {
+        struct nlmsghdr hdr;
+        struct {
+            struct genlmsghdr genl;
+            struct {
+                struct nlattr attr;
+                int index __attribute__((aligned(NLA_ALIGNTO)));
+            } ifindex __attribute__((aligned(NLA_ALIGNTO)));
+        } msg __attribute__((aligned(NLMSG_ALIGNTO)));
+    } req = {
+        .hdr = {
+            .nlmsg_len = NLMSG_LENGTH(sizeof(req.msg)),
+            .nlmsg_type = m->nl80211.family_id,
+            .nlmsg_flags = NLM_F_REQUEST,
+            .nlmsg_seq = m->nl80211.seq_nr,
+            .nlmsg_pid = nl_pid_value(),
+        },
+
+        .msg = {
+            .genl = {
+                .cmd = NL80211_CMD_GET_INTERFACE,
+                .version = 1,
+            },
+
+            .ifindex = {
+                .attr = {
+                    .nla_type = NL80211_ATTR_IFINDEX,
+                    .nla_len = sizeof(req.msg.ifindex),
+                },
+
+                .index = m->ifindex,
+            },
+        },
+    };
+
+    if (!send_nlmsg(m->genl_sock, &req, req.hdr.nlmsg_len)) {
+        LOG_ERRNO("%s: failed to send netlink nl80211 get-inteface request",
+                  m->iface);
+        m->nl80211.seq_nr = 0;
+        return false;
+    }
+
+    return true;
+}
+
 static bool
 find_my_ifindex(struct module *mod, const struct ifinfomsg *msg, size_t len)
 {
@@ -212,6 +349,9 @@ find_my_ifindex(struct module *mod, const struct ifinfomsg *msg, size_t len)
                 mtx_lock(&mod->lock);
                 m->ifindex = msg->ifi_index;
                 mtx_unlock(&mod->lock);
+
+                if (m->nl80211.family_id >= 0)
+                    send_nl80211_get_interface_request(m);
                 return true;
             }
 
@@ -261,9 +401,18 @@ handle_link(struct module *mod, uint16_t type,
             LOG_DBG("%s: IFLA_OPERSTATE: %hhu -> %hhu", m->iface, m->state, operstate);
 
             mtx_lock(&mod->lock);
-            m->state = operstate;
+            {
+                m->state = operstate;
+                if (operstate != IF_OPER_UP) {
+                    free(m->ssid);
+                    m->ssid = NULL;
+                }
+            }
             mtx_unlock(&mod->lock);
             update_bar = true;
+
+            if (operstate == IF_OPER_UP)
+                send_nl80211_get_interface_request(m);
             break;
         }
 
@@ -411,7 +560,7 @@ netlink_receive_messages(int sock, void **reply, size_t *len)
 }
 
 static bool
-parse_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
+parse_rt_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 {
     struct private *m = mod->private;
 
@@ -427,7 +576,7 @@ parse_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
             /* Request initial list of IPv4/6 addresses */
             if (m->get_addresses && m->ifindex != -1) {
                 m->get_addresses = false;
-                send_rt_request(m->nl_sock, RTM_GETADDR);
+                send_rt_request(m, RTM_GETADDR);
             }
             break;
 
@@ -451,14 +600,128 @@ parse_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 
         case NLMSG_ERROR:{
             const struct nlmsgerr *err = NLMSG_DATA(hdr);
-            LOG_ERRNO_P(err->error, "netlink");
+            LOG_ERRNO_P(-err->error, "%s: netlink RT reply", m->iface);
             return false;
         }
 
         default:
             LOG_WARN(
-                "unrecognized netlink message type: 0x%x", hdr->nlmsg_type);
-            break;
+                "%s: unrecognized netlink message type: 0x%x",
+                m->iface, hdr->nlmsg_type);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
+parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
+{
+    struct private *m = mod->private;
+
+    /* Process response */
+    for (; NLMSG_OK(hdr, len); hdr = NLMSG_NEXT(hdr, len)) {
+        if (hdr->nlmsg_seq == m->nl80211.seq_nr) {
+            /* Current request is now considered complete */
+            m->nl80211.seq_nr = 0;
+        }
+
+        if (hdr->nlmsg_type == GENL_ID_CTRL) {
+            const struct genlmsghdr *genl = NLMSG_DATA(hdr);
+            const size_t attr_size = NLMSG_PAYLOAD(hdr, 0);
+
+            const uint8_t *p = (const uint8_t *)(genl + 1);
+            const uint8_t *end = (const uint8_t *)genl + attr_size;
+            const struct nlattr *attr = (const struct nlattr *)p;
+
+            for (; p < end;
+                 p += NLA_ALIGN(attr->nla_len),
+                     attr = (const struct nlattr *)p)
+            {
+                bool nested UNUSED = attr->nla_type & NLA_F_NESTED;
+                uint16_t type = attr->nla_type & NLA_TYPE_MASK;
+
+                switch (type) {
+                case CTRL_ATTR_FAMILY_ID: {
+                    m->nl80211.family_id = *(const uint16_t *)(attr + 1);
+                    if (m->ifindex >= 0)
+                        send_nl80211_get_interface_request(m);
+                    break;
+                }
+
+                case CTRL_ATTR_FAMILY_NAME: {
+#if 0
+                    unsigned name_len = attr->nla_len - NLA_HDRLEN;
+                    const char *name = (const char *)(attr + 1);
+                    LOG_INFO("NAME: %.*s (%u bytes)", name_len, name, name_len);
+#endif
+                    break;
+                }
+
+                default:
+                    LOG_DBG("%s: unrecognized GENL CTRL attribute: "
+                            "%hu%s (size: %hu bytes)", m->iface,
+                            type, nested ? " (nested)" : "", attr->nla_len);
+                    break;
+                }
+            }
+        }
+
+        else if (hdr->nlmsg_type == m->nl80211.family_id) {
+            const struct genlmsghdr *genl = NLMSG_DATA(hdr);
+            const size_t attr_size = NLMSG_PAYLOAD(hdr, 0);
+
+            const uint8_t *p = (const uint8_t *)(genl + 1);
+            const uint8_t *end = (const uint8_t *)genl + attr_size;
+            const struct nlattr *attr = (const struct nlattr *)p;
+
+            for (;p < end && attr->nla_len > 0;
+                 p += NLA_ALIGN(attr->nla_len),
+                     attr = (const struct nlattr *)p)
+            {
+                bool nested UNUSED = attr->nla_type & NLA_F_NESTED;
+                uint16_t type = attr->nla_type & NLA_TYPE_MASK;
+
+                switch (type) {
+                case NL80211_ATTR_SSID: {
+                    unsigned ssid_len = attr->nla_len - NLA_HDRLEN;
+                    const char *ssid = (const char *)(attr + 1);
+                    LOG_INFO("%s: SSID: %.*s", m->iface, ssid_len, ssid);
+
+                    mtx_lock(&mod->lock);
+                    free(m->ssid);
+                    m->ssid = strndup(ssid, ssid_len);
+                    mtx_unlock(&mod->lock);
+
+                    mod->bar->refresh(mod->bar);
+                    break;
+                }
+
+                default:
+                    LOG_DBG("%s: unrecognized nl80211 attribute: "
+                            "type=%hu%s, len=%hu", m->iface,
+                            type, nested ? " (nested)" : "", attr->nla_len);
+                    break;
+                }
+            }
+        }
+
+        else if (hdr->nlmsg_type == NLMSG_ERROR) {
+            const struct nlmsgerr *err = NLMSG_DATA(hdr);
+            if (-err->error == ENODEV)
+                ; /* iface is not an nl80211 device */
+            else if (-err->error == ENOENT)
+                ; /* iface down? */
+            else
+                LOG_ERRNO_P(-err->error, "%s: nl80211 reply", m->iface);
+        }
+
+        else {
+            LOG_WARN(
+                "%s: unrecognized netlink message type: 0x%x",
+                m->iface, hdr->nlmsg_type);
+            return false;
         }
     }
 
@@ -468,55 +731,82 @@ parse_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 static int
 run(struct module *mod)
 {
+    int ret = 1;
     struct private *m = mod->private;
 
-    m->nl_sock = netlink_connect();
-    if (m->nl_sock == -1)
-        return 1;
+    m->rt_sock = netlink_connect(NETLINK_ROUTE, true);
+    m->genl_sock = netlink_connect(NETLINK_GENERIC, false);
 
-    if (!send_rt_request(m->nl_sock, RTM_GETLINK)) {
-        close(m->nl_sock);
-        m->nl_sock = -1;
-        return 1;
+    if (m->rt_sock < 0 || m->genl_sock < 0)
+        goto out;
+
+    if (!send_rt_request(m, RTM_GETLINK) ||
+        !send_ctrl_get_family_request(m))
+    {
+        goto out;
     }
 
     /* Main loop */
     while (true) {
         struct pollfd fds[] = {
             {.fd = mod->abort_fd, .events = POLLIN},
-            {.fd = m->nl_sock, .events = POLLIN}
+            {.fd = m->rt_sock, .events = POLLIN},
+            {.fd = m->genl_sock, .events = POLLIN},
         };
 
-        poll(fds, 2, -1);
+        poll(fds, 3, -1);
 
-        if (fds[0].revents & POLLIN)
+        if (fds[0].revents & (POLLIN | POLLHUP))
             break;
 
-        if (fds[1].revents & POLLHUP) {
-            LOG_ERR("disconnected from netlink socket");
+        if ((fds[1].revents & POLLHUP) ||
+            (fds[2].revents & POLLHUP))
+        {
+            LOG_ERR("%s: disconnected from netlink socket", m->iface);
             break;
         }
 
-        assert(fds[1].revents & POLLIN);
+        if (fds[1].revents & POLLIN) {
+            /* Read one (or more) messages */
+            void *reply;
+            size_t len;
+            if (!netlink_receive_messages(m->rt_sock, &reply, &len))
+                break;
 
-        /* Read one (or more) messages */
-        void *reply;
-        size_t len;
-        if (!netlink_receive_messages(m->nl_sock, &reply, &len))
-            break;
+            /* Parse (and act upon) the received message(s) */
+            if (!parse_rt_reply(mod, (const struct nlmsghdr *)reply, len)) {
+                free(reply);
+                break;
+            }
 
-        /* Parse (and act upon) the received message(s) */
-        if (!parse_reply(mod, (const struct nlmsghdr *)reply, len)) {
             free(reply);
-            break;
         }
 
-        free(reply);
+        if (fds[2].revents & POLLIN) {
+            /* Read one (or more) messages */
+            void *reply;
+            size_t len;
+            if (!netlink_receive_messages(m->genl_sock, &reply, &len))
+                break;
+
+            if (!parse_genl_reply(mod, (const struct nlmsghdr *)reply, len)) {
+                free(reply);
+                break;
+            }
+
+            free(reply);
+        }
     }
 
-    close(m->nl_sock);
-    m->nl_sock = -1;
-    return 0;
+    ret = 0;
+
+    out:
+    if (m->rt_sock >= 0)
+        close(m->rt_sock);
+    if (m->genl_sock >= 0)
+        close(m->genl_sock);
+    m->rt_sock = m->genl_sock = -1;
+    return ret;
 }
 
 static struct module *
@@ -526,7 +816,9 @@ network_new(const char *iface, struct particle *label)
     priv->iface = strdup(iface);
     priv->label = label;
 
-    priv->nl_sock = -1;
+    priv->genl_sock = -1;
+    priv->rt_sock = -1;
+    priv->nl80211.family_id = -1;
     priv->get_addresses = true;
     priv->ifindex = -1;
     priv->state = IF_OPER_DOWN;
