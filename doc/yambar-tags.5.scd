@@ -87,7 +87,7 @@ be used.
 :  All tag types
 |  min
 :  selector
-:  Renders a range tag's mininum value
+:  Renders a range tag's minimum value
 :  Range tags
 |  max
 :  selector
