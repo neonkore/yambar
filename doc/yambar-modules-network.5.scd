@@ -39,6 +39,19 @@ address.
 |  ipv6
 :  string
 :  IPv6 address assigned to the interface, or *""* if none
+|  ssid
+:  string
+:  SSID the adapter is connected to (Wi-Fi only)
+|  signal
+:  int
+:  Signal strength, in dBm (Wi-Fi only)
+|  rx-bitrate
+:  int
+:  RX bitrate, in Mbit/s
+|  tx-bitrate
+:  int
+:  TX bitrate in Mbit/s
+
 
 # CONFIGURATION
 
