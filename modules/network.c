@@ -47,7 +47,8 @@ struct private {
 
     struct {
         uint16_t family_id;
-        uint32_t seq_nr;
+        uint32_t get_interface_seq_nr;
+        uint32_t get_station_seq_nr;
     } nl80211;
 
     bool get_addresses;
@@ -62,6 +63,9 @@ struct private {
 
     /* WiFi extensions */
     char *ssid;
+    int signal_strength_dbm;
+    uint32_t rx_bitrate;
+    uint32_t tx_bitrate;
 };
 
 static void
@@ -136,8 +140,11 @@ content(struct module *mod)
             tag_new_string(mod, "ipv4", ipv4_str),
             tag_new_string(mod, "ipv6", ipv6_str),
             tag_new_string(mod, "ssid", m->ssid),
+            tag_new_int(mod, "signal", m->signal_strength_dbm),
+            tag_new_int(mod, "rx-bitrate", m->rx_bitrate / 1000 / 1000),
+            tag_new_int(mod, "tx-bitrate", m->tx_bitrate / 1000 / 1000),
         },
-        .count = 8,
+        .count = 11,
     };
 
     mtx_unlock(&mod->lock);
@@ -296,19 +303,10 @@ send_ctrl_get_family_request(struct private *m)
 }
 
 static bool
-send_nl80211_get_interface_request(struct private *m)
+send_nl80211_request(struct private *m, uint8_t cmd, uint16_t flags, uint32_t seq)
 {
     if (m->ifindex < 0)
-        return true;
-
-    if (m->nl80211.seq_nr > 0) {
-        LOG_DBG(
-            "%s: nl80211 get-interface request already in progress", m->iface);
-        return true;
-    }
-
-    m->nl80211.seq_nr = time(NULL);
-    LOG_DBG("%s: sending nl80211 get-interface request", m->iface);
+        return false;
 
     const struct {
         struct nlmsghdr hdr;
@@ -323,14 +321,14 @@ send_nl80211_get_interface_request(struct private *m)
         .hdr = {
             .nlmsg_len = NLMSG_LENGTH(sizeof(req.msg)),
             .nlmsg_type = m->nl80211.family_id,
-            .nlmsg_flags = NLM_F_REQUEST,
-            .nlmsg_seq = m->nl80211.seq_nr,
+            .nlmsg_flags = flags,
+            .nlmsg_seq = seq,
             .nlmsg_pid = nl_pid_value(),
         },
 
         .msg = {
             .genl = {
-                .cmd = NL80211_CMD_GET_INTERFACE,
+                .cmd = cmd,
                 .version = 1,
             },
 
@@ -348,11 +346,50 @@ send_nl80211_get_interface_request(struct private *m)
     if (!send_nlmsg(m->genl_sock, &req, req.hdr.nlmsg_len)) {
         LOG_ERRNO("%s: failed to send netlink nl80211 get-inteface request",
                   m->iface);
-        m->nl80211.seq_nr = 0;
         return false;
     }
 
     return true;
+}
+
+static bool
+send_nl80211_get_interface(struct private *m)
+{
+    if (m->nl80211.get_interface_seq_nr > 0) {
+        LOG_DBG(
+            "%s: nl80211 get-interface request already in progress", m->iface);
+        return true;
+    }
+
+    LOG_DBG("%s: sending nl80211 get-interface request", m->iface);
+
+    uint32_t seq = time(NULL);
+    if (send_nl80211_request(m, NL80211_CMD_GET_INTERFACE, NLM_F_REQUEST, seq)) {
+        m->nl80211.get_interface_seq_nr = seq;
+        return true;
+    } else
+        return false;
+}
+
+static bool
+send_nl80211_get_station(struct private *m)
+{
+    if (m->nl80211.get_station_seq_nr > 0) {
+        LOG_DBG(
+            "%s: nl80211 get-station request already in progress", m->iface);
+        return true;
+    }
+
+    LOG_DBG("%s: sending nl80211 get-station request", m->iface);
+
+    uint32_t seq = time(NULL);
+    if (send_nl80211_request(
+            m, NL80211_CMD_GET_STATION, NLM_F_REQUEST | NLM_F_DUMP, seq))
+    {
+        m->nl80211.get_station_seq_nr = seq;
+        return true;
+    } else
+        return false;
 }
 
 static bool
@@ -373,7 +410,8 @@ find_my_ifindex(struct module *mod, const struct ifinfomsg *msg, size_t len)
                 m->ifindex = msg->ifi_index;
                 mtx_unlock(&mod->lock);
 
-                send_nl80211_get_interface_request(m);
+                send_nl80211_get_interface(m);
+                send_nl80211_get_station(m);
                 return true;
             }
 
@@ -584,7 +622,7 @@ foreach_nlattr_nested(struct module *mod, const void *parent_payload, size_t len
 
 struct mcast_group {
     uint32_t id;
-    char *name;
+    const char *name;
 };
 
 static bool
@@ -601,15 +639,13 @@ parse_mcast_group(struct module *mod, uint16_t type, bool nested,
     }
 
     case CTRL_ATTR_MCAST_GRP_NAME: {
-        free(ctx->name);
-        ctx->name = strndup((const char *)payload, len);
+        ctx->name = (const char *)payload;
         break;
     }
 
     default:
         LOG_WARN("%s: unrecognized GENL MCAST GRP attribute: "
-                 "%hu%s (size: %zu bytes)", m->iface,
-                 type, nested ? " (nested)" : "", len);
+                 "type=%hu, nested=%d, len=%zu", m->iface, type, nested, len);
         break;
     }
 
@@ -628,6 +664,11 @@ parse_mcast_groups(struct module *mod, uint16_t type, bool nested,
     LOG_DBG("MCAST: %s -> %u", group.name, group.id);
 
     if (strcmp(group.name, NL80211_MULTICAST_GROUP_MLME) == 0) {
+        /*
+         * Join the nl80211 MLME multicast group - for
+         * CONNECT/DISCONNECT events.
+         */
+
         int r = setsockopt(
             m->genl_sock, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
             &group.id, sizeof(int));
@@ -636,7 +677,6 @@ parse_mcast_groups(struct module *mod, uint16_t type, bool nested,
             LOG_ERRNO("failed to joint the nl80211 MLME mcast group");
     }
 
-    free(group.name);
     return true;
 }
 
@@ -649,7 +689,7 @@ handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
     switch (type) {
     case CTRL_ATTR_FAMILY_ID: {
         m->nl80211.family_id = *(const uint16_t *)payload;
-        send_nl80211_get_interface_request(m);
+        send_nl80211_get_interface(m);
         break;
     }
 
@@ -663,8 +703,7 @@ handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
 
     default:
         LOG_DBG("%s: unrecognized GENL CTRL attribute: "
-                "%hu%s (size: %zu bytes)", m->iface,
-                type, nested ? " (nested)" : "", len);
+                "type=%hu, nested=%d, len=%zu", m->iface, type, nested, len);
         break;
     }
 
@@ -705,7 +744,6 @@ handle_nl80211_new_interface(struct module *mod, uint16_t type, bool nested,
 
     case NL80211_ATTR_SSID: {
         const char *ssid = payload;
-        LOG_INFO("%s: SSID: %.*s (type=%hhu)", m->iface, (int)len, ssid, type);
 
         mtx_lock(&mod->lock);
         free(m->ssid);
@@ -718,8 +756,129 @@ handle_nl80211_new_interface(struct module *mod, uint16_t type, bool nested,
 
     default:
         LOG_DBG("%s: unrecognized nl80211 attribute: "
-                "type=%hu%s, len=%zu", m->iface,
-                type, nested ? " (nested)" : "", len);
+                "type=%hu, nested=%d, len=%zu", m->iface, type, nested, len);
+        break;
+    }
+
+    return true;
+}
+
+struct rate_info_ctx {
+    unsigned bitrate;
+};
+
+static bool
+handle_nl80211_rate_info(struct module *mod, uint16_t type, bool nested,
+                         const void *payload, size_t len, void *_ctx)
+{
+    struct private *m UNUSED = mod->private;
+    struct rate_info_ctx *ctx = _ctx;
+
+    switch (type) {
+    case NL80211_RATE_INFO_BITRATE32: {
+        uint32_t bitrate_100kbit = *(uint32_t *)payload;
+        ctx->bitrate = bitrate_100kbit * 100 * 1000;
+        break;
+    }
+
+    case NL80211_RATE_INFO_BITRATE:
+        if (ctx->bitrate == 0) {
+            uint16_t bitrate_100kbit = *(uint16_t *)payload;
+            ctx->bitrate = bitrate_100kbit * 100 * 1000;
+        } else {
+            /* Prefer the BITRATE32 attribute */
+        }
+        break;
+
+    default:
+        LOG_DBG("%s: unrecognized nl80211 rate info attribute: "
+                "type=%hu, nested=%d, len=%zu", m->iface, type, nested, len);
+        break;
+    }
+
+    return true;
+}
+
+struct station_info_ctx {
+    bool update_bar;
+};
+
+static bool
+handle_nl80211_station_info(struct module *mod, uint16_t type, bool nested,
+                            const void *payload, size_t len, void *_ctx)
+{
+    struct private *m = mod->private;
+    struct station_info_ctx *ctx = _ctx;
+
+    switch (type) {
+    case NL80211_STA_INFO_SIGNAL:
+        LOG_DBG("signal strength (last): %hhd dBm", *(uint8_t *)payload);
+        break;
+
+    case NL80211_STA_INFO_SIGNAL_AVG: {
+        LOG_DBG("signal strength (average): %hhd dBm", *(uint8_t *)payload);
+        mtx_lock(&mod->lock);
+        m->signal_strength_dbm = *(int8_t *)payload;
+        mtx_unlock(&mod->lock);
+        ctx->update_bar = true;
+        break;
+    }
+
+    case NL80211_STA_INFO_TX_BITRATE: {
+        struct rate_info_ctx rctx = {0};
+        foreach_nlattr_nested(
+            mod, payload, len, &handle_nl80211_rate_info, &rctx);
+
+        LOG_DBG("TX bitrate: %.1f Mbit/s", rctx.bitrate / 1000. / 1000.);
+        mtx_lock(&mod->lock);
+        m->tx_bitrate = rctx.bitrate;
+        mtx_unlock(&mod->lock);
+        ctx->update_bar = true;
+        break;
+    }
+
+    case NL80211_STA_INFO_RX_BITRATE: {
+        struct rate_info_ctx rctx = {0};
+        foreach_nlattr_nested(
+            mod, payload, len, &handle_nl80211_rate_info, &rctx);
+
+        LOG_DBG("RX bitrate: %.1f Mbit/s", rctx.bitrate / 1000. / 1000.);
+        mtx_lock(&mod->lock);
+        m->rx_bitrate = rctx.bitrate;
+        mtx_unlock(&mod->lock);
+        ctx->update_bar = true;
+        break;
+    }
+
+    default:
+        LOG_DBG("%s: unrecognized nl80211 station info attribute: "
+                "type=%hu, nested=%d, len=%zu", m->iface, type, nested, len);
+        break;
+    }
+
+    return true;
+}
+
+static bool
+handle_nl80211_new_station(struct module *mod, uint16_t type, bool nested,
+                           const void *payload, size_t len)
+{
+    struct private *m UNUSED = mod->private;
+
+    switch (type) {
+    case NL80211_ATTR_STA_INFO: {
+        struct station_info_ctx ctx = {0};
+        foreach_nlattr_nested(
+            mod, payload, len, &handle_nl80211_station_info, &ctx);
+
+        if (ctx.update_bar)
+            mod->bar->refresh(mod->bar);
+        break;
+    }
+
+    default:
+        LOG_DBG("%s: unrecognized nl80211 attribute: "
+                "type=%hu, nested=%d, len=%zu", m->iface, type, nested, len);
         break;
     }
 
@@ -826,12 +985,19 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
     struct private *m = mod->private;
 
     for (; NLMSG_OK(hdr, len); hdr = NLMSG_NEXT(hdr, len)) {
-        if (hdr->nlmsg_seq == m->nl80211.seq_nr) {
+        if (hdr->nlmsg_seq == m->nl80211.get_interface_seq_nr) {
             /* Current request is now considered complete */
-            m->nl80211.seq_nr = 0;
+            m->nl80211.get_interface_seq_nr = 0;
         }
 
-        if (hdr->nlmsg_type == GENL_ID_CTRL) {
+        if (hdr->nlmsg_type == NLMSG_DONE) {
+            if (hdr->nlmsg_seq == m->nl80211.get_station_seq_nr) {
+                /* Current request is now considered complete */
+                m->nl80211.get_station_seq_nr = 0;
+            }
+        }
+
+        else if (hdr->nlmsg_type == GENL_ID_CTRL) {
             const struct genlmsghdr *genl = NLMSG_DATA(hdr);
             const size_t msg_size = NLMSG_PAYLOAD(hdr, 0);
             foreach_nlattr(mod, genl, msg_size, &handle_genl_ctrl);
@@ -847,6 +1013,8 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                     LOG_DBG("%s: got interface information", m->iface);
                     foreach_nlattr(
                         mod, genl, msg_size, &handle_nl80211_new_interface);
+
+                    LOG_INFO("%s: SSID: %s", m->iface, m->ssid);
                 }
                 break;
 
@@ -864,18 +1032,31 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                 if (nl80211_is_for_us(mod, genl, msg_size)) {
                     LOG_DBG("%s: connected, requesting interface information",
                             m->iface);
-                    send_nl80211_get_interface_request(m);
+                    send_nl80211_get_interface(m);
                 }
                 break;
 
             case NL80211_CMD_DISCONNECT:
                 if (nl80211_is_for_us(mod, genl, msg_size)) {
                     LOG_DBG("%s: disconnected, resetting SSID etc", m->iface);
+
                     mtx_lock(&mod->lock);
                     free(m->ssid);
                     m->ssid = NULL;
                     mtx_unlock(&mod->lock);
                 }
+                break;
+
+            case NL80211_CMD_NEW_STATION:
+                if (nl80211_is_for_us(mod, genl, msg_size)) {
+                    LOG_DBG("%s: got station information", m->iface);
+                    foreach_nlattr(mod, genl, msg_size, &handle_nl80211_new_station);
+                }
+
+                LOG_INFO("%s: signal: %d dBm, RX=%u Mbit/s, TX=%u Mbit/s",
+                         m->iface, m->signal_strength_dbm,
+                         m->rx_bitrate / 1000 / 1000,
+                         m->tx_bitrate / 1000 / 1000);
                 break;
 
             default:
