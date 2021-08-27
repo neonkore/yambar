@@ -459,7 +459,15 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         sbuf_append_at_most(&formatted, template, begin - template);
 
         /* Parse arguments */
-        enum { FMT_DEFAULT, FMT_HEX, FMT_OCT, FMT_PERCENT } format = FMT_DEFAULT;
+        enum {
+            FMT_DEFAULT,
+            FMT_HEX,
+            FMT_OCT,
+            FMT_PERCENT,
+            FMT_KBYTE,
+            FMT_MBYTE,
+            FMT_GBYTE,
+        } format = FMT_DEFAULT;
         enum { VALUE_VALUE, VALUE_MIN, VALUE_MAX, VALUE_UNIT } kind = VALUE_VALUE;
 
         for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
@@ -471,6 +479,12 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 format = FMT_OCT;
             else if (strcmp(tag_args[i], "%") == 0)
                 format = FMT_PERCENT;
+            else if (strcmp(tag_args[i], "kb") == 0)
+                format = FMT_KBYTE;
+            else if (strcmp(tag_args[i], "mb") == 0)
+                format = FMT_MBYTE;
+            else if (strcmp(tag_args[i], "gb") == 0)
+                format = FMT_GBYTE;
             else if (strcmp(tag_args[i], "min") == 0)
                 kind = VALUE_MIN;
             else if (strcmp(tag_args[i], "max") == 0)
@@ -508,6 +522,21 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 sbuf_append(&formatted, str);
                 break;
             }
+
+            case FMT_KBYTE:
+            case FMT_MBYTE:
+            case FMT_GBYTE: {
+                const long divider =
+                    format == FMT_KBYTE ? 1024 :
+                    format == FMT_MBYTE ? 1024 * 1024 :
+                    format == FMT_GBYTE ? 1024 * 1024 * 1024 :
+                    1;
+
+                char str[24];
+                snprintf(str, sizeof(str), "%lu", tag->as_int(tag) / divider);
+                sbuf_append(&formatted, str);
+                break;
+            }
             }
             break;
 
@@ -527,9 +556,20 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 value = (value - min) * 100 / (max - min);
                 fmt = "%lu";
                 break;
-            }
 
-            
+            case FMT_KBYTE:
+            case FMT_MBYTE:
+            case FMT_GBYTE: {
+                const long divider =
+                    format == FMT_KBYTE ? 1024 :
+                    format == FMT_MBYTE ? 1024 * 1024 :
+                    format == FMT_GBYTE ? 1024 * 1024 * 1024 :
+                    1;
+                value /= divider;
+                fmt = "%lu";
+                break;
+            }
+            }
 
             char str[24];
             snprintf(str, sizeof(str), fmt, value);

@@ -72,6 +72,19 @@ be used.
 :  format
 :  Renders a range tag's value as a percentage value
 :  Range tags
+|  kb
+:  format
+:  Renders a tag's value (in decimal) divided by 1024 (note that no
+   unit suffix is appended)
+|  mb
+:  format
+:  Renders a tag's value (in decimal) divided by 1024^2 (note that no
+   unit suffix is appended)
+|  gb
+:  format
+:  Renders a tag's value (in decimal) divided by 1024^3 (note that no
+   unit suffix is appended)
+:  All tag types
 |  min
 :  selector
 :  Renders a range tag's mininum value

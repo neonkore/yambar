@@ -34,6 +34,8 @@
 * network: `poll-interval` option (for the new `signal` and
   `*-bitrate` tags).
 * tags: percentage formatter, for range tags: `{tag_name:%}`.
+* tags: percentage tag formatter, for range tags: `{tag_name:%}`.
+* tags: kb/mb/gb tag formatters.
 
 
 ### Changed
