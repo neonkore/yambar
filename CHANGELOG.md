@@ -33,6 +33,7 @@
 * network: `ssid`, `signal`, `rx-bitrate` and `rx-bitrate` tags.
 * network: `poll-interval` option (for the new `signal` and
   `*-bitrate` tags).
+* tags: percentage formatter, for range tags: `{tag_name:%}`.
 
 
 ### Changed

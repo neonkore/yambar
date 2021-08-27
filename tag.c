@@ -459,7 +459,7 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         sbuf_append_at_most(&formatted, template, begin - template);
 
         /* Parse arguments */
-        enum { FMT_DEFAULT, FMT_HEX, FMT_OCT } format = FMT_DEFAULT;
+        enum { FMT_DEFAULT, FMT_HEX, FMT_OCT, FMT_PERCENT } format = FMT_DEFAULT;
         enum { VALUE_VALUE, VALUE_MIN, VALUE_MAX, VALUE_UNIT } kind = VALUE_VALUE;
 
         for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
@@ -469,12 +469,16 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 format = FMT_HEX;
             else if (strcmp(tag_args[i], "oct") == 0)
                 format = FMT_OCT;
+            else if (strcmp(tag_args[i], "%") == 0)
+                format = FMT_PERCENT;
             else if (strcmp(tag_args[i], "min") == 0)
                 kind = VALUE_MIN;
             else if (strcmp(tag_args[i], "max") == 0)
                 kind = VALUE_MAX;
             else if (strcmp(tag_args[i], "unit") == 0)
                 kind = VALUE_UNIT;
+            else
+                LOG_WARN("invalid tag formatter: %s", tag_args[i]);
         }
 
         /* Copy tag value */
@@ -493,19 +497,39 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 sbuf_append(&formatted, str);
                 break;
             }
+
+            case FMT_PERCENT: {
+                const long min = tag->min(tag);
+                const long max = tag->max(tag);
+                const long cur = tag->as_int(tag);
+
+                char str[4];
+                snprintf(str, sizeof(str), "%lu", (cur - min) * 100 / (max - min));
+                sbuf_append(&formatted, str);
+                break;
+            }
             }
             break;
 
         case VALUE_MIN:
         case VALUE_MAX: {
-            const long value = kind == VALUE_MIN ? tag->min(tag) : tag->max(tag);
+            const long min = tag->min(tag);
+            const long max = tag->max(tag);
+            long value = kind == VALUE_MIN ? min : max;
 
             const char *fmt;
             switch (format) {
             case FMT_DEFAULT: fmt = "%ld"; break;
             case FMT_HEX:     fmt = "%lx"; break;
             case FMT_OCT:     fmt = "%lo"; break;
+
+            case FMT_PERCENT:
+                value = (value - min) * 100 / (max - min);
+                fmt = "%lu";
+                break;
             }
+
+            
 
             char str[24];
             snprintf(str, sizeof(str), fmt, value);
