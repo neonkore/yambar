@@ -76,10 +76,12 @@ be used.
 :  format
 :  Renders a tag's value (in decimal) divided by 1024 (note that no
    unit suffix is appended)
+:  All tag types
 |  mb
 :  format
 :  Renders a tag's value (in decimal) divided by 1024^2 (note that no
    unit suffix is appended)
+:  All tag types
 |  gb
 :  format
 :  Renders a tag's value (in decimal) divided by 1024^3 (note that no
