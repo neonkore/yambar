@@ -63,6 +63,11 @@ address.
 :  string
 :  yes
 :  Name of network interface to monitor
+|  poll-interval
+:  int
+:  no
+:  Periodically (in seconds) update the signal and rx+tx bitrate tags.
+
 
 # EXAMPLES
 

@@ -9,6 +9,7 @@
 
 #include <threads.h>
 #include <poll.h>
+#include <sys/timerfd.h>
 
 #include <arpa/inet.h>
 #include <linux/if.h>
@@ -41,6 +42,7 @@ struct af_addr {
 struct private {
     char *iface;
     struct particle *label;
+    int poll_interval;
 
     int genl_sock;
     int rt_sock;
@@ -1097,6 +1099,25 @@ run(struct module *mod)
     int ret = 1;
     struct private *m = mod->private;
 
+    int timer_fd = -1;
+    if (m->poll_interval > 0) {
+        timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+        if (timer_fd < 0) {
+            LOG_ERRNO("%s: failed to create poll timer FD", m->iface);
+            goto out;
+        }
+
+        struct itimerspec poll_time = {
+            .it_value = {.tv_sec = m->poll_interval},
+            .it_interval = {.tv_sec = m->poll_interval},
+        };
+
+        if (timerfd_settime(timer_fd, 0, &poll_time, NULL) < 0) {
+            LOG_ERRNO("%s: failed to arm poll timer", m->iface);
+            goto out;
+        }
+    }
+
     m->rt_sock = netlink_connect_rt();
     m->genl_sock = netlink_connect_genl();
 
@@ -1115,9 +1136,10 @@ run(struct module *mod)
             {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = m->rt_sock, .events = POLLIN},
             {.fd = m->genl_sock, .events = POLLIN},
+            {.fd = timer_fd, .events = POLLIN},
         };
 
-        poll(fds, 3, -1);
+        poll(fds, 3 + (timer_fd >= 0 ? 1 : 0), -1);
 
         if (fds[0].revents & (POLLIN | POLLHUP))
             break;
@@ -1126,6 +1148,11 @@ run(struct module *mod)
             (fds[2].revents & POLLHUP))
         {
             LOG_ERR("%s: disconnected from netlink socket", m->iface);
+            break;
+        }
+
+        if (fds[3].revents & POLLHUP) {
+            LOG_ERR("%s: disconnected from timer FD", m->iface);
             break;
         }
 
@@ -1159,6 +1186,17 @@ run(struct module *mod)
 
             free(reply);
         }
+
+        if (fds[3].revents & POLLIN) {
+            uint64_t count;
+            ssize_t amount = read(timer_fd, &count, sizeof(count));
+            if (amount < 0) {
+                LOG_ERRNO("failed to read from timer FD");
+                break;
+            }
+
+            send_nl80211_get_station(m);
+        }
     }
 
     ret = 0;
@@ -1168,16 +1206,19 @@ run(struct module *mod)
         close(m->rt_sock);
     if (m->genl_sock >= 0)
         close(m->genl_sock);
+    if (timer_fd >= 0)
+        close(timer_fd);
     m->rt_sock = m->genl_sock = -1;
     return ret;
 }
 
 static struct module *
-network_new(const char *iface, struct particle *label)
+network_new(const char *iface, struct particle *label, int poll_interval)
 {
     struct private *priv = calloc(1, sizeof(*priv));
     priv->iface = strdup(iface);
     priv->label = label;
+    priv->poll_interval = poll_interval;
 
     priv->genl_sock = -1;
     priv->rt_sock = -1;
@@ -1200,9 +1241,11 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
     const struct yml_node *name = yml_get_value(node, "name");
     const struct yml_node *content = yml_get_value(node, "content");
+    const struct yml_node *poll = yml_get_value(node, "poll-interval");
 
     return network_new(
-        yml_value_as_string(name), conf_to_particle(content, inherited));
+        yml_value_as_string(name), conf_to_particle(content, inherited),
+        poll != NULL ? yml_value_as_int(poll) : 0);
 }
 
 static bool
@@ -1210,6 +1253,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"name", true, &conf_verify_string},
+        {"poll-interval", false, &conf_verify_int},
         MODULE_COMMON_ATTRS,
     };
 
