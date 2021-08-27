@@ -1043,6 +1043,8 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                     mtx_lock(&mod->lock);
                     free(m->ssid);
                     m->ssid = NULL;
+                    m->signal_strength_dbm = 0;
+                    m->rx_bitrate = m->tx_bitrate = 0;
                     mtx_unlock(&mod->lock);
                 }
                 break;
