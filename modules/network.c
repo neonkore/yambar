@@ -544,6 +544,79 @@ handle_address(struct module *mod, uint16_t type,
         mod->bar->refresh(mod->bar);
 }
 
+static void
+foreach_nlattr(struct module *mod, const struct genlmsghdr *genl, size_t len,
+               void (*cb)(struct module *mod, uint16_t type, bool nested,
+                          const void *payload, size_t len))
+{
+    const uint8_t *raw = (const  uint8_t *)genl + NLA_HDRLEN;
+    const uint8_t *end = raw + len;
+
+    for (const struct nlattr *attr = (const struct nlattr *)raw;
+         raw < end;
+         raw += NLA_ALIGN(attr->nla_len), attr = (const struct nlattr *)raw)
+    {
+        uint16_t type = attr->nla_type & NLA_TYPE_MASK;
+        bool nested = !!(attr->nla_type & NLA_F_NESTED);
+
+        cb(mod, type, nested, attr + 1, attr->nla_len - NLA_HDRLEN);
+    }
+}
+
+static void
+handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
+                 const void *payload, size_t len)
+{
+    struct private *m = mod->private;
+
+    switch (type) {
+    case CTRL_ATTR_FAMILY_ID: {
+        m->nl80211.family_id = *(const uint16_t *)payload;
+        if (m->ifindex >= 0)
+            send_nl80211_get_interface_request(m);
+        break;
+    }
+
+    case CTRL_ATTR_FAMILY_NAME:
+        //LOG_INFO("NAME: %.*s (%zu bytes)", (int)len, (const char *)payload, len);
+        break;
+
+    default:
+        LOG_DBG("%s: unrecognized GENL CTRL attribute: "
+                "%hu%s (size: %hu bytes)", m->iface,
+                type, nested ? " (nested)" : "", len);
+        break;
+    }
+}
+
+static void
+handle_nl80211(struct module *mod, uint16_t type, bool nested,
+               const void *payload, size_t len)
+{
+    struct private *m = mod->private;
+
+    switch (type) {
+    case NL80211_ATTR_SSID: {
+        const char *ssid = payload;
+        LOG_INFO("%s: SSID: %.*s", m->iface, (int)len, ssid);
+
+        mtx_lock(&mod->lock);
+        free(m->ssid);
+        m->ssid = strndup(ssid, len);
+        mtx_unlock(&mod->lock);
+
+        mod->bar->refresh(mod->bar);
+        break;
+    }
+
+    default:
+        LOG_DBG("%s: unrecognized nl80211 attribute: "
+                "type=%hu%s, len=%hu", m->iface,
+                type, nested ? " (nested)" : "", len);
+        break;
+    }
+}
+
 /*
  * Reads at least one (possibly more) message.
  *
@@ -643,7 +716,6 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 {
     struct private *m = mod->private;
 
-    /* Process response */
     for (; NLMSG_OK(hdr, len); hdr = NLMSG_NEXT(hdr, len)) {
         if (hdr->nlmsg_seq == m->nl80211.seq_nr) {
             /* Current request is now considered complete */
@@ -652,92 +724,26 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 
         if (hdr->nlmsg_type == GENL_ID_CTRL) {
             const struct genlmsghdr *genl = NLMSG_DATA(hdr);
-            const size_t attr_size = NLMSG_PAYLOAD(hdr, 0);
-
-            const uint8_t *p = (const uint8_t *)(genl + 1);
-            const uint8_t *end = (const uint8_t *)genl + attr_size;
-            const struct nlattr *attr = (const struct nlattr *)p;
-
-            for (; p < end;
-                 p += NLA_ALIGN(attr->nla_len),
-                     attr = (const struct nlattr *)p)
-            {
-                bool nested UNUSED = attr->nla_type & NLA_F_NESTED;
-                uint16_t type = attr->nla_type & NLA_TYPE_MASK;
-
-                switch (type) {
-                case CTRL_ATTR_FAMILY_ID: {
-                    m->nl80211.family_id = *(const uint16_t *)(attr + 1);
-                    if (m->ifindex >= 0)
-                        send_nl80211_get_interface_request(m);
-                    break;
-                }
-
-                case CTRL_ATTR_FAMILY_NAME: {
-#if 0
-                    unsigned name_len = attr->nla_len - NLA_HDRLEN;
-                    const char *name = (const char *)(attr + 1);
-                    LOG_INFO("NAME: %.*s (%u bytes)", name_len, name, name_len);
-#endif
-                    break;
-                }
-
-                default:
-                    LOG_DBG("%s: unrecognized GENL CTRL attribute: "
-                            "%hu%s (size: %hu bytes)", m->iface,
-                            type, nested ? " (nested)" : "", attr->nla_len);
-                    break;
-                }
-            }
+            const size_t msg_size = NLMSG_PAYLOAD(hdr, 0);
+            foreach_nlattr(mod, genl, msg_size, &handle_genl_ctrl);
         }
 
         else if (hdr->nlmsg_type == m->nl80211.family_id) {
             const struct genlmsghdr *genl = NLMSG_DATA(hdr);
-            const size_t attr_size = NLMSG_PAYLOAD(hdr, 0);
-
-            const uint8_t *p = (const uint8_t *)(genl + 1);
-            const uint8_t *end = (const uint8_t *)genl + attr_size;
-            const struct nlattr *attr = (const struct nlattr *)p;
-
-            for (;p < end && attr->nla_len > 0;
-                 p += NLA_ALIGN(attr->nla_len),
-                     attr = (const struct nlattr *)p)
-            {
-                bool nested UNUSED = attr->nla_type & NLA_F_NESTED;
-                uint16_t type = attr->nla_type & NLA_TYPE_MASK;
-
-                switch (type) {
-                case NL80211_ATTR_SSID: {
-                    unsigned ssid_len = attr->nla_len - NLA_HDRLEN;
-                    const char *ssid = (const char *)(attr + 1);
-                    LOG_INFO("%s: SSID: %.*s", m->iface, ssid_len, ssid);
-
-                    mtx_lock(&mod->lock);
-                    free(m->ssid);
-                    m->ssid = strndup(ssid, ssid_len);
-                    mtx_unlock(&mod->lock);
-
-                    mod->bar->refresh(mod->bar);
-                    break;
-                }
-
-                default:
-                    LOG_DBG("%s: unrecognized nl80211 attribute: "
-                            "type=%hu%s, len=%hu", m->iface,
-                            type, nested ? " (nested)" : "", attr->nla_len);
-                    break;
-                }
-            }
+            const size_t msg_size = NLMSG_PAYLOAD(hdr, 0);
+            foreach_nlattr(mod, genl, msg_size, &handle_nl80211);
         }
 
         else if (hdr->nlmsg_type == NLMSG_ERROR) {
             const struct nlmsgerr *err = NLMSG_DATA(hdr);
-            if (-err->error == ENODEV)
+            int nl_errno = -err->error;
+
+            if (nl_errno == ENODEV)
                 ; /* iface is not an nl80211 device */
-            else if (-err->error == ENOENT)
+            else if (nl_errno == ENOENT)
                 ; /* iface down? */
             else
-                LOG_ERRNO_P(-err->error, "%s: nl80211 reply", m->iface);
+                LOG_ERRNO_P(nl_errno, "%s: nl80211 reply", m->iface);
         }
 
         else {
