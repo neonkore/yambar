@@ -30,6 +30,7 @@
 * foreign-toplevel: Wayland module that provides information about
   currently opened windows.
 * alsa: support for capture devices.
+* network: `ssid`, `signal`, `rx-bitrate` and `rx-bitrate` tags.
 
 
 ### Changed
