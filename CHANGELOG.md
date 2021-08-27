@@ -29,6 +29,7 @@
   channels to use as source for the volume level and muted state.
 * foreign-toplevel: Wayland module that provides information about
   currently opened windows.
+* alsa: support for capture devices.
 
 
 ### Changed
