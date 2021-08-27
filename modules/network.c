@@ -1033,6 +1033,7 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                     LOG_DBG("%s: connected, requesting interface information",
                             m->iface);
                     send_nl80211_get_interface(m);
+                    send_nl80211_get_station(m);
                 }
                 break;
 
