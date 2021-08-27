@@ -467,8 +467,17 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             FMT_KBYTE,
             FMT_MBYTE,
             FMT_GBYTE,
+            FMT_KIBYTE,
+            FMT_MIBYTE,
+            FMT_GIBYTE,
         } format = FMT_DEFAULT;
-        enum { VALUE_VALUE, VALUE_MIN, VALUE_MAX, VALUE_UNIT } kind = VALUE_VALUE;
+
+        enum {
+            VALUE_VALUE,
+            VALUE_MIN,
+            VALUE_MAX,
+            VALUE_UNIT,
+        } kind = VALUE_VALUE;
 
         for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
             if (tag_args[i] == NULL)
@@ -485,6 +494,12 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 format = FMT_MBYTE;
             else if (strcmp(tag_args[i], "gb") == 0)
                 format = FMT_GBYTE;
+            else if (strcmp(tag_args[i], "kib") == 0)
+                format = FMT_KIBYTE;
+            else if (strcmp(tag_args[i], "mib") == 0)
+                format = FMT_MIBYTE;
+            else if (strcmp(tag_args[i], "gib") == 0)
+                format = FMT_GIBYTE;
             else if (strcmp(tag_args[i], "min") == 0)
                 kind = VALUE_MIN;
             else if (strcmp(tag_args[i], "max") == 0)
@@ -525,11 +540,17 @@ tags_expand_template(const char *template, const struct tag_set *tags)
 
             case FMT_KBYTE:
             case FMT_MBYTE:
-            case FMT_GBYTE: {
+            case FMT_GBYTE:
+            case FMT_KIBYTE:
+            case FMT_MIBYTE:
+            case FMT_GIBYTE: {
                 const long divider =
                     format == FMT_KBYTE ? 1024 :
                     format == FMT_MBYTE ? 1024 * 1024 :
                     format == FMT_GBYTE ? 1024 * 1024 * 1024 :
+                    format == FMT_KIBYTE ? 1000 :
+                    format == FMT_MIBYTE ? 1000 * 1000 :
+                    format == FMT_GIBYTE ? 1000 * 1000 * 1000 :
                     1;
 
                 char str[24];
@@ -559,11 +580,17 @@ tags_expand_template(const char *template, const struct tag_set *tags)
 
             case FMT_KBYTE:
             case FMT_MBYTE:
-            case FMT_GBYTE: {
+            case FMT_GBYTE:
+            case FMT_KIBYTE:
+            case FMT_MIBYTE:
+            case FMT_GIBYTE: {
                 const long divider =
                     format == FMT_KBYTE ? 1024 :
                     format == FMT_MBYTE ? 1024 * 1024 :
                     format == FMT_GBYTE ? 1024 * 1024 * 1024 :
+                    format == FMT_KIBYTE ? 1000 :
+                    format == FMT_MIBYTE ? 1000 * 1000 :
+                    format == FMT_GIBYTE ? 1000 * 1000 * 1000 :
                     1;
                 value /= divider;
                 fmt = "%lu";

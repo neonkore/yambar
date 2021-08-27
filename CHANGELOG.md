@@ -35,7 +35,7 @@
   `*-bitrate` tags).
 * tags: percentage formatter, for range tags: `{tag_name:%}`.
 * tags: percentage tag formatter, for range tags: `{tag_name:%}`.
-* tags: kb/mb/gb tag formatters.
+* tags: kb/mb/gb, and kib/mib/gib tag formatters.
 
 
 ### Changed

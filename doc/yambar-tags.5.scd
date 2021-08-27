@@ -72,20 +72,14 @@ be used.
 :  format
 :  Renders a range tag's value as a percentage value
 :  Range tags
-|  kb
+|  kb, mb, gb
 :  format
-:  Renders a tag's value (in decimal) divided by 1024 (note that no
-   unit suffix is appended)
+:  Renders a tag's value (in decimal) divided by 1024, 1024^2 or
+   1024^3. Note: no unit suffix is appended)
 :  All tag types
-|  mb
+|  kib, mib, gib
 :  format
-:  Renders a tag's value (in decimal) divided by 1024^2 (note that no
-   unit suffix is appended)
-:  All tag types
-|  gb
-:  format
-:  Renders a tag's value (in decimal) divided by 1024^3 (note that no
-   unit suffix is appended)
+:  Same as *kb*, *mb* and *gb*, but divide by 1000^n instead of 1024^n.
 :  All tag types
 |  min
 :  selector
