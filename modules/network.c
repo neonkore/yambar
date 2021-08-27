@@ -170,8 +170,8 @@ netlink_connect_rt(void)
         .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
     };
 
-    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOG_ERRNO("failed to bind netlink socket");
+    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        LOG_ERRNO("failed to bind netlink RT socket");
         close(sock);
         return -1;
     }
@@ -188,19 +188,18 @@ netlink_connect_genl(void)
         return -1;
     }
 
-#if 0
     const struct sockaddr_nl addr = {
         .nl_family = AF_NETLINK,
         .nl_pid = nl_pid_value(),
-        .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
+        /* no multicast notifications by default, will be added later */
     };
 
-    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
+    if (bind(sock, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
         LOG_ERRNO("failed to bind netlink socket");
         close(sock);
         return -1;
     }
-#endif
+
     return sock;
 }
 
@@ -299,7 +298,8 @@ send_ctrl_get_family_request(struct private *m)
 static bool
 send_nl80211_get_interface_request(struct private *m)
 {
-    assert(m->ifindex >= 0);
+    if (m->ifindex < 0)
+        return true;
 
     if (m->nl80211.seq_nr > 0) {
         LOG_DBG(
@@ -373,8 +373,7 @@ find_my_ifindex(struct module *mod, const struct ifinfomsg *msg, size_t len)
                 m->ifindex = msg->ifi_index;
                 mtx_unlock(&mod->lock);
 
-                if (m->nl80211.family_id >= 0)
-                    send_nl80211_get_interface_request(m);
+                send_nl80211_get_interface_request(m);
                 return true;
             }
 
@@ -424,18 +423,9 @@ handle_link(struct module *mod, uint16_t type,
             LOG_DBG("%s: IFLA_OPERSTATE: %hhu -> %hhu", m->iface, m->state, operstate);
 
             mtx_lock(&mod->lock);
-            {
-                m->state = operstate;
-                if (operstate != IF_OPER_UP) {
-                    free(m->ssid);
-                    m->ssid = NULL;
-                }
-            }
+            m->state = operstate;
             mtx_unlock(&mod->lock);
             update_bar = true;
-
-            if (operstate == IF_OPER_UP)
-                send_nl80211_get_interface_request(m);
             break;
         }
 
@@ -544,26 +534,113 @@ handle_address(struct module *mod, uint16_t type,
         mod->bar->refresh(mod->bar);
 }
 
-static void
+static bool
 foreach_nlattr(struct module *mod, const struct genlmsghdr *genl, size_t len,
-               void (*cb)(struct module *mod, uint16_t type, bool nested,
+               bool (*cb)(struct module *mod, uint16_t type, bool nested,
                           const void *payload, size_t len))
 {
-    const uint8_t *raw = (const  uint8_t *)genl + NLA_HDRLEN;
-    const uint8_t *end = raw + len;
+    const uint8_t *raw = (const uint8_t *)genl + GENL_HDRLEN;
+    const uint8_t *end = (const uint8_t *)genl + len;
 
     for (const struct nlattr *attr = (const struct nlattr *)raw;
          raw < end;
          raw += NLA_ALIGN(attr->nla_len), attr = (const struct nlattr *)raw)
     {
         uint16_t type = attr->nla_type & NLA_TYPE_MASK;
-        bool nested = !!(attr->nla_type & NLA_F_NESTED);
+        bool nested = (attr->nla_type & NLA_F_NESTED) != 0;;
+        const void *payload = raw + NLA_HDRLEN;
 
-        cb(mod, type, nested, attr + 1, attr->nla_len - NLA_HDRLEN);
+        if (!cb(mod, type, nested, payload, attr->nla_len - NLA_HDRLEN))
+            return false;
     }
+
+    return true;
 }
 
-static void
+static bool
+foreach_nlattr_nested(struct module *mod, const void *parent_payload, size_t len,
+                      bool (*cb)(struct module *mod, uint16_t type,
+                                 bool nested, const void *payload, size_t len,
+                                 void *ctx),
+                      void *ctx)
+{
+    const uint8_t *raw = parent_payload;
+    const uint8_t *end = parent_payload + len;
+
+    for (const struct nlattr *attr = (const struct nlattr *)raw;
+         raw < end;
+         raw += NLA_ALIGN(attr->nla_len), attr = (const struct nlattr *)raw)
+    {
+        uint16_t type = attr->nla_type & NLA_TYPE_MASK;
+        bool nested = (attr->nla_type & NLA_F_NESTED) != 0;
+        const void *payload = raw + NLA_HDRLEN;
+
+        if (!cb(mod, type, nested, payload, attr->nla_len - NLA_HDRLEN, ctx))
+            return false;
+    }
+
+    return true;
+}
+
+struct mcast_group {
+    uint32_t id;
+    char *name;
+};
+
+static bool
+parse_mcast_group(struct module *mod, uint16_t type, bool nested,
+                  const void *payload, size_t len, void *_ctx)
+{
+    struct private *m = mod->private;
+    struct mcast_group *ctx = _ctx;
+
+    switch (type) {
+    case CTRL_ATTR_MCAST_GRP_ID: {
+        ctx->id = *(uint32_t *)payload;
+        break;
+    }
+
+    case CTRL_ATTR_MCAST_GRP_NAME: {
+        free(ctx->name);
+        ctx->name = strndup((const char *)payload, len);
+        break;
+    }
+
+    default:
+        LOG_WARN("%s: unrecognized GENL MCAST GRP attribute: "
+                 "%hu%s (size: %zu bytes)", m->iface,
+                 type, nested ? " (nested)" : "", len);
+        break;
+    }
+
+    return true;
+}
+
+static bool
+parse_mcast_groups(struct module *mod, uint16_t type, bool nested,
+                   const void *payload, size_t len, void *_ctx)
+{
+    struct private *m = mod->private;
+
+    struct mcast_group group = {0};
+    foreach_nlattr_nested(mod, payload, len, &parse_mcast_group, &group);
+
+    LOG_DBG("MCAST: %s -> %u", group.name, group.id);
+
+    if (strcmp(group.name, NL80211_MULTICAST_GROUP_MLME) == 0) {
+        int r = setsockopt(
+            m->genl_sock, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
+            &group.id, sizeof(int));
+
+        if (r < 0)
+            LOG_ERRNO("failed to joint the nl80211 MLME mcast group");
+    }
+
+    free(group.name);
+    return true;
+}
+
+static bool
 handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
                  const void *payload, size_t len)
 {
@@ -572,8 +649,7 @@ handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
     switch (type) {
     case CTRL_ATTR_FAMILY_ID: {
         m->nl80211.family_id = *(const uint16_t *)payload;
-        if (m->ifindex >= 0)
-            send_nl80211_get_interface_request(m);
+        send_nl80211_get_interface_request(m);
         break;
     }
 
@@ -581,24 +657,55 @@ handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
         //LOG_INFO("NAME: %.*s (%zu bytes)", (int)len, (const char *)payload, len);
         break;
 
+    case CTRL_ATTR_MCAST_GROUPS:
+        foreach_nlattr_nested(mod, payload, len, &parse_mcast_groups, NULL);
+        break;
+
     default:
         LOG_DBG("%s: unrecognized GENL CTRL attribute: "
-                "%hu%s (size: %hu bytes)", m->iface,
+                "%hu%s (size: %zu bytes)", m->iface,
                 type, nested ? " (nested)" : "", len);
         break;
     }
+
+    return true;
 }
 
-static void
-handle_nl80211(struct module *mod, uint16_t type, bool nested,
-               const void *payload, size_t len)
+static bool
+check_for_nl80211_ifindex(struct module *mod, uint16_t type, bool nested,
+                          const void *payload, size_t len)
 {
     struct private *m = mod->private;
 
     switch (type) {
+    case NL80211_ATTR_IFINDEX:
+        return *(uint32_t *)payload == m->ifindex;
+    }
+
+    return true;
+}
+
+static bool
+nl80211_is_for_us(struct module *mod, const struct genlmsghdr *genl,
+                   size_t msg_size)
+{
+    return foreach_nlattr(mod, genl, msg_size, &check_for_nl80211_ifindex);
+}
+
+static bool
+handle_nl80211_new_interface(struct module *mod, uint16_t type, bool nested,
+                             const void *payload, size_t len)
+{
+    struct private *m = mod->private;
+
+    switch (type) {
+    case NL80211_ATTR_IFINDEX:
+        assert(*(uint32_t *)payload == m->ifindex);
+        break;
+
     case NL80211_ATTR_SSID: {
         const char *ssid = payload;
-        LOG_INFO("%s: SSID: %.*s", m->iface, (int)len, ssid);
+        LOG_INFO("%s: SSID: %.*s (type=%hhu)", m->iface, (int)len, ssid, type);
 
         mtx_lock(&mod->lock);
         free(m->ssid);
@@ -611,10 +718,12 @@ handle_nl80211(struct module *mod, uint16_t type, bool nested,
 
     default:
         LOG_DBG("%s: unrecognized nl80211 attribute: "
-                "type=%hu%s, len=%hu", m->iface,
+                "type=%hu%s, len=%zu", m->iface,
                 type, nested ? " (nested)" : "", len);
         break;
     }
+
+    return true;
 }
 
 /*
@@ -731,7 +840,48 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
         else if (hdr->nlmsg_type == m->nl80211.family_id) {
             const struct genlmsghdr *genl = NLMSG_DATA(hdr);
             const size_t msg_size = NLMSG_PAYLOAD(hdr, 0);
-            foreach_nlattr(mod, genl, msg_size, &handle_nl80211);
+
+            switch (genl->cmd) {
+            case NL80211_CMD_NEW_INTERFACE:
+                if (nl80211_is_for_us(mod, genl, msg_size)) {
+                    LOG_DBG("%s: got interface information", m->iface);
+                    foreach_nlattr(
+                        mod, genl, msg_size, &handle_nl80211_new_interface);
+                }
+                break;
+
+            case NL80211_CMD_CONNECT:
+                /*
+                 * Update SSID
+                 *
+                 * Unfortunately, the SSID doesn’t appear to be
+                 * included in *any* of the notifications sent when
+                 * associating, authenticating and connecting to a
+                 * station.
+                 *
+                 * Thus, we need to explicitly request an update.
+                 */
+                if (nl80211_is_for_us(mod, genl, msg_size)) {
+                    LOG_DBG("%s: connected, requesting interface information",
+                            m->iface);
+                    send_nl80211_get_interface_request(m);
+                }
+                break;
+
+            case NL80211_CMD_DISCONNECT:
+                if (nl80211_is_for_us(mod, genl, msg_size)) {
+                    LOG_DBG("%s: disconnected, resetting SSID etc", m->iface);
+                    mtx_lock(&mod->lock);
+                    free(m->ssid);
+                    m->ssid = NULL;
+                    mtx_unlock(&mod->lock);
+                }
+                break;
+
+            default:
+                LOG_DBG("unrecognized nl80211 command: %hhu", genl->cmd);
+                break;
+            }
         }
 
         else if (hdr->nlmsg_type == NLMSG_ERROR) {
