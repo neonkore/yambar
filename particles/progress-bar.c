@@ -74,7 +74,7 @@ begin_expose(struct exposable *exposable)
 
     /* Margins */
     if (have_at_least_one) {
-        exposable->width = exposable->particle->left_margin +
+        exposable->width += exposable->particle->left_margin +
             exposable->particle->right_margin;
     } else
         assert(exposable->width == 0);
