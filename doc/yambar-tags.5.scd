@@ -38,9 +38,59 @@ The available tag *types* are:
 
 # FORMATTING
 
-As mentioned above, each tag type has a default representation that is
-used when the tag is rendered by a string particle.
+A tag may be followed by one or more formatters that alter the tags
+rendition.
 
-All integer, floating point and boolean tag types can be modified to
-instead be rendered in hexadecimal or octal form, by appending either
-the *:hex* or *:oct* suffixes. For example, _\"{tag_name:hex}\"_.
+Formatters are added by appending a ':' separated list of formatter
+names:
+
+	"{tag_name:max:hex}"
+
+In the table below, "kind" describes the type of action performed by
+the formatter:
+
+- *format*: changes the representation of the tag's value
+- *selector*: changes what to render
+
+In general, formatters of the same kind cannot be combined; if
+multiple formatters of the same kind are specified, the last one will
+be used.
+
+[[ *Formatter*
+:[ *Kind*
+:[ *Description*
+:[ *Applies to*]
+|  hex
+:  format
+:  Renders a tag's value in hex
+:  All tag types
+|  oct
+:  format
+:  Renders a tag's value in octal
+:  All tag types
+|  %
+:  format
+:  Renders a range tag's value as a percentage value
+:  Range tags
+|  kb, mb, gb
+:  format
+:  Renders a tag's value (in decimal) divided by 1024, 1024^2 or
+   1024^3. Note: no unit suffix is appended)
+:  All tag types
+|  kib, mib, gib
+:  format
+:  Same as *kb*, *mb* and *gb*, but divide by 1000^n instead of 1024^n.
+:  All tag types
+|  min
+:  selector
+:  Renders a range tag's minimum value
+:  Range tags
+|  max
+:  selector
+:  Renders a range tag's maximum value
+:  Range tags
+|  unit
+:  selector
+:  Renders a realtime tag's unit (e.g. "s", or "ms")
+:  Realtime tags
+

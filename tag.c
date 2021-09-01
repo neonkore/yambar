@@ -459,8 +459,25 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         sbuf_append_at_most(&formatted, template, begin - template);
 
         /* Parse arguments */
-        enum { FMT_DEFAULT, FMT_HEX, FMT_OCT } format = FMT_DEFAULT;
-        enum { VALUE_VALUE, VALUE_MIN, VALUE_MAX, VALUE_UNIT } kind = VALUE_VALUE;
+        enum {
+            FMT_DEFAULT,
+            FMT_HEX,
+            FMT_OCT,
+            FMT_PERCENT,
+            FMT_KBYTE,
+            FMT_MBYTE,
+            FMT_GBYTE,
+            FMT_KIBYTE,
+            FMT_MIBYTE,
+            FMT_GIBYTE,
+        } format = FMT_DEFAULT;
+
+        enum {
+            VALUE_VALUE,
+            VALUE_MIN,
+            VALUE_MAX,
+            VALUE_UNIT,
+        } kind = VALUE_VALUE;
 
         for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
             if (tag_args[i] == NULL)
@@ -469,12 +486,28 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 format = FMT_HEX;
             else if (strcmp(tag_args[i], "oct") == 0)
                 format = FMT_OCT;
+            else if (strcmp(tag_args[i], "%") == 0)
+                format = FMT_PERCENT;
+            else if (strcmp(tag_args[i], "kb") == 0)
+                format = FMT_KBYTE;
+            else if (strcmp(tag_args[i], "mb") == 0)
+                format = FMT_MBYTE;
+            else if (strcmp(tag_args[i], "gb") == 0)
+                format = FMT_GBYTE;
+            else if (strcmp(tag_args[i], "kib") == 0)
+                format = FMT_KIBYTE;
+            else if (strcmp(tag_args[i], "mib") == 0)
+                format = FMT_MIBYTE;
+            else if (strcmp(tag_args[i], "gib") == 0)
+                format = FMT_GIBYTE;
             else if (strcmp(tag_args[i], "min") == 0)
                 kind = VALUE_MIN;
             else if (strcmp(tag_args[i], "max") == 0)
                 kind = VALUE_MAX;
             else if (strcmp(tag_args[i], "unit") == 0)
                 kind = VALUE_UNIT;
+            else
+                LOG_WARN("invalid tag formatter: %s", tag_args[i]);
         }
 
         /* Copy tag value */
@@ -493,18 +526,76 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 sbuf_append(&formatted, str);
                 break;
             }
+
+            case FMT_PERCENT: {
+                const long min = tag->min(tag);
+                const long max = tag->max(tag);
+                const long cur = tag->as_int(tag);
+
+                char str[4];
+                snprintf(str, sizeof(str), "%lu", (cur - min) * 100 / (max - min));
+                sbuf_append(&formatted, str);
+                break;
+            }
+
+            case FMT_KBYTE:
+            case FMT_MBYTE:
+            case FMT_GBYTE:
+            case FMT_KIBYTE:
+            case FMT_MIBYTE:
+            case FMT_GIBYTE: {
+                const long divider =
+                    format == FMT_KBYTE ? 1024 :
+                    format == FMT_MBYTE ? 1024 * 1024 :
+                    format == FMT_GBYTE ? 1024 * 1024 * 1024 :
+                    format == FMT_KIBYTE ? 1000 :
+                    format == FMT_MIBYTE ? 1000 * 1000 :
+                    format == FMT_GIBYTE ? 1000 * 1000 * 1000 :
+                    1;
+
+                char str[24];
+                snprintf(str, sizeof(str), "%lu", tag->as_int(tag) / divider);
+                sbuf_append(&formatted, str);
+                break;
+            }
             }
             break;
 
         case VALUE_MIN:
         case VALUE_MAX: {
-            const long value = kind == VALUE_MIN ? tag->min(tag) : tag->max(tag);
+            const long min = tag->min(tag);
+            const long max = tag->max(tag);
+            long value = kind == VALUE_MIN ? min : max;
 
             const char *fmt;
             switch (format) {
             case FMT_DEFAULT: fmt = "%ld"; break;
             case FMT_HEX:     fmt = "%lx"; break;
             case FMT_OCT:     fmt = "%lo"; break;
+
+            case FMT_PERCENT:
+                value = (value - min) * 100 / (max - min);
+                fmt = "%lu";
+                break;
+
+            case FMT_KBYTE:
+            case FMT_MBYTE:
+            case FMT_GBYTE:
+            case FMT_KIBYTE:
+            case FMT_MIBYTE:
+            case FMT_GIBYTE: {
+                const long divider =
+                    format == FMT_KBYTE ? 1024 :
+                    format == FMT_MBYTE ? 1024 * 1024 :
+                    format == FMT_GBYTE ? 1024 * 1024 * 1024 :
+                    format == FMT_KIBYTE ? 1000 :
+                    format == FMT_MIBYTE ? 1000 * 1000 :
+                    format == FMT_GIBYTE ? 1000 * 1000 * 1000 :
+                    1;
+                value /= divider;
+                fmt = "%lu";
+                break;
+            }
             }
 
             char str[24];
