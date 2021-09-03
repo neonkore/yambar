@@ -1,13 +1,14 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.7.0](#1-7-0)
 * [1.6.2](#1-6-2)
 * [1.6.1](#1-6-1)
 * [1.6.0](#1-6-0)
 * [1.5.0](#1-5-0)
 
 
-## Unreleased
+## 1.7.0
+
 ### Added
 
 * i3: `persistent` attribute, allowing persistent workspaces
@@ -46,8 +47,6 @@
   (https://codeberg.org/dnkl/yambar/issues/86).
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * `yambar --backend=wayland` always erroring out with _”yambar was
@@ -58,7 +57,6 @@
   disconnected (https://codeberg.org/dnkl/yambar/issues/61).
 
 
-### Security
 ### Contributors
 
 * [paemuri](https://codeberg.org/paemuri)
