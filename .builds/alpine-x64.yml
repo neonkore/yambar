@@ -37,6 +37,11 @@ tasks:
       pip install codespell
       cd yambar
       ~/.local/bin/codespell README.md CHANGELOG.md *.c *.h doc/*.scd
+  - fcft: |
+      cd yambar/subprojects
+      git clone https://codeberg.org/dnkl/fcft.git
+      cd fcft && git checkout 3.0-dev && cd ..
+      cd ../..
   - setup: |
       mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
       meson --buildtype=debug -Db_coverage=true yambar bld/debug

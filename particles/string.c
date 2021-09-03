@@ -5,6 +5,7 @@
 #define LOG_MODULE "string"
 #define LOG_ENABLE_DBG 0
 #include "../log.h"
+#include "../char32.h"
 #include "../config.h"
 #include "../config-verify.h"
 #include "../particle.h"
@@ -87,7 +88,7 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
      * its descent. This way, the part of the font *above* the
      * baseline is centered.
      *
-     * "EEEE" will typically be dead center, with the middle of each character being in the bar's center. 
+     * "EEEE" will typically be dead center, with the middle of each character being in the bar's center.
      * "eee" will be slightly below the center.
      * "jjj" will be even further below the center.
      *
@@ -149,7 +150,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     struct eprivate *e = calloc(1, sizeof(*e));
     struct fcft_font *font = particle->font;
 
-    wchar_t *wtext = NULL;
+    char32_t *wtext = NULL;
     char *text = tags_expand_template(p->text, tags);
 
     e->glyphs = e->allocated_glyphs = NULL;
@@ -173,17 +174,13 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
         }
     }
 
-    /* Not in cache - we need to rasterize it. First, convert to wchar */
-    size_t chars = mbstowcs(NULL, text, 0);
-    if (chars == (size_t)-1)
-        goto done;
-
-    wtext = malloc((chars + 1) * sizeof(wtext[0]));
-    mbstowcs(wtext, text, chars + 1);
+    /* Not in cache - we need to rasterize it. First, convert to char32_t */
+    wtext = ambstoc32(text);
+    size_t chars = c32len(wtext);
 
     /* Truncate, if necessary */
     if (p->max_len > 0) {
-        const size_t len = wcslen(wtext);
+        const size_t len = c32len(wtext);
         if (len > p->max_len) {
 
             size_t end = p->max_len;
@@ -193,11 +190,11 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
             }
 
             if (p->max_len > 1) {
-                wtext[end] = L'…';
-                wtext[end + 1] = L'\0';
+                wtext[end] = U'…';
+                wtext[end + 1] = U'\0';
                 chars = end + 1;
             } else {
-                wtext[end] = L'\0';
+                wtext[end] = U'\0';
                 chars = 0;
             }
         }
@@ -206,7 +203,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     e->kern_x = calloc(chars, sizeof(e->kern_x[0]));
 
     if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
-        struct fcft_text_run *run = fcft_text_run_rasterize(
+        struct fcft_text_run *run = fcft_rasterize_text_run_utf32(
             font, chars, wtext, FCFT_SUBPIXEL_NONE);
 
         if (run != NULL) {
@@ -250,7 +247,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
         /* Convert text to glyph masks/images. */
         for (size_t i = 0; i < chars; i++) {
-            const struct fcft_glyph *glyph = fcft_glyph_rasterize(
+            const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(
                 font, wtext[i], FCFT_SUBPIXEL_NONE);
 
             if (glyph == NULL)

@@ -27,6 +27,10 @@ versions:
 debug:
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - apk add gcovr
     - mkdir -p bld/debug
     - cd bld/debug
@@ -55,6 +59,10 @@ debug:
 release:
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/release
     - cd bld/release
     - meson --buildtype=minsize ../../
@@ -64,6 +72,10 @@ release:
 x11_only:
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Dbackend-x11=enabled -Dbackend-wayland=disabled ../../
@@ -73,6 +85,10 @@ x11_only:
 wayland_only:
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Dbackend-x11=disabled -Dbackend-wayland=enabled ../../
@@ -82,6 +98,10 @@ wayland_only:
 plugins_as_shared_modules:
   stage: build
   script:
+    - cd subprojects
+    - git clone https://codeberg.org/dnkl/fcft.git
+    - cd fcft && git checkout 3.0-dev && cd ..
+    - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
     - meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true ../../
