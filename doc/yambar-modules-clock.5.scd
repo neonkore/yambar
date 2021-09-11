@@ -29,6 +29,10 @@ clock - This module provides the current date and time
 :  string
 :  no
 :  *strftime* formatter for the _date_ date (default=*%x*)
+|  utc
+:  bool
+:  no
+:  Use GMT instead of local timezone (default=false)
 
 # EXAMPLES
 

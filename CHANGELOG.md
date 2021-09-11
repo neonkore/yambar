@@ -53,7 +53,7 @@
 * tags: percentage formatter, for range tags: `{tag_name:%}`.
 * tags: percentage tag formatter, for range tags: `{tag_name:%}`.
 * tags: kb/mb/gb, and kib/mib/gib tag formatters.
-
+* clock: add a config option to show UTC time.
 
 ### Changed
 
