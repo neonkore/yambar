@@ -14,6 +14,11 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* `left-margin` and `right-margin` from being rejected as invalid
+  options.
+
+
 ### Security
 ### Contributors
 
