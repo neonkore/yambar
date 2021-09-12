@@ -22,6 +22,7 @@ struct private {
     } update_granularity;
     char *date_format;
     char *time_format;
+    bool utc;
 };
 
 static void
@@ -46,7 +47,7 @@ content(struct module *mod)
 {
     const struct private *m = mod->private;
     time_t t = time(NULL);
-    struct tm *tm = localtime(&t);
+    struct tm *tm = m->utc ? gmtime(&t) : localtime(&t);
 
     char date_str[1024];
     strftime(date_str, sizeof(date_str), m->date_format, tm);
@@ -131,12 +132,13 @@ run(struct module *mod)
 }
 
 static struct module *
-clock_new(struct particle *label, const char *date_format, const char *time_format)
+clock_new(struct particle *label, const char *date_format, const char *time_format, bool utc)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->label = label;
     m->date_format = strdup(date_format);
     m->time_format = strdup(time_format);
+    m->utc = utc;
 
     static const char *const seconds_formatters[] = {
         "%c",
@@ -178,11 +180,13 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *date_format = yml_get_value(node, "date-format");
     const struct yml_node *time_format = yml_get_value(node, "time-format");
+    const struct yml_node *utc = yml_get_value(node, "utc");
 
     return clock_new(
         conf_to_particle(c, inherited),
         date_format != NULL ? yml_value_as_string(date_format) : "%x",
-        time_format != NULL ? yml_value_as_string(time_format) : "%H:%M");
+        time_format != NULL ? yml_value_as_string(time_format) : "%H:%M",
+        utc != NULL ? yml_value_as_bool(utc) : false);
 }
 
 static bool
@@ -191,6 +195,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"date-format", false, &conf_verify_string},
         {"time-format", false, &conf_verify_string},
+        {"utc", false, &conf_verify_bool},
         MODULE_COMMON_ATTRS,
     };
 
