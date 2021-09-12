@@ -434,8 +434,8 @@ conf_verify_bar(const struct yml_node *bar)
         {"right-spacing", false, &conf_verify_int},
 
         {"margin", false, &conf_verify_int},
-        {"left_margin", false, &conf_verify_int},
-        {"right_margin", false, &conf_verify_int},
+        {"left-margin", false, &conf_verify_int},
+        {"right-margin", false, &conf_verify_int},
 
         {"border", false, &verify_bar_border},
         {"font", false, &conf_verify_font},
