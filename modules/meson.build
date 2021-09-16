@@ -5,8 +5,11 @@ modules = []
 alsa = dependency('alsa')
 udev = dependency('libudev')
 json = dependency('json-c')
-mpd = dependency('libmpdclient')
 xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
+
+# Optional deps
+mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
+plugin_mpd_enabled = mpd.found()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
@@ -16,12 +19,15 @@ mod_data = {
   'clock': [[], []],
   'i3': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
   'label': [[], []],
-  'mpd': [[], [mpd]],
   'network': [[], []],
   'removables': [[], [dynlist, udev]],
   'script': [[], []],
   'sway-xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
 }
+
+if plugin_mpd_enabled
+  mod_data += {'mpd': [[], [mpd]]}
+endif
 
 if backend_x11
   mod_data += {

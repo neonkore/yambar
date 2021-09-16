@@ -11,6 +11,9 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* Made `libmpdclient` an optional dependency
+
 ### Deprecated
 ### Removed
 ### Fixed
@@ -22,6 +25,7 @@
 ### Security
 ### Contributors
 
+* [sochotnicky](https://codeberg.org/sochotnicky)
 
 ## 1.7.0
 
