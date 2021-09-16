@@ -113,6 +113,37 @@ bar:
         content: {string: {text: "{test}"}}
 ```
 
+Another example use case of this module could be to display currently playing
+song or other media from players that support MPRIS (Media Player Remote
+Interfacing Specification):
+
+```
+bar:
+  center:
+    - script:
+        path: /usr/bin/playerctl
+        args:
+          - "--follow"
+          - "metadata"
+          - "-f"
+          - |
+            status|string|{{status}}
+            artist|string|{{artist}}
+            title|string|{{title}}
+        content:
+          map:
+            tag: status
+            values:
+              Paused: {empty: {}}
+              Playing:
+                content: {string: {text: "{artist} - {title}"}}
+```
+
+The above snippet runs a _playerctl_ utility in _--follow_ mode, reacting to
+media updates on DBUS and outputting status, artist and title of media being
+played in a format that is recognized by yambar. See _playerctl_ documentation
+for more available metadata fields and control over which players get used.
+
 # SEE ALSO
 
 *yambar-modules*(5), *yambar-particles*(5), *yambar-tags*(5), *yambar-decorations*(5)
