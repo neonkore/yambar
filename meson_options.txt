@@ -5,3 +5,6 @@ option(
 option(
   'core-plugins-as-shared-libraries', type: 'boolean', value: false,
   description: 'Compiles modules, particles and decorations as shared libraries, which are loaded on-demand')
+option(
+  'plugin-mpd', type: 'feature', value: 'auto',
+  description: 'Music Player Daemon (MPD) support')

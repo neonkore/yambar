@@ -119,6 +119,7 @@ yambar = executable(
   version,
   dependencies: [bar, pixman, yaml, threads, dl, tllist, fcft] +
                 decorations + particles + modules,
+  c_args: [plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[]],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
   install: true,
@@ -151,5 +152,11 @@ summary(
     'Wayland backend': backend_wayland,
     'Core modules as plugins': plugs_as_libs,
   },
+  bool_yn: true
+)
+
+summary(
+  {'Music Player Daemon (MPD)': plugin_mpd_enabled},
+  section: 'Optional modules',
   bool_yn: true
 )

@@ -39,7 +39,9 @@ EXTERN_MODULE(clock);
 EXTERN_MODULE(foreign_toplevel);
 EXTERN_MODULE(i3);
 EXTERN_MODULE(label);
+#if defined(PLUGIN_ENABLED_MPD)
 EXTERN_MODULE(mpd);
+#endif
 EXTERN_MODULE(network);
 EXTERN_MODULE(removables);
 EXTERN_MODULE(river);
@@ -117,7 +119,9 @@ init(void)
 #endif
     REGISTER_CORE_MODULE(i3, i3);
     REGISTER_CORE_MODULE(label, label);
+#if defined(PLUGIN_ENABLED_MPD)
     REGISTER_CORE_MODULE(mpd, mpd);
+#endif
     REGISTER_CORE_MODULE(network, network);
     REGISTER_CORE_MODULE(removables, removables);
 #if defined(HAVE_PLUGIN_river)
