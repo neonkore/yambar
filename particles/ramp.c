@@ -14,6 +14,10 @@
 
 struct private {
     char *tag;
+    bool use_custom_min;
+    long min;
+    bool use_custom_max;
+    long max;
     struct particle **particles;
     size_t count;
 };
@@ -110,6 +114,9 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
     long min = tag != NULL ? tag->min(tag) : 0;
     long max = tag != NULL ? tag->max(tag) : 0;
 
+    min = p->use_custom_min ? p->min : min;
+    max = p->use_custom_max ? p->max : max;
+
     if (min > max) {
         LOG_WARN(
             "tag's minimum value is greater than its maximum: "
@@ -162,13 +169,19 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
 static struct particle *
 ramp_new(struct particle *common, const char *tag,
-         struct particle *particles[], size_t count)
+         struct particle *particles[], size_t count,
+         bool use_custom_min, long min,
+         bool use_custom_max, long max)
 {
 
     struct private *priv = calloc(1, sizeof(*priv));
     priv->tag = strdup(tag);
     priv->particles = malloc(count * sizeof(priv->particles[0]));
     priv->count = count;
+    priv->use_custom_max = use_custom_max;
+    priv->max = max;
+    priv->use_custom_min = use_custom_min;
+    priv->min = min;
 
     for (size_t i = 0; i < count; i++)
         priv->particles[i] = particles[i];
@@ -184,6 +197,8 @@ from_conf(const struct yml_node *node, struct particle *common)
 {
     const struct yml_node *tag = yml_get_value(node, "tag");
     const struct yml_node *items = yml_get_value(node, "items");
+    const struct yml_node *min = yml_get_value(node, "min");
+    const struct yml_node *max = yml_get_value(node, "max");
 
     size_t count = yml_list_length(items);
     struct particle *parts[count];
@@ -197,7 +212,11 @@ from_conf(const struct yml_node *node, struct particle *common)
             it.node, (struct conf_inherit){common->font, common->foreground});
     }
 
-    return ramp_new(common, yml_value_as_string(tag), parts, count);
+    long min_v = min != NULL ? yml_value_as_int(min) : 0;
+    long max_v = max != NULL ? yml_value_as_int(max) : 0;
+
+    return ramp_new(common, yml_value_as_string(tag), parts, count, min != NULL,
+                    min_v, max != NULL, max_v);
 }
 
 static bool
@@ -206,6 +225,8 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"tag", true, &conf_verify_string},
         {"items", true, &conf_verify_particle_list_items},
+        {"min", false, &conf_verify_int},
+        {"max", false, &conf_verify_int},
         PARTICLE_COMMON_ATTRS,
     };
 
