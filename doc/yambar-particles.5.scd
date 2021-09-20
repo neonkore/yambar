@@ -229,13 +229,15 @@ indicator.
 |  min
 :  int
 :  no
-:  If present this will be used as a lower bound instead of the tags minimum value.
-   Tag values falling outside the defined range will get clamped to min/max.
+:  If present this will be used as a lower bound instead of the tags
+   minimum value.  Tag values falling outside the defined range will
+   get clamped to min/max.
 |  max
 :  int
 :  no
-:  If present this will be used as an upper bound instead of the tags maximum value.
-   Tag values falling outside the defined range will get clamped to min/max.
+:  If present this will be used as an upper bound instead of the tags
+   maximum value.  Tag values falling outside the defined range will
+   get clamped to min/max.
 
 ## EXAMPLES
 
