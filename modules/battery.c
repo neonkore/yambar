@@ -20,7 +20,7 @@
 #include "../config-verify.h"
 #include "../plugin.h"
 
-enum state { STATE_FULL, STATE_NOTCHARGING, STATE_CHARGING, STATE_DISCHARGING };
+enum state { STATE_FULL, STATE_NOTCHARGING, STATE_CHARGING, STATE_DISCHARGING, STATE_UNKNOWN };
 
 struct private {
     struct particle *label;
@@ -76,7 +76,8 @@ content(struct module *mod)
     assert(m->state == STATE_FULL ||
            m->state == STATE_NOTCHARGING ||
            m->state == STATE_CHARGING ||
-           m->state == STATE_DISCHARGING);
+           m->state == STATE_DISCHARGING ||
+           m->state == STATE_UNKNOWN);
 
     unsigned long hours;
     unsigned long minutes;
@@ -357,7 +358,7 @@ update_status(struct module *mod)
 
     if (status == NULL) {
         LOG_WARN("failed to read battery state");
-        state = STATE_DISCHARGING;
+        state = STATE_UNKNOWN;
     } else if (strcmp(status, "Full") == 0)
         state = STATE_FULL;
     else if (strcmp(status, "Not charging") == 0)
@@ -367,10 +368,10 @@ update_status(struct module *mod)
     else if (strcmp(status, "Discharging") == 0)
         state = STATE_DISCHARGING;
     else if (strcmp(status, "Unknown") == 0)
-        state = STATE_DISCHARGING;
+        state = STATE_UNKNOWN;
     else {
         LOG_ERR("unrecognized battery state: %s", status);
-        state = STATE_DISCHARGING;
+        state = STATE_UNKNOWN;
     }
 
     LOG_DBG("capacity: %ld, energy: %ld, power: %ld, charge=%ld, current=%ld, "
@@ -464,7 +465,7 @@ battery_new(const char *battery, struct particle *label, int poll_interval_secs)
     m->label = label;
     m->poll_interval = poll_interval_secs;
     m->battery = strdup(battery);
-    m->state = STATE_DISCHARGING;
+    m->state = STATE_UNKNOWN;
 
     struct module *mod = module_common_new();
     mod->private = m;
