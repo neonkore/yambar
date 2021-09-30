@@ -437,8 +437,10 @@ run(struct module *mod)
 
         if (fds[1].revents & POLLIN) {
             struct udev_device *dev = udev_monitor_receive_device(mon);
-            const char *sysname = udev_device_get_sysname(dev);
+            if (dev == NULL)
+                continue;
 
+            const char *sysname = udev_device_get_sysname(dev);
             bool is_us = sysname != NULL && strcmp(sysname, m->battery) == 0;
             udev_device_unref(dev);
 
