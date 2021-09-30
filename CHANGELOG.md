@@ -15,6 +15,9 @@
 ### Changed
 
 * Made `libmpdclient` an optional dependency
+* battery: unknown battery states are now mapped to ‘unknown’, instead
+  of ‘discharging’.
+
 
 ### Deprecated
 ### Removed
