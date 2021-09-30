@@ -9,7 +9,9 @@
 #include <pthread.h>
 
 #include <sys/mman.h>
+#ifdef __linux__
 #include <linux/memfd.h>
+#endif
 #include <linux/input-event-codes.h>
 
 #include <pixman.h>
