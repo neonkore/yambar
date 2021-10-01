@@ -571,6 +571,9 @@ run(struct module *mod)
 
         if (fds[1].revents & POLLIN) {
             struct udev_device *dev = udev_monitor_receive_device(dev_mon);
+            if (dev == NULL)
+                continue;
+
             if (handle_udev_event(mod, dev))
                 update = true;
             udev_device_unref(dev);

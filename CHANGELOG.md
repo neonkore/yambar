@@ -25,6 +25,9 @@
 
 * `left-margin` and `right-margin` from being rejected as invalid
   options.
+* Crash when `udev_monitor_receive_device()` returned `NULL`. This
+  affected the “backlight”, “battery” and “removables” modules
+  (https://codeberg.org/dnkl/yambar/issues/109).
 
 
 ### Security
