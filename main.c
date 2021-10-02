@@ -374,7 +374,7 @@ main(int argc, char *const *argv)
     }
 
     if (aborted)
-        LOG_INFO("aborted: %s (%d)", strsignal(aborted), aborted);
+        LOG_INFO("aborted: %s (%ld)", strsignal(aborted), (long)aborted);
 
 done:
     /* Signal abort to other threads */

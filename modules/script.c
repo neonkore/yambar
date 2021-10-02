@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <poll.h>
 #include <fcntl.h>

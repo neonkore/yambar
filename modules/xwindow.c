@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <threads.h>
+#include <libgen.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
