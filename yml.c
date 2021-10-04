@@ -9,6 +9,8 @@
 #include <yaml.h>
 #include <tllist.h>
 
+#define UNUSED __attribute__((unused))
+
 enum yml_error {
     YML_ERR_NONE,
     YML_ERR_DUPLICATE_KEY,
@@ -380,7 +382,7 @@ yml_load(FILE *yml, char **error)
     yaml_parser_set_input_file(&yaml, yml);
 
     bool done = false;
-    int indent = 0;
+    int indent UNUSED = 0;
 
     struct yml_node *root = malloc(sizeof(*root));
     root->type = ROOT;
