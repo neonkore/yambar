@@ -1,3 +1,5 @@
+[![CI status](https://ci.codeberg.org/api/badges/dnkl/yambar/status.svg)](https://ci.codeberg.org/dnkl/yambar)
+
 # Yambar
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/yambar.svg)](https://repology.org/project/yambar/versions)
