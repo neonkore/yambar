@@ -1,8 +1,3 @@
-clone:
-  git:
-    image: plugins/git
-    tags: true
-
 pipeline:
   codespell:
     when: { branch: master }

@@ -13,7 +13,14 @@ out_file=${3}
 if [ -d "${src_dir}/.git" ] && command -v git > /dev/null; then
     workdir=$(pwd)
     cd "${src_dir}"
-    git_version=$(git describe --always --tags)
+
+    if git describe --tags  > /dev/null 2>&1; then
+        git_version=$(git describe --always --tags)
+    else
+        # No tags available, happens in e.g. CI builds
+        git_version="${default_version}"
+    fi
+
     git_branch=$(git rev-parse --abbrev-ref HEAD)
     cd "${workdir}"
 
