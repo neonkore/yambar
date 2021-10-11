@@ -43,6 +43,7 @@ pipeline:
       - mv meson-logs/coveragereport ../../coverage
       - ninja coverage-text
       - tail -2 meson-logs/coverage.txt
+      - ./yambar --version
       - cd ../..
 
       # Release
@@ -51,6 +52,7 @@ pipeline:
       - meson --buildtype=minsize ../../
       - ninja -k0
       - meson test --print-errorlogs
+      - ./yambar --version
       - cd ../..
 
       # X11 only
@@ -59,6 +61,7 @@ pipeline:
       - meson --buildtype=debug -Dbackend-x11=enabled -Dbackend-wayland=disabled ../../
       - ninja -k0
       - meson test --print-errorlogs
+      - ./yambar --version
       - cd ../..
 
       # Wayland only
@@ -67,6 +70,7 @@ pipeline:
       - meson --buildtype=debug -Dbackend-x11=disabled -Dbackend-wayland=enabled ../../
       - ninja -k0
       - meson test --print-errorlogs
+      - ./yambar --version
       - cd ../..
 
   x86:
@@ -88,6 +92,7 @@ pipeline:
       - meson --buildtype=debug ../../
       - ninja -k0
       - meson test --print-errorlogs
+      - ./yambar --version
       - cd ../..
 
       # Release
@@ -96,6 +101,7 @@ pipeline:
       - meson --buildtype=minsize ../../
       - ninja -k0
       - meson test --print-errorlogs
+      - ./yambar --version
       - cd ../..
 
       # Plugins as shared modules
@@ -104,4 +110,5 @@ pipeline:
       - meson --buildtype=debug -Dcore-plugins-as-shared-libraries=true ../../
       - ninja -k0
       - meson test --print-errorlogs
+      - ./yambar --version
       - cd ../..
