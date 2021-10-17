@@ -12,6 +12,8 @@
 ### Added
 * ramp: can now have custom min and max values
   (https://codeberg.org/dnkl/yambar/issues/103).
+
+
 ### Changed
 
 * Made `libmpdclient` an optional dependency
@@ -29,6 +31,8 @@
   affected the “backlight”, “battery” and “removables” modules
   (https://codeberg.org/dnkl/yambar/issues/109).
 * foreign-toplevel: update bar when a top-level is closed.
+* Bar not being mapped on an output before at least one module has
+  “refreshed” it (https://codeberg.org/dnkl/yambar/issues/116).
 
 
 ### Security

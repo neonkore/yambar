@@ -323,6 +323,7 @@ run(struct bar *_bar)
 
     LOG_DBG("all modules started");
 
+    refresh(_bar);
     bar->backend.iface->loop(_bar, &expose, &on_mouse);
 
     LOG_DBG("shutting down");
