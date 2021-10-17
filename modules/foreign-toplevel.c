@@ -372,6 +372,9 @@ closed(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle)
         }
     }
     mtx_unlock(&mod->lock);
+
+    const struct bar *bar = mod->bar;
+    bar->refresh(bar);
 }
 
 static void
