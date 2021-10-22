@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <poll.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -1139,16 +1140,30 @@ loop(struct bar *_bar,
         }
 
         if (fds[2].revents & POLLIN) {
-            uint8_t command;
-            if (read(backend->pipe_fds[0], &command, sizeof(command))
-                != sizeof(command))
-            {
-                LOG_ERRNO("failed to read from command pipe");
-                break;
+            bool do_expose = false;
+
+            /* Coalesce “refresh” commands */
+            size_t count = 0;
+            while (true) {
+                uint8_t command;
+                ssize_t r = read(backend->pipe_fds[0], &command, sizeof(command));
+                if (r < 0 && errno == EAGAIN)
+                    break;
+                if (r != sizeof(command)) {
+                    LOG_ERRNO("failed to read from command pipe");
+                    break;
+                }
+
+                assert(command == 1);
+                if (command == 1) {
+                    count++;
+                    do_expose = true;
+                }
             }
 
-            assert(command == 1);
-            expose(_bar);
+            LOG_DBG("coalesced %zu expose commands", count);
+            if (do_expose)
+                expose(_bar);
         }
 
         if (fds[1].revents & POLLIN) {
