@@ -116,7 +116,6 @@ struct wayland_backend {
     double aggregated_scroll;
     bool have_discrete;
 
-    void (*bar_expose)(const struct bar *bar);
     void (*bar_on_mouse)(struct bar *bar, enum mouse_event event,
                          enum mouse_button btn, int x, int y);
 };
@@ -1111,7 +1110,6 @@ loop(struct bar *_bar,
 
     pthread_setname_np(pthread_self(), "bar(wayland)");
 
-    backend->bar_expose = expose;
     backend->bar_on_mouse = on_mouse;
 
     while (wl_display_prepare_read(backend->display) != 0)
