@@ -1029,7 +1029,7 @@ setup(struct bar *_bar)
     assert(backend->monitor == NULL ||
            backend->width / backend->monitor->scale <= backend->monitor->width_px);
 
-    if (pipe(backend->pipe_fds) == -1) {
+    if (pipe2(backend->pipe_fds, O_CLOEXEC | O_NONBLOCK) == -1) {
         LOG_ERRNO("failed to create pipe");
         return false;
     }
