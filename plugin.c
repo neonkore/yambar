@@ -58,6 +58,7 @@ EXTERN_PARTICLE(ramp);
 EXTERN_PARTICLE(string);
 
 EXTERN_DECORATION(background);
+EXTERN_DECORATION(border);
 EXTERN_DECORATION(stack);
 EXTERN_DECORATION(underline);
 
@@ -144,6 +145,7 @@ init(void)
     REGISTER_CORE_PARTICLE(string, string);
 
     REGISTER_CORE_DECORATION(background, background);
+    REGISTER_CORE_DECORATION(border, border);
     REGISTER_CORE_DECORATION(stack, stack);
     REGISTER_CORE_DECORATION(underline, underline);
 
