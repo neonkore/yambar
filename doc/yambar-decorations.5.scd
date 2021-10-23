@@ -70,6 +70,39 @@ content:
         color: ff0000ff
 ```
 
+
+# BORDER
+
+This decoration renders a border of configurable size (i.e border
+width) around the particle.
+
+## CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  color
+:  color
+:  yes
+:  The color of the line. See *yambar*(5) for format.
+|  size
+:  int
+:  no
+:  Border width, in pixels. Defaults to 1px.
+
+## EXAMPLES
+
+```
+content:
+  string:
+    deco:
+      border:
+        size: 2
+        color: ff0000ff
+```
+
+
 # STACK
 
 This particles combines multiple decorations.
