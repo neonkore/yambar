@@ -33,6 +33,8 @@
 * foreign-toplevel: update bar when a top-level is closed.
 * Bar not being mapped on an output before at least one module has
   “refreshed” it (https://codeberg.org/dnkl/yambar/issues/116).
+* network: failure to retrieve wireless attributes (SSID, RX/TX
+  bitrate, signal strength etc).
 
 
 ### Security
