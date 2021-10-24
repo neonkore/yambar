@@ -12,6 +12,7 @@
 ### Added
 * ramp: can now have custom min and max values
   (https://codeberg.org/dnkl/yambar/issues/103).
+* border: new decoration.
 
 
 ### Changed
