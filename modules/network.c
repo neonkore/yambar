@@ -695,6 +695,7 @@ handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
     case CTRL_ATTR_FAMILY_ID: {
         m->nl80211.family_id = *(const uint16_t *)payload;
         send_nl80211_get_interface(m);
+        send_nl80211_get_station(m);
         break;
     }
 
