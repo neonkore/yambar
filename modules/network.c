@@ -310,6 +310,9 @@ send_nl80211_request(struct private *m, uint8_t cmd, uint16_t flags, uint32_t se
     if (m->ifindex < 0)
         return false;
 
+    if (m->nl80211.family_id == (uint16_t)-1)
+        return false;
+
     const struct {
         struct nlmsghdr hdr;
         struct {
