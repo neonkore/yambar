@@ -310,6 +310,9 @@ send_nl80211_request(struct private *m, uint8_t cmd, uint16_t flags, uint32_t se
     if (m->ifindex < 0)
         return false;
 
+    if (m->nl80211.family_id == (uint16_t)-1)
+        return false;
+
     const struct {
         struct nlmsghdr hdr;
         struct {
@@ -692,6 +695,7 @@ handle_genl_ctrl(struct module *mod, uint16_t type, bool nested,
     case CTRL_ATTR_FAMILY_ID: {
         m->nl80211.family_id = *(const uint16_t *)payload;
         send_nl80211_get_interface(m);
+        send_nl80211_get_station(m);
         break;
     }
 
