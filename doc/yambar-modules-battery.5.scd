@@ -8,6 +8,17 @@ battery - This module reads battery status
 This module reads battery status from _/sys/class/power_supply_ and
 uses *udev* to monitor for changes.
 
+Note that it is common (and "normal") for batteries to be in the state
+*unknown* under certain conditions.
+
+For example, some have been seen to enter the *unknown* state when
+charging and the capacity reaches ~90%. The battery then stays in
+*unknown*, rather than *charging*, until it has been fully charged and
+enters the state *full*.
+
+This does not happen with all batteries, and other batteries may enter
+the state *unknown* under other conditions.
+
 # TAGS
 
 [[ *Name*
