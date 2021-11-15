@@ -76,12 +76,12 @@ void exposable_default_on_mouse(
     enum mouse_event event, enum mouse_button btn, int x, int y);
 
 /* List of attributes *all* particles implement */
-#define PARTICLE_COMMON_ATTRS                      \
-    {"margin", false, &conf_verify_int},           \
-    {"left-margin", false, &conf_verify_int},      \
-    {"right-margin", false, &conf_verify_int},     \
-    {"on-click", false, &conf_verify_on_click},    \
-    {"font", false, &conf_verify_font},            \
-    {"foreground", false, &conf_verify_color},     \
-    {"deco", false, &conf_verify_decoration},      \
+#define PARTICLE_COMMON_ATTRS                           \
+    {"margin", false, &conf_verify_unsigned},           \
+    {"left-margin", false, &conf_verify_unsigned},      \
+    {"right-margin", false, &conf_verify_unsigned},     \
+    {"on-click", false, &conf_verify_on_click},         \
+    {"font", false, &conf_verify_font},                 \
+    {"foreground", false, &conf_verify_color},          \
+    {"deco", false, &conf_verify_decoration},           \
     {NULL, false, NULL}
