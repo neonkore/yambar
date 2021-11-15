@@ -1025,7 +1025,8 @@ setup(struct bar *_bar)
         ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
         top_or_bottom);
 
-    update_size(backend);
+    if (!update_size(backend))
+        return false;
 
     assert(backend->monitor == NULL ||
            backend->width / backend->monitor->scale <= backend->monitor->width_px);

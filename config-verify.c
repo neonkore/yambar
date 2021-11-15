@@ -51,6 +51,17 @@ conf_verify_int(keychain_t *chain, const struct yml_node *node)
 }
 
 bool
+conf_verify_unsigned(keychain_t *chain, const struct yml_node *node)
+{
+    if (yml_value_is_int(node) && yml_value_as_int(node) >= 0)
+        return true;
+
+    LOG_ERR("%s: value is not a positive integer: '%s'",
+            conf_err_prefix(chain, node), yml_value_as_string(node));
+    return false;
+}
+
+bool
 conf_verify_bool(keychain_t *chain, const struct yml_node *node)
 {
     if (yml_value_is_bool(node))
@@ -381,17 +392,17 @@ static bool
 verify_bar_border(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"width", false, &conf_verify_int},
-        {"left-width", false, &conf_verify_int},
-        {"right-width", false, &conf_verify_int},
-        {"top-width", false, &conf_verify_int},
-        {"bottom-width", false, &conf_verify_int},
+        {"width", false, &conf_verify_unsigned},
+        {"left-width", false, &conf_verify_unsigned},
+        {"right-width", false, &conf_verify_unsigned},
+        {"top-width", false, &conf_verify_unsigned},
+        {"bottom-width", false, &conf_verify_unsigned},
         {"color", false, &conf_verify_color},
-        {"margin", false, &conf_verify_int},
-        {"left-margin", false, &conf_verify_int},
-        {"right-margin", false, &conf_verify_int},
-        {"top-margin", false, &conf_verify_int},
-        {"bottom-margin", false, &conf_verify_int},
+        {"margin", false, &conf_verify_unsigned},
+        {"left-margin", false, &conf_verify_unsigned},
+        {"right-margin", false, &conf_verify_unsigned},
+        {"top-margin", false, &conf_verify_unsigned},
+        {"bottom-margin", false, &conf_verify_unsigned},
         {NULL, false, NULL},
     };
 
@@ -422,20 +433,20 @@ conf_verify_bar(const struct yml_node *bar)
     chain_push(&chain, "bar");
 
     static const struct attr_info attrs[] = {
-        {"height", true, &conf_verify_int},
+        {"height", true, &conf_verify_unsigned},
         {"location", true, &verify_bar_location},
         {"background", true, &conf_verify_color},
 
         {"monitor", false, &conf_verify_string},
         {"layer", false, &verify_bar_layer},
 
-        {"spacing", false, &conf_verify_int},
-        {"left-spacing", false, &conf_verify_int},
-        {"right-spacing", false, &conf_verify_int},
+        {"spacing", false, &conf_verify_unsigned},
+        {"left-spacing", false, &conf_verify_unsigned},
+        {"right-spacing", false, &conf_verify_unsigned},
 
-        {"margin", false, &conf_verify_int},
-        {"left-margin", false, &conf_verify_int},
-        {"right-margin", false, &conf_verify_int},
+        {"margin", false, &conf_verify_unsigned},
+        {"left-margin", false, &conf_verify_unsigned},
+        {"right-margin", false, &conf_verify_unsigned},
 
         {"border", false, &verify_bar_border},
         {"font", false, &conf_verify_font},
@@ -445,7 +456,7 @@ conf_verify_bar(const struct yml_node *bar)
         {"center", false, &verify_module_list},
         {"right", false, &verify_module_list},
 
-        {"trackpad-sensitivity", false, &conf_verify_int},
+        {"trackpad-sensitivity", false, &conf_verify_unsigned},
 
         {NULL, false, NULL},
     };

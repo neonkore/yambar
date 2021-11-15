@@ -32,6 +32,7 @@ const char *conf_err_prefix(
 
 bool conf_verify_string(keychain_t *chain, const struct yml_node *node);
 bool conf_verify_int(keychain_t *chain, const struct yml_node *node);
+bool conf_verify_unsigned(keychain_t *chain, const struct yml_node *node);
 bool conf_verify_bool(keychain_t *chain, const struct yml_node *node);
 
 bool conf_verify_enum(keychain_t *chain, const struct yml_node *node,

@@ -323,7 +323,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"tag", true, &conf_verify_string},
-        {"length", true, &conf_verify_int},
+        {"length", true, &conf_verify_unsigned},
         /* TODO: make these optional? Default to empty */
         {"start", true, &conf_verify_particle},
         {"end", true, &conf_verify_particle},

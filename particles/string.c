@@ -323,7 +323,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"text", true, &conf_verify_string},
-        {"max", false, &conf_verify_int},
+        {"max", false, &conf_verify_unsigned},
         PARTICLE_COMMON_ATTRS,
     };
 
