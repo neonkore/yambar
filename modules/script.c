@@ -709,7 +709,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
     static const struct attr_info attrs[] = {
         {"path", true, &conf_verify_path},
         {"args", false, &conf_verify_args},
-        {"poll-interval", false, &conf_verify_int},
+        {"poll-interval", false, &conf_verify_unsigned},
         MODULE_COMMON_ATTRS,
     };
 

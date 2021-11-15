@@ -1257,7 +1257,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"name", true, &conf_verify_string},
-        {"poll-interval", false, &conf_verify_int},
+        {"poll-interval", false, &conf_verify_unsigned},
         MODULE_COMMON_ATTRS,
     };
 

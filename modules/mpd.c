@@ -616,7 +616,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"host", true, &conf_verify_string},
-        {"port", false, &conf_verify_int},
+        {"port", false, &conf_verify_unsigned},
         MODULE_COMMON_ATTRS,
     };
 
