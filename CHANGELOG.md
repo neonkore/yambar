@@ -36,6 +36,10 @@
   “refreshed” it (https://codeberg.org/dnkl/yambar/issues/116).
 * network: failure to retrieve wireless attributes (SSID, RX/TX
   bitrate, signal strength etc).
+* Integer options that were supposed to be >= 0 were incorrectly
+  allowed, leading to various bad things; including yambar crashing,
+  or worse, the compositor crashing
+  (https://codeberg.org/dnkl/yambar/issues/129).
 
 
 ### Security
