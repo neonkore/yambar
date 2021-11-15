@@ -77,6 +77,7 @@ User defined.
 :  Arguments to pass to the script/binary.
 |  poll-interval
 :  integer
+:  no
 :  Number of seconds between each script run. If unset, continuous mode
    is used.
 
