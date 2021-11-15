@@ -54,7 +54,7 @@ static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"size", true, &conf_verify_int},
+        {"size", true, &conf_verify_unsigned},
         {"color", true, &conf_verify_color},
         DECORATION_COMMON_ATTRS,
     };
