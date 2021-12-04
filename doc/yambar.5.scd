@@ -161,8 +161,8 @@ bar:
 
   right:
     - clock:
-      content:
-        - string: {text: "{time}"}
+        content:
+          - string: {text: "{time}"}
 ```
 
 # FILES
