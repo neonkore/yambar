@@ -215,14 +215,14 @@ setup(struct bar *_bar)
     uint32_t top_pair[2], bottom_pair[2];
 
     if (bar->location == BAR_TOP) {
-        top_strut = backend->y + bar->height_with_border;
+        top_strut = bar->height_with_border;
         top_pair[0] = backend->x;
         top_pair[1] = backend->x + bar->width - 1;
 
         bottom_strut = 0;
         bottom_pair[0] = bottom_pair[1] = 0;
     } else {
-        bottom_strut = screen->height_in_pixels - backend->y;
+        bottom_strut = bar->height_with_border;
         bottom_pair[0] = backend->x;
         bottom_pair[1] = backend->x + bar->width - 1;
 
