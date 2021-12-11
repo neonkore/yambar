@@ -49,6 +49,7 @@ EXTERN_MODULE(sway_xkb);
 EXTERN_MODULE(script);
 EXTERN_MODULE(xkb);
 EXTERN_MODULE(xwindow);
+EXTERN_MODULE(cpu);
 EXTERN_MODULE(mem);
 
 EXTERN_PARTICLE(empty);
@@ -138,6 +139,7 @@ init(void)
     REGISTER_CORE_MODULE(xwindow, xwindow);
 #endif
     REGISTER_CORE_MODULE(mem, mem);
+    REGISTER_CORE_MODULE(cpu, cpu);
 
     REGISTER_CORE_PARTICLE(empty, empty);
     REGISTER_CORE_PARTICLE(list, list);
