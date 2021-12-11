@@ -16,6 +16,7 @@
 * border: new decoration.
 * i3/sway: new boolean tag: `empty`
   (https://codeberg.org/dnkl/yambar/issues/139).
+* mem: a module handling system memory monitoring
 
 
 ### Changed
