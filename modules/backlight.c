@@ -4,6 +4,7 @@
 #include <math.h>
 #include <assert.h>
 #include <unistd.h>
+#include <errno.h>
 #include <poll.h>
 
 #include <sys/stat.h>
@@ -178,15 +179,24 @@ run(struct module *mod)
 
     bar->refresh(bar);
 
+    int ret = 1;
     while (true) {
         struct pollfd fds[] = {
             {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
         };
-        poll(fds, 2, -1);
+        if (poll(fds, sizeof(fds) / sizeof(fds[0]), -1) < 0) {
+            if (errno == EINTR)
+                continue;
 
-        if (fds[0].revents & POLLIN)
+            LOG_ERRNO("failed to poll");
             break;
+        }
+
+        if (fds[0].revents & POLLIN) {
+            ret = 0;
+            break;
+        }
 
         struct udev_device *dev = udev_monitor_receive_device(mon);
         if (dev == NULL)
@@ -209,7 +219,7 @@ run(struct module *mod)
     udev_unref(udev);
 
     close(current_fd);
-    return 0;
+    return ret;
 }
 
 static struct module *
