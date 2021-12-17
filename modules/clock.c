@@ -131,7 +131,8 @@ run(struct module *mod)
 }
 
 static struct module *
-clock_new(struct particle *label, const char *date_format, const char *time_format, bool utc)
+clock_new(struct particle *label, const char *date_format,
+          const char *time_format, bool utc)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->label = label;
