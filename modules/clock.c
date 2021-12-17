@@ -67,7 +67,6 @@ content(struct module *mod)
     return exposable;
 }
 
-#include <pthread.h>
 static int
 run(struct module *mod)
 {
