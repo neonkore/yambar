@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <poll.h>
 #include <sys/time.h>
@@ -74,6 +75,8 @@ run(struct module *mod)
     const struct bar *bar = mod->bar;
     bar->refresh(bar);
 
+    int ret = 1;
+
     while (true) {
         struct timespec _now;
         clock_gettime(CLOCK_REALTIME, &_now);
@@ -119,15 +122,23 @@ run(struct module *mod)
                 now.tv_sec, now.tv_usec, timeout_ms);
 
         struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
-        poll(fds, 1, timeout_ms);
+        if (poll(fds, 1, timeout_ms) < 0) {
+            if (errno == EINTR)
+                continue;
 
-        if (fds[0].revents & POLLIN)
+            LOG_ERRNO("failed to poll");
             break;
+        }
+
+        if (fds[0].revents & POLLIN) {
+            ret = 0;
+            break;
+        }
 
         bar->refresh(bar);
     }
 
-    return 0;
+    return ret;
 }
 
 static struct module *
