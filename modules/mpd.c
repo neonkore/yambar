@@ -251,7 +251,13 @@ wait_for_socket_create(const struct module *mod)
             {.fd = fd, .events = POLLIN}
         };
 
-        poll(fds, 2, -1);
+        if (poll(fds, sizeof(fds) / sizeof(fds[0]), -1) < 0) {
+            if (errno == EINTR)
+                continue;
+
+            LOG_ERRNO("failed to poll");
+            break;
+        }
 
         if (fds[0].revents & POLLIN) {
             ret = true;
@@ -377,8 +383,9 @@ run(struct module *mod)
     struct private *m = mod->private;
 
     bool aborted = false;
+    int ret = 0;
 
-    while (!aborted) {
+    while (!aborted && ret == 0) {
 
         if (m->conn != NULL) {
             mpd_connection_free(m->conn);
@@ -396,7 +403,7 @@ run(struct module *mod)
         mtx_unlock(&mod->lock);
 
         /* Keep trying to connect, until we succeed */
-        while (!aborted) {
+        while (!aborted && ret == 0) {
             if (m->port == 0) {
                 /* Use inotify to watch for socket creation */
                 aborted = wait_for_socket_create(mod);
@@ -414,16 +421,27 @@ run(struct module *mod)
              * host), wait for a while until we try to re-connect
              * again.
              */
-            struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
-            int res = poll(fds, 1, 10 * 1000);
+            while (!aborted) {
+                struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
+                int res = poll(fds, sizeof(fds) / sizeof(fds[0]), 10 * 1000);
 
-            if (res == 1) {
-                assert(fds[0].revents & POLLIN);
-                aborted = true;
+                if (res < 0) {
+                    if (errno == EINTR)
+                        continue;
+
+                    LOG_ERRNO("failed to poll");
+                    ret = 1;
+                    break;
+                }
+
+                if (res == 1) {
+                    assert(fds[0].revents & POLLIN);
+                    aborted = true;
+                }
             }
         }
 
-        if (aborted)
+        if (aborted || ret != 0)
             break;
 
         /* Initial state (after establishing a connection) */
@@ -446,7 +464,14 @@ run(struct module *mod)
                 break;
             }
 
-            poll(fds, 2, -1);
+            if (poll(fds, sizeof(fds) / sizeof(fds[0]), -1) < 0) {
+                if (errno == EINTR)
+                    continue;
+
+                LOG_ERRNO("failed to poll");
+                ret = 1;
+                break;
+            }
 
             if (fds[0].revents & POLLIN) {
                 aborted = true;
@@ -477,7 +502,7 @@ run(struct module *mod)
         m->conn = NULL;
     }
 
-    return 0;
+    return aborted ? 0 : ret;
 }
 
 struct refresh_context {

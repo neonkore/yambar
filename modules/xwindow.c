@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 #include <unistd.h>
 #include <threads.h>
 #include <libgen.h>
@@ -247,14 +248,24 @@ run(struct module *mod)
     update_title(mod);
     mod->bar->refresh(mod->bar);
 
+    int ret = 1;
+
     int xcb_fd = xcb_get_file_descriptor(m->conn);
     while (true) {
         struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN},
                                {.fd = xcb_fd, .events = POLLIN}};
-        poll(fds, 2, -1);
+        if (poll(fds, sizeof(fds) / sizeof(fds[0]), -1) < 0) {
+            if (errno == EINTR)
+                continue;
 
-        if (fds[0].revents & POLLIN)
+            LOG_ERRNO("failed to poll");
             break;
+        }
+
+        if (fds[0].revents & POLLIN) {
+            ret = 0;
+            break;
+        }
 
         for (xcb_generic_event_t *_e = xcb_wait_for_event(m->conn);
              _e != NULL;
@@ -293,7 +304,7 @@ run(struct module *mod)
 
     xcb_destroy_window(m->conn, m->monitor_win);
     xcb_disconnect(m->conn);
-    return 0;
+    return ret;
 }
 
 static struct exposable *

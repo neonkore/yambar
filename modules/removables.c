@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <poll.h>
 #include <sys/stat.h>
@@ -547,16 +548,26 @@ run(struct module *mod)
      * mount/unmount operations */
     int mount_info_fd = open("/proc/self/mountinfo", O_RDONLY);
 
+    int ret = 1;
+
     while (true) {
         struct pollfd fds[] = {
             {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = udev_monitor_get_fd(dev_mon), .events = POLLIN},
             {.fd = mount_info_fd, .events = POLLPRI},
         };
-        poll(fds, 3, -1);
+        if (poll(fds, sizeof(fds) / sizeof(fds[0]), -1) < 0) {
+            if (errno == EINTR)
+                continue;
 
-        if (fds[0].revents & POLLIN)
+            LOG_ERRNO("failed to poll");
             break;
+        }
+
+        if (fds[0].revents & POLLIN) {
+            ret = 0;
+            break;
+        }
 
         bool update = false;
 
@@ -587,7 +598,7 @@ run(struct module *mod)
 
     udev_monitor_unref(dev_mon);
     udev_unref(udev);
-    return 0;
+    return ret;
 }
 
 static struct module *

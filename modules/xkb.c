@@ -399,7 +399,14 @@ event_loop(struct module *mod, xcb_connection_t *conn, int xkb_event_base)
         };
 
         /* Use poll() since xcb_wait_for_events() doesn't return on signals */
-        poll(pfds, sizeof(pfds) / sizeof(pfds[0]), -1);
+        if (poll(pfds, sizeof(pfds) / sizeof(pfds[0]), -1) < 0) {
+            if (errno == EINTR)
+                continue;
+
+            LOG_ERRNO("failed to poll");
+            break;
+        }
+
         if (pfds[0].revents & POLLIN) {
             ret = true;
             break;
