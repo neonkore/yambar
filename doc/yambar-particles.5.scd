@@ -36,14 +36,55 @@ following attributes are supported by all particles:
 :  no
 :  Foreground (text) color. Just like _font_, this is an inherited attribute.
 |  on-click
+:  associative array/string
+:  no
+:  When set to a string, executes the string as a command when the particle 
+   is left-clicked. Tags can be used. Note that the string is *not* 
+   executed in a shell. The same applies to all attributes associated with
+   it, below.
+|  on-click.left
 :  string
 :  no
-:  Command to execute when the particle is clicked. Tags can be
-   used. Note that the string is *not* executed in a shell.
+:  Command to execute when the particle is left-clicked.
+|  on-click.right
+:  string
+:  no
+:  Command to execute when the particle is right-clicked.
+|  on-click.middle
+:  string
+:  no
+:  Command to execute when the particle is middle-clicked.
+|  on-click.wheel-up
+:  string
+:  no
+:  Command to execute every time a 'wheel-up' event is triggered.
+|  on-click.wheel-down
+:  string
+:  no
+:  Command to execute every time a 'wheel-down' event is triggered.
 |  deco
 :  decoration
 :  no
 :  Decoration to apply to the particle. See *yambar-decorations*(5)
+
+## EXAMPLES:
+
+*on-click* as a string (handles left click):
+```
+content:
+  <particle>:
+    on-click: command args
+```
+
+*on-click* as an associative array (handles other buttons):
+```
+content:
+  <particle>:
+    on-click:
+      left: command-1
+      wheel-up: command-3
+      wheel-down: command-4
+```
 
 # STRING
 
