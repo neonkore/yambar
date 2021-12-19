@@ -37,6 +37,7 @@ struct workspace {
     bool visible;
     bool focused;
     bool urgent;
+    bool empty;
 
     struct {
         unsigned id;
@@ -85,13 +86,16 @@ static bool
 workspace_from_json(const struct json_object *json, struct workspace *ws)
 {
     /* Always present */
-    struct json_object *name, *output;
+    struct json_object *name, *output, *focus;
     if (!json_object_object_get_ex(json, "name", &name) ||
-        !json_object_object_get_ex(json, "output", &output))
+        !json_object_object_get_ex(json, "output", &output) ||
+        !json_object_object_get_ex(json, "focus", &focus))
     {
-        LOG_ERR("workspace reply/event without 'name' and/or 'output' property");
+        LOG_ERR("workspace reply/event without 'name' and/or 'output', "
+                "and/or 'focus' properties");
         return false;
     }
+
 
     /* Optional */
     struct json_object *visible = NULL, *focused = NULL, *urgent = NULL;
@@ -101,6 +105,9 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
 
     const char *name_as_string = json_object_get_string(name);
 
+    const size_t node_count = json_object_array_length(focus);
+    const bool is_empty = node_count == 0;
+
     *ws = (struct workspace) {
         .name = strdup(name_as_string),
         .name_as_int = workspace_name_as_int(name_as_string),
@@ -109,6 +116,7 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
         .visible = json_object_get_boolean(visible),
         .focused = json_object_get_boolean(focused),
         .urgent = json_object_get_boolean(urgent),
+        .empty = is_empty,
         .window = {.title = NULL, .pid = -1},
     };
 
@@ -353,6 +361,7 @@ handle_workspace_event(int type, const struct json_object *json, void *_mod)
         else {
             workspace_free(ws);
             ws->name = strdup(current_name);
+            ws->empty = true;
             assert(ws->persistent);
         }
     }
@@ -425,11 +434,12 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
     }
 
     const char *change_str = json_object_get_string(change);
+    bool is_new = strcmp(change_str, "new") == 0;
     bool is_focus = strcmp(change_str, "focus") == 0;
     bool is_close = strcmp(change_str, "close") == 0;
     bool is_title = strcmp(change_str, "title") == 0;
 
-    if (!is_focus && !is_close && !is_title)
+    if (!is_new && !is_focus && !is_close && !is_title)
         return true;
 
     mtx_lock(&mod->lock);
@@ -454,11 +464,18 @@ handle_window_event(int type, const struct json_object *json, void *_mod)
         ws->window.title = ws->window.application = NULL;
         ws->window.pid = -1;
 
+        /* May not be true, but e.g. a subsequent “focus” event will
+         * reset it... */
+        ws->empty = true;
+
         m->dirty = true;
         mtx_unlock(&mod->lock);
         return true;
 
     }
+
+    /* Non-close event - thus workspace cannot be empty */
+    ws->empty = false;
 
     struct json_object *container, *id, *name;
     if (!json_object_object_get_ex(json, "container", &container) ||
@@ -602,6 +619,7 @@ run(struct module *mod)
             .name = strdup(name_as_string),
             .name_as_int = workspace_name_as_int(name_as_string),
             .persistent = true,
+            .empty = true,
         };
         workspace_add(m, ws);
     }
@@ -695,12 +713,25 @@ content(struct module *mod)
             ws->visible ? ws->focused ? "focused" : "unfocused" :
             "invisible";
 
+        LOG_DBG("%s: visible=%s, focused=%s, urgent=%s, empty=%s, state=%s, "
+                "application=%s, title=%s, mode=%s",
+                ws->name,
+                ws->visible ? "yes" : "no",
+                ws->focused ? "yes" : "no",
+                ws->urgent ? "yes" : "no",
+                ws->empty ? "yes" : "no",
+                state,
+                ws->window.application,
+                ws->window.title,
+                m->mode);
+
         struct tag_set tags = {
             .tags = (struct tag *[]){
                 tag_new_string(mod, "name", ws->name),
                 tag_new_bool(mod, "visible", ws->visible),
                 tag_new_bool(mod, "focused", ws->focused),
                 tag_new_bool(mod, "urgent", ws->urgent),
+                tag_new_bool(mod, "empty", ws->empty),
                 tag_new_string(mod, "state", state),
 
                 tag_new_string(mod, "application", ws->window.application),
@@ -708,7 +739,7 @@ content(struct module *mod)
 
                 tag_new_string(mod, "mode", m->mode),
             },
-            .count = 8,
+            .count = 9,
         };
 
         if (ws->focused) {
