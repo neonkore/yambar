@@ -10,9 +10,12 @@
 
 ## Unreleased
 ### Added
+
 * ramp: can now have custom min and max values
   (https://codeberg.org/dnkl/yambar/issues/103).
 * border: new decoration.
+* i3/sway: new boolean tag: `empty`
+  (https://codeberg.org/dnkl/yambar/issues/139).
 
 
 ### Changed

@@ -35,6 +35,9 @@ with the _application_ and _title_ tags to replace the X11-only
 |  urgent
 :  bool
 :  True if the workspace has the urgent flag set
+|  empty
+:  bool
+:  True if the workspace is empty
 |  state
 :  string
 :  One of *urgent*, *focused*, *unfocused* or *invisible* (note:
