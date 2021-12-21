@@ -13,6 +13,8 @@ foreach man_src : ['yambar.1.scd', 'yambar.5.scd', 'yambar-decorations.5.scd',
                    'yambar-modules-script.5.scd', 'yambar-modules-sway-xkb.5.scd',
                    'yambar-modules-sway.5.scd', 'yambar-modules-xkb.5.scd',
                    'yambar-modules-xwindow.5.scd', 'yambar-modules.5.scd',
+                   'yambar-modules-cpu.5.scd',
+                   'yambar-modules-mem.5.scd',
                    'yambar-particles.5.scd', 'yambar-tags.5.scd']
   parts = man_src.split('.')
   name = parts[-3]
