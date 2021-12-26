@@ -18,6 +18,9 @@
   (https://codeberg.org/dnkl/yambar/issues/139).
 * mem: a module handling system memory monitoring
 * cpu: a module offering cpu usage monitoring
+* removables: support for audio CDs
+  (https://codeberg.org/dnkl/yambar/issues/146).
+* removables: new boolean tag: `audio`.
 
 
 ### Changed
