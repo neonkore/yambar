@@ -46,6 +46,7 @@ struct monitor {
     struct wl_output *output;
     struct zxdg_output_v1 *xdg;
     char *name;
+    uint32_t wl_name;
 
     int x;
     int y;
@@ -96,6 +97,7 @@ struct wayland_backend {
 
     tll(struct monitor) monitors;
     const struct monitor *monitor;
+    char *last_mapped_monitor;
 
     int scale;
 
@@ -113,6 +115,7 @@ struct wayland_backend {
     tll(struct buffer) buffers;     /* List of SHM buffers */
     struct buffer *next_buffer;     /* Bar is rendering to this one */
     struct buffer *pending_buffer;  /* Finished, but not yet rendered */
+    struct wl_callback *frame_callback;
 
     double aggregated_scroll;
     bool have_discrete;
@@ -492,12 +495,35 @@ output_scale(void *data, struct wl_output *wl_output, int32_t factor)
     }
 }
 
+#if defined(WL_OUTPUT_NAME_SINCE_VERSION)
+static void
+output_name(void *data, struct wl_output *wl_output, const char *name)
+{
+    struct monitor *mon = data;
+    free(mon->name);
+    mon->name = name != NULL ? strdup(name) : NULL;
+}
+#endif
+
+#if defined(WL_OUTPUT_DESCRIPTION_SINCE_VERSION)
+static void
+output_description(void *data, struct wl_output *wl_output,
+                   const char *description)
+{
+}
+#endif
 
 static const struct wl_output_listener output_listener = {
     .geometry = &output_geometry,
     .mode = &output_mode,
     .done = &output_done,
     .scale = &output_scale,
+#if defined(WL_OUTPUT_NAME_SINCE_VERSION)
+    .name = &output_name,
+#endif
+#if defined(WL_OUTPUT_DESCRIPTION_SINCE_VERSION)
+    .description = &output_description,
+#endif
 };
 
 static void
@@ -519,6 +545,9 @@ xdg_output_handle_logical_size(void *data, struct zxdg_output_v1 *xdg_output,
     mon->height_px = height;
 }
 
+static bool create_surface(struct wayland_backend *backend);
+static void destroy_surface(struct wayland_backend *backend);
+
 static void
 xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
 {
@@ -531,13 +560,40 @@ xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
     struct wayland_backend *backend = mon->backend;
     struct private *bar = backend->bar->private;
 
-    if (bar->monitor != NULL && mon->name != NULL &&
-        strcmp(bar->monitor, mon->name) == 0)
-    {
-        /* User specified a monitor, and this is one */
-        backend->monitor = mon;
+    const bool is_mapped = backend->monitor != NULL;
+    if (is_mapped) {
+        assert(backend->surface != NULL);
+        assert(backend->last_mapped_monitor == NULL);
+        return;
     }
 
+    const bool output_is_our_configured_monitor = (
+        bar->monitor != NULL &&
+        mon->name != NULL &&
+        strcmp(bar->monitor, mon->name) == 0);
+
+    const bool output_is_last_mapped = (
+        backend->last_mapped_monitor != NULL &&
+        mon->name != NULL &&
+        strcmp(backend->last_mapped_monitor, mon->name) == 0);
+
+    if (output_is_our_configured_monitor)
+        LOG_DBG("%s: using this monitor (user configured)", mon->name);
+    else if (output_is_last_mapped)
+        LOG_DBG("%s: using this monitor (last mapped)", mon->name);
+
+    if (output_is_our_configured_monitor || output_is_last_mapped) {
+        /* User specified a monitor, and this is one */
+        backend->monitor = mon;
+
+        free(backend->last_mapped_monitor);
+        backend->last_mapped_monitor = NULL;
+
+        if (create_surface(backend) && update_size(backend)) {
+            if (backend->pipe_fds[1] >= 0)
+                refresh(backend->bar);
+        }
+    }
 }
 
 static void
@@ -610,6 +666,7 @@ handle_global(void *data, struct wl_registry *registry,
 
         tll_push_back(backend->monitors, ((struct monitor){
                     .backend  = backend,
+                    .wl_name = name,
                     .output = output}));
 
         struct monitor *mon = &tll_back(backend->monitors);
@@ -679,9 +736,23 @@ handle_global_remove(void *data, struct wl_registry *registry, uint32_t name)
         }
     }
 
-    LOG_WARN("unknown global removed: 0x%08x", name);
+    tll_foreach(backend->monitors, it) {
+        struct monitor *mon = &it->item;
+        if (mon->wl_name == name) {
+            LOG_INFO("%s disconnected/disabled", mon->name);
 
-    /* TODO: need to handle displays and seats */
+            if (mon == backend->monitor) {
+                assert(backend->last_mapped_monitor == NULL);
+                backend->last_mapped_monitor = strdup(mon->name);
+                backend->monitor = NULL;
+            }
+
+            tll_remove(backend->monitors, it);
+            return;
+        }
+    }
+
+    LOG_WARN("unknown global removed: 0x%08x", name);
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -703,28 +774,92 @@ layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *surface,
 static void
 layer_surface_closed(void *data, struct zwlr_layer_surface_v1 *surface)
 {
+    LOG_DBG("layer surface closed by compositor");
+
     struct wayland_backend *backend = data;
-
-    /*
-     * Called e.g. when an output is disabled. We don't get a
-     * corresponding event if/when that same output re-appears. So,
-     * for now, we simply shut down. In the future, we _could_ maybe
-     * destroy the surface, listen for output events and re-create the
-     * surface if the same output re-appears.
-     */
-    LOG_WARN("compositor requested surface be closed - shutting down");
-
-    if (write(backend->bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t))
-        != sizeof(uint64_t))
-    {
-        LOG_ERRNO("failed to signal abort to modules");
-    }
+    destroy_surface(backend);
 }
 
 static const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
     .configure = &layer_surface_configure,
     .closed = &layer_surface_closed,
 };
+
+static const struct wl_surface_listener surface_listener;
+
+static bool
+create_surface(struct wayland_backend *backend)
+{
+    assert(tll_length(backend->monitors) > 0);
+    assert(backend->surface == NULL);
+    assert(backend->layer_surface == NULL);
+
+    struct bar *_bar = backend->bar;
+    struct private *bar = _bar->private;
+
+    backend->surface = wl_compositor_create_surface(backend->compositor);
+    if (backend->surface == NULL) {
+        LOG_ERR("failed to create panel surface");
+        return false;
+    }
+
+    wl_surface_add_listener(backend->surface, &surface_listener, backend);
+
+    enum zwlr_layer_shell_v1_layer layer = bar->layer == BAR_LAYER_BOTTOM
+        ? ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM
+        : ZWLR_LAYER_SHELL_V1_LAYER_TOP;
+
+    backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
+        backend->layer_shell, backend->surface,
+        backend->monitor != NULL ? backend->monitor->output : NULL,
+        layer, "panel");
+
+    if (backend->layer_surface == NULL) {
+        LOG_ERR("failed to create layer shell surface");
+        return false;
+    }
+
+    zwlr_layer_surface_v1_add_listener(
+        backend->layer_surface, &layer_surface_listener, backend);
+
+    /* Aligned to top, maximum width */
+    enum zwlr_layer_surface_v1_anchor top_or_bottom = bar->location == BAR_TOP
+        ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP
+        : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+
+    zwlr_layer_surface_v1_set_anchor(
+        backend->layer_surface,
+        ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+        ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
+        top_or_bottom);
+
+    return true;
+}
+
+static void
+destroy_surface(struct wayland_backend *backend)
+{
+    if (backend->layer_surface != NULL)
+        zwlr_layer_surface_v1_destroy(backend->layer_surface);
+    if (backend->surface != NULL)
+        wl_surface_destroy(backend->surface);
+    if (backend->frame_callback != NULL)
+        wl_callback_destroy(backend->frame_callback);
+
+    if (backend->pending_buffer != NULL)
+        backend->pending_buffer->busy = false;
+    if (backend->next_buffer != NULL)
+        backend->next_buffer->busy = false;
+
+    backend->layer_surface = NULL;
+    backend->surface = NULL;
+    backend->frame_callback = NULL;
+    backend->pending_buffer = NULL;
+    backend->next_buffer = NULL;
+
+    backend->scale = 0;
+    backend->render_scheduled = false;
+}
 
 static void
 buffer_release(void *data, struct wl_buffer *wl_buffer)
@@ -892,6 +1027,8 @@ update_size(struct wayland_backend *backend)
     const struct monitor *mon = backend->monitor;
     const int scale = mon != NULL ? mon->scale : guess_scale(backend);
 
+    assert(backend->surface != NULL);
+
     if (backend->scale == scale)
         return true;
 
@@ -942,8 +1079,6 @@ update_size(struct wayland_backend *backend)
     return true;
 }
 
-static const struct wl_surface_listener surface_listener;
-
 static bool
 setup(struct bar *_bar)
 {
@@ -989,44 +1124,13 @@ setup(struct bar *_bar)
     /* Trigger listeners registered in previous roundtrip */
     wl_display_roundtrip(backend->display);
 
-    backend->surface = wl_compositor_create_surface(backend->compositor);
-    if (backend->surface == NULL) {
-        LOG_ERR("failed to create panel surface");
-        return false;
+    if (backend->surface == NULL && backend->layer_surface == NULL) {
+        if (!create_surface(backend))
+            return false;
+
+        if (!update_size(backend))
+            return false;
     }
-
-    wl_surface_add_listener(backend->surface, &surface_listener, backend);
-
-    enum zwlr_layer_shell_v1_layer layer = bar->layer == BAR_LAYER_BOTTOM
-        ? ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM
-        : ZWLR_LAYER_SHELL_V1_LAYER_TOP;
-
-    backend->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
-        backend->layer_shell, backend->surface,
-        backend->monitor != NULL ? backend->monitor->output : NULL,
-        layer, "panel");
-
-    if (backend->layer_surface == NULL) {
-        LOG_ERR("failed to create layer shell surface");
-        return false;
-    }
-
-    zwlr_layer_surface_v1_add_listener(
-        backend->layer_surface, &layer_surface_listener, backend);
-
-    /* Aligned to top, maximum width */
-    enum zwlr_layer_surface_v1_anchor top_or_bottom = bar->location == BAR_TOP
-        ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP
-        : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
-
-    zwlr_layer_surface_v1_set_anchor(
-        backend->layer_surface,
-        ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
-        ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT |
-        top_or_bottom);
-
-    if (!update_size(backend))
-        return false;
 
     assert(backend->monitor == NULL ||
            backend->width / backend->monitor->scale <= backend->monitor->width_px);
@@ -1051,16 +1155,6 @@ cleanup(struct bar *_bar)
     if (backend->pipe_fds[1] >= 0)
         close(backend->pipe_fds[1]);
 
-    tll_foreach(backend->buffers, it) {
-        if (it->item.wl_buf != NULL)
-            wl_buffer_destroy(it->item.wl_buf);
-        if (it->item.pix != NULL)
-            pixman_image_unref(it->item.pix);
-
-        munmap(it->item.mmapped, it->item.size);
-        tll_remove(backend->buffers, it);
-    }
-
     tll_foreach(backend->monitors, it) {
         struct monitor *mon = &it->item;
         free(mon->name);
@@ -1071,6 +1165,7 @@ cleanup(struct bar *_bar)
             wl_output_release(mon->output);
         tll_remove(backend->monitors, it);
     }
+    free(backend->last_mapped_monitor);
 
     if (backend->xdg_output_manager != NULL)
         zxdg_output_manager_v1_destroy(backend->xdg_output_manager);
@@ -1079,12 +1174,20 @@ cleanup(struct bar *_bar)
         seat_destroy(&it->item);
     tll_free(backend->seats);
 
-    if (backend->layer_surface != NULL)
-        zwlr_layer_surface_v1_destroy(backend->layer_surface);
+    destroy_surface(backend);
+
+    tll_foreach(backend->buffers, it) {
+        if (it->item.wl_buf != NULL)
+            wl_buffer_destroy(it->item.wl_buf);
+        if (it->item.pix != NULL)
+            pixman_image_unref(it->item.pix);
+
+        munmap(it->item.mmapped, it->item.size);
+        tll_remove(backend->buffers, it);
+    }
+
     if (backend->layer_shell != NULL)
         zwlr_layer_shell_v1_destroy(backend->layer_shell);
-    if (backend->surface != NULL)
-        wl_surface_destroy(backend->surface);
     if (backend->compositor != NULL)
         wl_compositor_destroy(backend->compositor);
     if (backend->shm != NULL)
@@ -1209,7 +1312,15 @@ surface_leave(void *data, struct wl_surface *wl_surface,
               struct wl_output *wl_output)
 {
     struct wayland_backend *backend = data;
+    const struct monitor *mon = backend->monitor;
+
+    assert(mon != NULL);
+    assert(mon->output == wl_output);
+
     backend->monitor = NULL;
+
+    assert(backend->last_mapped_monitor == NULL);
+    backend->last_mapped_monitor = mon->name != NULL ? strdup(mon->name) : NULL;
 }
 
 static const struct wl_surface_listener surface_listener = {
@@ -1233,7 +1344,9 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
 
     backend->render_scheduled = false;
 
+    assert(wl_callback == backend->frame_callback);
     wl_callback_destroy(wl_callback);
+    backend->frame_callback = NULL;
 
     if (backend->pending_buffer != NULL) {
         struct buffer *buffer = backend->pending_buffer;
@@ -1248,6 +1361,7 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
         wl_surface_commit(backend->surface);
         wl_display_flush(backend->display);
 
+        backend->frame_callback = cb;
         backend->pending_buffer = NULL;
         backend->render_scheduled = true;
     } else
@@ -1261,6 +1375,9 @@ commit(const struct bar *_bar)
     struct wayland_backend *backend = bar->backend.data;
 
     //printf("commit: %dxl%d\n", backend->width, backend->height);
+
+    if (backend->next_buffer == NULL)
+        return;
 
     assert(backend->next_buffer != NULL);
     assert(backend->next_buffer->busy);
@@ -1289,6 +1406,7 @@ commit(const struct bar *_bar)
         wl_display_flush(backend->display);
 
         backend->render_scheduled = true;
+        backend->frame_callback = cb;
     }
 
     backend->next_buffer = get_buffer(backend);
@@ -1336,7 +1454,7 @@ set_cursor(struct bar *_bar, const char *cursor)
 }
 
 static const char *
-output_name(const struct bar *_bar)
+bar_output_name(const struct bar *_bar)
 {
     const struct private *bar = _bar->private;
     const struct wayland_backend *backend = bar->backend.data;
@@ -1351,5 +1469,5 @@ const struct backend wayland_backend_iface = {
     .commit = &commit,
     .refresh = &refresh,
     .set_cursor = &set_cursor,
-    .output_name = &output_name,
+    .output_name = &bar_output_name,
 };
