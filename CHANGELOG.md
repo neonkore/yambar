@@ -28,6 +28,8 @@
 * Made `libmpdclient` an optional dependency
 * battery: unknown battery states are now mapped to ‘unknown’, instead
   of ‘discharging’.
+* Wayland: the bar no longer exits when the monitor is
+  disabled/unplugged (https://codeberg.org/dnkl/yambar/issues/106).
 
 
 ### Deprecated
