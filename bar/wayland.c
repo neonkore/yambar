@@ -1212,13 +1212,19 @@ loop(struct bar *_bar,
 {
     struct private *bar = _bar->private;
     struct wayland_backend *backend = bar->backend.data;
+    bool send_abort_to_modules = true;
 
     pthread_setname_np(pthread_self(), "bar(wayland)");
 
     backend->bar_on_mouse = on_mouse;
 
-    while (wl_display_prepare_read(backend->display) != 0)
-        wl_display_dispatch_pending(backend->display);
+    while (wl_display_prepare_read(backend->display) != 0) {
+        if (wl_display_dispatch_pending(backend->display) < 0) {
+            LOG_ERRNO("failed to dispatch pending Wayland events");
+            goto out;
+        }
+    }
+
     wl_display_flush(backend->display);
 
     while (true) {
@@ -1230,16 +1236,13 @@ loop(struct bar *_bar,
 
         poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
         if (fds[0].revents & POLLIN) {
+            /* Already done by the bar */
+            send_abort_to_modules = false;
             break;
         }
 
         if (fds[1].revents & POLLHUP) {
             LOG_INFO("disconnected from wayland");
-            if (write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t))
-                != sizeof(uint64_t))
-            {
-                LOG_ERRNO("failed to signal abort to modules");
-            }
             break;
         }
 
@@ -1253,9 +1256,10 @@ loop(struct bar *_bar,
                 ssize_t r = read(backend->pipe_fds[0], &command, sizeof(command));
                 if (r < 0 && errno == EAGAIN)
                     break;
+
                 if (r != sizeof(command)) {
                     LOG_ERRNO("failed to read from command pipe");
-                    break;
+                    goto out;
                 }
 
                 assert(command == 1);
@@ -1271,15 +1275,33 @@ loop(struct bar *_bar,
         }
 
         if (fds[1].revents & POLLIN) {
-            wl_display_read_events(backend->display);
+            if (wl_display_read_events(backend->display) < 0) {
+                LOG_ERRNO("failed to read events from the Wayland socket");
+                goto out;
+            }
 
-            while (wl_display_prepare_read(backend->display) != 0)
-                wl_display_dispatch_pending(backend->display);
+            while (wl_display_prepare_read(backend->display) != 0) {
+                if (wl_display_dispatch_pending(backend->display) < 0) {
+                    LOG_ERRNO("failed to dispatch pending Wayland events");
+                    goto out;
+                }
+            }
+
             wl_display_flush(backend->display);
         }
     }
 
-    wl_display_cancel_read(backend->display);
+out:
+    if (!send_abort_to_modules)
+        return;
+
+    if (write(_bar->abort_fd, &(uint64_t){1}, sizeof(uint64_t))
+        != sizeof(uint64_t))
+    {
+        LOG_ERRNO("failed to signal abort to modules");
+    }
+
+    //wl_display_cancel_read(backend->display);
 }
 
 static void
