@@ -50,6 +50,7 @@
   allowed, leading to various bad things; including yambar crashing,
   or worse, the compositor crashing
   (https://codeberg.org/dnkl/yambar/issues/129).
+* kib/kb, mib/mb and gib/gb formatters were inverted.
 
 
 ### Security

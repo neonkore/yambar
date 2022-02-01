@@ -545,12 +545,12 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             case FMT_MIBYTE:
             case FMT_GIBYTE: {
                 const long divider =
-                    format == FMT_KBYTE ? 1024 :
-                    format == FMT_MBYTE ? 1024 * 1024 :
-                    format == FMT_GBYTE ? 1024 * 1024 * 1024 :
-                    format == FMT_KIBYTE ? 1000 :
-                    format == FMT_MIBYTE ? 1000 * 1000 :
-                    format == FMT_GIBYTE ? 1000 * 1000 * 1000 :
+                    format == FMT_KBYTE ? 1000 :
+                    format == FMT_MBYTE ? 1000 * 1000 :
+                    format == FMT_GBYTE ? 1000 * 1000 * 1000 :
+                    format == FMT_KIBYTE ? 1024 :
+                    format == FMT_MIBYTE ? 1024 * 1024 :
+                    format == FMT_GIBYTE ? 1024 * 1024 * 1024 :
                     1;
 
                 char str[24];
