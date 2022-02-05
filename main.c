@@ -296,8 +296,9 @@ main(int argc, char *const *argv)
                    "fcft log level enum offset");
     _Static_assert((int)LOG_COLORIZE_ALWAYS == (int)FCFT_LOG_COLORIZE_ALWAYS,
                    "fcft colorize enum mismatch");
-    fcft_log_init(
-        (enum fcft_log_colorize)log_colorize, log_syslog, (enum fcft_log_class)log_level);
+    fcft_init((enum fcft_log_colorize)log_colorize, log_syslog,
+              (enum fcft_log_class)log_level);
+    atexit(&fcft_fini);
 
     const struct sigaction sa = {.sa_handler = &signal_handler};
     sigaction(SIGINT, &sa, NULL);

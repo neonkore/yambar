@@ -25,6 +25,7 @@
 
 ### Changed
 
+* fcft >= 3.0 is now required.
 * Made `libmpdclient` an optional dependency
 * battery: unknown battery states are now mapped to ‘unknown’, instead
   of ‘discharging’.
@@ -85,7 +86,6 @@
 * network: `ssid`, `signal`, `rx-bitrate` and `rx-bitrate` tags.
 * network: `poll-interval` option (for the new `signal` and
   `*-bitrate` tags).
-* tags: percentage formatter, for range tags: `{tag_name:%}`.
 * tags: percentage tag formatter, for range tags: `{tag_name:%}`.
 * tags: kb/mb/gb, and kib/mib/gib tag formatters.
 * clock: add a config option to show UTC time.
