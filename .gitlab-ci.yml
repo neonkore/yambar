@@ -29,7 +29,6 @@ debug:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - apk add gcovr
     - mkdir -p bld/debug
@@ -61,7 +60,6 @@ release:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/release
     - cd bld/release
@@ -74,7 +72,6 @@ x11_only:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
@@ -87,7 +84,6 @@ wayland_only:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/debug
     - cd bld/debug
@@ -100,7 +96,6 @@ plugins_as_shared_modules:
   script:
     - cd subprojects
     - git clone https://codeberg.org/dnkl/fcft.git
-    - cd fcft && git checkout 3.0-dev && cd ..
     - cd ..
     - mkdir -p bld/debug
     - cd bld/debug

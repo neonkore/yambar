@@ -40,7 +40,6 @@ tasks:
   - fcft: |
       cd yambar/subprojects
       git clone https://codeberg.org/dnkl/fcft.git
-      cd fcft && git checkout 3.0-dev && cd ..
       cd ../..
   - setup: |
       mkdir -p bld/debug bld/release bld/x11-only bld/wayland-only bld/plugs-are-shared
