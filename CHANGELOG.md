@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.8.0](#1-8-0)
 * [1.7.0](#1-7-0)
 * [1.6.2](#1-6-2)
 * [1.6.1](#1-6-1)
@@ -8,7 +8,8 @@
 * [1.5.0](#1-5-0)
 
 
-## Unreleased
+## 1.8.0
+
 ### Added
 
 * ramp: can now have custom min and max values
@@ -33,8 +34,6 @@
   disabled/unplugged (https://codeberg.org/dnkl/yambar/issues/106).
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * `left-margin` and `right-margin` from being rejected as invalid
@@ -54,10 +53,21 @@
 * kib/kb, mib/mb and gib/gb formatters were inverted.
 
 
-### Security
 ### Contributors
 
 * [sochotnicky](https://codeberg.org/sochotnicky)
+* Alexandre Acebedo
+* anb
+* Baptiste Daroussin
+* Catterwocky
+* horus645
+* Jan Beich
+* mz
+* natemaia
+* nogerine
+* Soc Virnyl S. Estela
+* Vincent Fischer
+
 
 ## 1.7.0
 
