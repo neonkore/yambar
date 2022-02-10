@@ -71,6 +71,38 @@ content:
 ```
 
 
+# OVERLINE
+
+Similar to _underline_, this decoration renders a line of configurable
+size and color at the top of the particle.
+
+## CONFIGURATION
+
+[[ *Name*
+:[ *Type*
+:[ *Req*
+:[ *Description*
+|  size
+:  int
+:  yes
+:  The size (height/thickness) of the line, in pixels
+|  color
+:  color
+:  yes
+:  The color of the line. See *yambar*(5) for format.
+
+## EXAMPLES
+
+```
+content:
+  string:
+    deco:
+      overline:
+        size: 2
+        color: ff0000ff
+```
+
+
 # BORDER
 
 This decoration renders a border of configurable size (i.e border

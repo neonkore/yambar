@@ -1,7 +1,7 @@
 deco_sdk = declare_dependency(dependencies: [pixman, tllist, fcft])
 
 decorations = []
-foreach deco : ['background', 'border', 'stack', 'underline']
+foreach deco : ['background', 'border', 'stack', 'underline', 'overline']
   if plugs_as_libs
     shared_module('@0@'.format(deco), '@0@.c'.format(deco),
                   dependencies: deco_sdk,

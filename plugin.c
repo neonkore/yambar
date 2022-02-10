@@ -63,6 +63,7 @@ EXTERN_DECORATION(background);
 EXTERN_DECORATION(border);
 EXTERN_DECORATION(stack);
 EXTERN_DECORATION(underline);
+EXTERN_DECORATION(overline);
 
 #undef EXTERN_DECORATION
 #undef EXTERN_PARTICLE
@@ -152,6 +153,7 @@ init(void)
     REGISTER_CORE_DECORATION(border, border);
     REGISTER_CORE_DECORATION(stack, stack);
     REGISTER_CORE_DECORATION(underline, underline);
+    REGISTER_CORE_DECORATION(overline, overline);
 
 #undef REGISTER_CORE_DECORATION
 #undef REGISTER_CORE_PARTICLE
