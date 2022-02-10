@@ -12,7 +12,8 @@ and reference them using anchors.
 Besides the normal yaml types, there are a couple of yambar specific
 types that are frequently used:
 
-- *font*: this is a string in _fontconfig_ format. Example of valid values:
+- *font*: this is a comma separated list of fonts in _fontconfig_
+  format. Example of valid values:
 	- Font Awesome 5 Brands
 	- Font Awesome 5 Free:style=solid
 	- Dina:pixelsize=10:slant=italic
@@ -124,7 +125,11 @@ types that are frequently used:
 |  font
 :  font
 :  no
-:  Default font to use in modules and particles
+:  Default font to use in modules and particles. May also be a comma
+   separated list of several fonts, in which case the first font is
+   the primary font, and the rest fallback fonts. These are yambar
+   custom fallback fonts that will be searched before the fontconfig
+   provided fallback list.
 |  foreground
 :  color
 :  no

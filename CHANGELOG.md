@@ -11,6 +11,9 @@
 
 ## Unreleased
 ### Added
+
+* Support for custom font fallbacks
+  (https://codeberg.org/dnkl/yambar/issues/153).
 ### Changed
 ### Deprecated
 ### Removed

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include <dlfcn.h>
 
@@ -66,7 +67,38 @@ conf_to_color(const struct yml_node *node)
 struct fcft_font *
 conf_to_font(const struct yml_node *node)
 {
-    return fcft_from_name(1, &(const char *){yml_value_as_string(node)}, NULL);
+    const char *font_spec = yml_value_as_string(node);
+
+    size_t count = 0;
+    size_t size = 0;
+    const char **fonts = NULL;
+
+    char *copy = strdup(font_spec);
+    for (const char *font = strtok(copy, ",");
+         font != NULL;
+         font = strtok(NULL, ","))
+    {
+        /* Trim spaces, strictly speaking not necessary, but looks nice :) */
+        while (isspace(font[0]))
+            font++;
+
+        if (font[0] == '\0')
+            continue;
+
+        if (count + 1 > size) {
+            size += 4;
+            fonts = realloc(fonts, size * sizeof(fonts[0]));
+        }
+
+        assert(count + 1 <= size);
+        fonts[count++] = font;
+    }
+
+    struct fcft_font *ret = fcft_from_name(count, fonts, NULL);
+
+    free(fonts);
+    free(copy);
+    return ret;
 }
 
 struct deco *
