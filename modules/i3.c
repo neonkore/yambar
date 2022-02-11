@@ -60,6 +60,7 @@ struct private {
         size_t count;
     } ws_content;
 
+    bool strip_workspace_numbers;
     enum sort_mode sort_mode;
     tll(struct workspace) workspaces;
 
@@ -107,10 +108,11 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
 
     const size_t node_count = json_object_array_length(focus);
     const bool is_empty = node_count == 0;
+    int name_as_int = workspace_name_as_int(name_as_string);
 
     *ws = (struct workspace) {
         .name = strdup(name_as_string),
-        .name_as_int = workspace_name_as_int(name_as_string),
+        .name_as_int = name_as_int,
         .persistent = false,
         .output = strdup(json_object_get_string(output)),
         .visible = json_object_get_boolean(visible),
@@ -615,9 +617,16 @@ run(struct module *mod)
     for (size_t i = 0; i < m->persistent_count; i++) {
         const char *name_as_string = m->persistent_workspaces[i];
 
+        int name_as_int = workspace_name_as_int(name_as_string);
+        if (m->strip_workspace_numbers) {
+            const char *colon = strchr(name_as_string, ':');
+            if (colon != NULL)
+                name_as_string = colon++;
+        }
+
         struct workspace ws = {
             .name = strdup(name_as_string),
-            .name_as_int = workspace_name_as_int(name_as_string),
+            .name_as_int = name_as_int,
             .persistent = true,
             .empty = true,
         };
@@ -725,9 +734,17 @@ content(struct module *mod)
                 ws->window.title,
                 m->mode);
 
+        const char *name = ws->name;
+
+        if (m->strip_workspace_numbers) {
+            const char *colon = strchr(name, ':');
+            if (colon != NULL)
+                name = colon + 1;
+        }
+
         struct tag_set tags = {
             .tags = (struct tag *[]){
-                tag_new_string(mod, "name", ws->name),
+                tag_new_string(mod, "name", name),
                 tag_new_bool(mod, "visible", ws->visible),
                 tag_new_bool(mod, "focused", ws->focused),
                 tag_new_bool(mod, "urgent", ws->urgent),
@@ -778,7 +795,8 @@ static struct module *
 i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
        int left_spacing, int right_spacing, enum sort_mode sort_mode,
        size_t persistent_count,
-       const char *persistent_workspaces[static persistent_count])
+       const char *persistent_workspaces[static persistent_count],
+       bool strip_workspace_numbers)
 {
     struct private *m = calloc(1, sizeof(*m));
 
@@ -794,6 +812,7 @@ i3_new(struct i3_workspaces workspaces[], size_t workspace_count,
         m->ws_content.v[i].content = workspaces[i].content;
     }
 
+    m->strip_workspace_numbers = strip_workspace_numbers;
     m->sort_mode = sort_mode;
 
     m->persistent_count = persistent_count;
@@ -821,6 +840,8 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *right_spacing = yml_get_value(node, "right-spacing");
     const struct yml_node *sort = yml_get_value(node, "sort");
     const struct yml_node *persistent = yml_get_value(node, "persistent");
+    const struct yml_node *strip_workspace_number = yml_get_value(
+        node, "strip-workspace-numbers");
 
     int left = spacing != NULL ? yml_value_as_int(spacing) :
         left_spacing != NULL ? yml_value_as_int(left_spacing) : 0;
@@ -859,7 +880,9 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     }
 
     return i3_new(workspaces, yml_dict_length(c), left, right, sort_mode,
-                  persistent_count, persistent_workspaces);
+                  persistent_count, persistent_workspaces,
+                  (strip_workspace_number != NULL
+                   ? yml_value_as_bool(strip_workspace_number) : false));
 }
 
 static bool
@@ -914,6 +937,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
         {"right-spacing", false, &conf_verify_unsigned},
         {"sort", false, &verify_sort},
         {"persistent", false, &verify_persistent},
+        {"strip-workspace-numbers", false, &conf_verify_bool},
         {"content", true, &verify_content},
         {"anchors", false, NULL},
         {NULL, false, NULL},
