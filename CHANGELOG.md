@@ -16,6 +16,7 @@
   (https://codeberg.org/dnkl/yambar/issues/153).
 * overline: new decoration
   (https://codeberg.org/dnkl/yambar/issues/153).
+* i3/sway: boolean option `strip-workspace-numbers`.
 
 
 ### Changed
