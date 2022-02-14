@@ -72,6 +72,22 @@ static int
 workspace_name_as_int(const char *name)
 {
     int name_as_int = 0;
+
+    /* First check for N:name pattern (set $ws1 “1:foobar”) */
+    const char *colon = strchr(name, ':');
+    if (colon != NULL) {
+        for (const char *p = name; p < colon; p++) {
+            if (!(*p >= '0' && *p < '9'))
+                return -1;
+
+            name_as_int *= 10;
+            name_as_int += *p - '0';
+        }
+
+        return name_as_int;
+    }
+
+    /* Then, if the name is a number *only* (set $ws1 1) */
     for (const char *p = name; *p != '\0'; p++) {
         if (!(*p >= '0' && *p <= '9'))
             return -1;
