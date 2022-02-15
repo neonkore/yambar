@@ -103,16 +103,18 @@ static bool
 workspace_from_json(const struct json_object *json, struct workspace *ws)
 {
     /* Always present */
-    struct json_object *name, *output, *focus;
+    struct json_object *name, *output;
     if (!json_object_object_get_ex(json, "name", &name) ||
-        !json_object_object_get_ex(json, "output", &output) ||
-        !json_object_object_get_ex(json, "focus", &focus))
+        !json_object_object_get_ex(json, "output", &output))
     {
-        LOG_ERR("workspace reply/event without 'name' and/or 'output', "
-                "and/or 'focus' properties");
+        LOG_ERR("workspace reply/event without 'name' and/or 'output' "
+                "properties");
         return false;
     }
 
+    /* Sway only */
+    struct json_object *focus = NULL;
+    json_object_object_get_ex(json, "focus", &focus);
 
     /* Optional */
     struct json_object *visible = NULL, *focused = NULL, *urgent = NULL;
@@ -122,7 +124,10 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
 
     const char *name_as_string = json_object_get_string(name);
 
-    const size_t node_count = json_object_array_length(focus);
+    const size_t node_count = focus != NULL
+        ? json_object_array_length(focus)
+        : 0;
+
     const bool is_empty = node_count == 0;
     int name_as_int = workspace_name_as_int(name_as_string);
 

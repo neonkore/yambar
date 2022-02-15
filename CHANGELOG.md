@@ -23,6 +23,12 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* i3: fixed “missing workspace indicator” (_err: modules/i3.c:94:
+  workspace reply/event without 'name' and/or 'output', and/or 'focus'
+  properties_).
+
+
 ### Security
 ### Contributors
 
