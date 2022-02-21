@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include <wchar.h>
+#include <stdc-predef.h>
 
 #define LOG_MODULE "char32"
 #define LOG_ENABLE_DBG 0
