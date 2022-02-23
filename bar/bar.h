@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../color.h"
+#include "../font-shaping.h"
 #include "../module.h"
 
 struct bar {
@@ -26,6 +27,7 @@ struct bar_config {
     const char *monitor;
     enum bar_layer layer;
     enum bar_location location;
+    enum font_shaping font_shaping;
     int height;
     int left_spacing, right_spacing;
     int left_margin, right_margin;

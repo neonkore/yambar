@@ -17,6 +17,9 @@
 * overline: new decoration
   (https://codeberg.org/dnkl/yambar/issues/153).
 * i3/sway: boolean option `strip-workspace-numbers`.
+* font-shaping: new inheritable configuration option, allowing you to
+  configure whether strings should be _shaped_ using HarfBuzz, or not
+  (https://codeberg.org/dnkl/yambar/issues/159).
 
 
 ### Changed

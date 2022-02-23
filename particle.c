@@ -31,14 +31,15 @@ particle_default_destroy(struct particle *particle)
 struct particle *
 particle_common_new(int left_margin, int right_margin,
                     const char **on_click_templates,
-                    struct fcft_font *font, pixman_color_t foreground,
-                    struct deco *deco)
+                    struct fcft_font *font, enum font_shaping font_shaping,
+                    pixman_color_t foreground, struct deco *deco)
 {
     struct particle *p = calloc(1, sizeof(*p));
     p->left_margin = left_margin;
     p->right_margin = right_margin;
     p->foreground = foreground;
     p->font = font;
+    p->font_shaping = font_shaping;
     p->deco = deco;
 
     if (on_click_templates != NULL) {

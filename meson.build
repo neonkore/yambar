@@ -116,6 +116,7 @@ yambar = executable(
   'config-verify.c', 'config-verify.h',
   'config.c', 'config.h',
   'decoration.h',
+  'font-shaping.h',
   'log.c', 'log.h',
   'main.c',
   'module.c', 'module.h',

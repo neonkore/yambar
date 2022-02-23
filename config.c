@@ -101,6 +101,44 @@ conf_to_font(const struct yml_node *node)
     return ret;
 }
 
+enum font_shaping
+conf_to_font_shaping(const struct yml_node *node)
+{
+    const char *v = yml_value_as_string(node);
+
+    if (strcmp(v, "none") == 0)
+        return FONT_SHAPE_NONE;
+
+    else if (strcmp(v, "graphemes") == 0) {
+        static bool have_warned = false;
+
+        if (!have_warned &&
+            !(fcft_capabilities() & FCFT_CAPABILITY_GRAPHEME_SHAPING))
+        {
+            have_warned = true;
+            LOG_WARN("cannot enable grapheme shaping; no support in fcft");
+        }
+        return FONT_SHAPE_GRAPHEMES;
+    }
+
+    else if (strcmp(v, "full") == 0) {
+        static bool have_warned = false;
+
+        if (!have_warned &&
+            !(fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING))
+        {
+            have_warned = true;
+            LOG_WARN("cannot enable full text shaping; no support in fcft");
+        }
+        return FONT_SHAPE_FULL;
+    }
+
+    else {
+        assert(false);
+        return FONT_SHAPE_NONE;
+    }
+}
+
 struct deco *
 conf_to_deco(const struct yml_node *node)
 {
@@ -144,7 +182,8 @@ particle_simple_list_from_config(const struct yml_node *node,
     }
 
     struct particle *common = particle_common_new(
-        0, 0, NULL, fcft_clone(inherited.font), inherited.foreground, NULL);
+        0, 0, NULL, fcft_clone(inherited.font), inherited.font_shaping,
+        inherited.foreground, NULL);
 
     return particle_list_new(common, parts, count, 0, 2);
 }
@@ -163,6 +202,7 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *right_margin = yml_get_value(pair.value, "right-margin");
     const struct yml_node *on_click = yml_get_value(pair.value, "on-click");
     const struct yml_node *font_node = yml_get_value(pair.value, "font");
+    const struct yml_node *font_shaping_node = yml_get_value(pair.value, "font-shaping");
     const struct yml_node *foreground_node = yml_get_value(pair.value, "foreground");
     const struct yml_node *deco_node = yml_get_value(pair.value, "deco");
 
@@ -215,12 +255,14 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
      */
     struct fcft_font *font = font_node != NULL
         ? conf_to_font(font_node) : fcft_clone(inherited.font);
+    enum font_shaping font_shaping = font_shaping_node != NULL
+        ? conf_to_font_shaping(font_shaping_node) : inherited.font_shaping;
     pixman_color_t foreground = foreground_node != NULL
         ? conf_to_color(foreground_node) : inherited.foreground;
 
     /* Instantiate base/common particle */
     struct particle *common = particle_common_new(
-        left, right, on_click_templates, font, foreground, deco);
+        left, right, on_click_templates, font, font_shaping, foreground, deco);
 
     const struct particle_iface *iface = plugin_load_particle(type);
 
@@ -237,6 +279,7 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
     struct bar_config conf = {
         .backend = backend,
         .layer = BAR_LAYER_BOTTOM,
+        .font_shaping = FONT_SHAPE_FULL,
     };
 
     /*
@@ -359,6 +402,7 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
      * foreground color at top-level.
      */
     struct fcft_font *font = fcft_from_name(1, &(const char *){"sans"}, NULL);
+    enum font_shaping font_shaping = FONT_SHAPE_FULL;
     pixman_color_t foreground = {0xffff, 0xffff, 0xffff, 0xffff}; /* White */
 
     const struct yml_node *font_node = yml_get_value(bar, "font");
@@ -367,12 +411,17 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
         font = conf_to_font(font_node);
     }
 
+    const struct yml_node *font_shaping_node = yml_get_value(bar, "font-shaping");
+    if (font_shaping_node != NULL)
+        font_shaping = conf_to_font_shaping(font_shaping_node);
+
     const struct yml_node *foreground_node = yml_get_value(bar, "foreground");
     if (foreground_node != NULL)
         foreground = conf_to_color(foreground_node);
 
     struct conf_inherit inherited = {
         .font = font,
+        .font_shaping = font_shaping,
         .foreground = foreground,
     };
 
@@ -402,12 +451,15 @@ conf_to_bar(const struct yml_node *bar, enum bar_backend backend)
                  * applied to all its particles.
                  */
                 const struct yml_node *mod_font = yml_get_value(m.value, "font");
+                const struct yml_node *mod_font_shaping = yml_get_value(m.value, "font-shaping");
                 const struct yml_node *mod_foreground = yml_get_value(
                     m.value, "foreground");
 
                 struct conf_inherit mod_inherit = {
                     .font = mod_font != NULL
                         ? conf_to_font(mod_font) : inherited.font,
+                    .font_shaping = mod_font_shaping != NULL
+                        ? conf_to_font_shaping(mod_font_shaping) : inherited.font_shaping,
                     .foreground = mod_foreground != NULL
                         ? conf_to_color(mod_foreground) : inherited.foreground,
                 };

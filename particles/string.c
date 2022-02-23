@@ -202,7 +202,9 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     e->kern_x = calloc(chars, sizeof(e->kern_x[0]));
 
-    if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
+    if (particle->font_shaping == FONT_SHAPE_FULL &&
+        fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING)
+    {
         struct fcft_text_run *run = fcft_rasterize_text_run_utf32(
             font, chars, wtext, FCFT_SUBPIXEL_NONE);
 

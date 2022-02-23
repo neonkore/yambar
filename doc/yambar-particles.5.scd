@@ -31,6 +31,12 @@ following attributes are supported by all particles:
 :  Font to use. Note that this is an inherited attribute; i.e. you can
    set it on e.g. a _list_ particle, and it will apply to all
    particles in the list.
+|  font-shaping
+:  enum
+:  no
+:  font-shaping; one of _full_ or _none_. When set to _full_ (the
+   default), strings will be "shaped" using HarfBuzz. Requires support
+   in fcft.
 |  foreground
 :  color
 :  no

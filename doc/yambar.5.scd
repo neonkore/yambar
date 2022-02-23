@@ -130,6 +130,12 @@ types that are frequently used:
    the primary font, and the rest fallback fonts. These are yambar
    custom fallback fonts that will be searched before the fontconfig
    provided fallback list.
+|  font-shaping
+:  enum
+:  no
+:  Default setting for font-shaping, for use in particles. One of
+   _full_ or _none_. When set to _full_ (the default), strings will be
+   "shaped" using HarfBuzz. Requires support in fcft.
 |  foreground
 :  color
 :  no

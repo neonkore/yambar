@@ -209,7 +209,7 @@ from_conf(const struct yml_node *node, struct particle *common)
          yml_list_next(&it), idx++)
     {
         parts[idx] = conf_to_particle(
-            it.node, (struct conf_inherit){common->font, common->foreground});
+            it.node, (struct conf_inherit){common->font, common->font_shaping, common->foreground});
     }
 
     long min_v = min != NULL ? yml_value_as_int(min) : 0;

@@ -215,6 +215,7 @@ from_conf(const struct yml_node *node, struct particle *common)
 
     struct conf_inherit inherited = {
         .font = common->font,
+        .font_shaping = common->font_shaping,
         .foreground = common->foreground
     };
 

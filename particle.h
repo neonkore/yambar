@@ -5,6 +5,7 @@
 
 #include "color.h"
 #include "decoration.h"
+#include "font-shaping.h"
 #include "tag.h"
 
 enum mouse_event {
@@ -35,6 +36,7 @@ struct particle {
 
     pixman_color_t foreground;
     struct fcft_font *font;
+    enum font_shaping font_shaping;
     struct deco *deco;
 
     void (*destroy)(struct particle *particle);
@@ -61,7 +63,8 @@ struct exposable {
 
 struct particle *particle_common_new(
     int left_margin, int right_margin, const char *on_click_templates[],
-    struct fcft_font *font, pixman_color_t foreground, struct deco *deco);
+    struct fcft_font *font, enum font_shaping font_shaping,
+    pixman_color_t foreground, struct deco *deco);
 
 void particle_default_destroy(struct particle *particle);
 
@@ -82,6 +85,7 @@ void exposable_default_on_mouse(
     {"right-margin", false, &conf_verify_unsigned},     \
     {"on-click", false, &conf_verify_on_click},         \
     {"font", false, &conf_verify_font},                 \
+    {"font-shaping", false, &conf_verify_font_shaping}, \
     {"foreground", false, &conf_verify_color},          \
     {"deco", false, &conf_verify_decoration},           \
     {NULL, false, NULL}

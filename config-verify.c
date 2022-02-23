@@ -229,6 +229,13 @@ conf_verify_font(keychain_t *chain, const struct yml_node *node)
 }
 
 bool
+conf_verify_font_shaping(keychain_t *chain, const struct yml_node *node)
+{
+    return conf_verify_enum(
+        chain, node, (const char *[]){"full", /*"graphemes",*/ "none"}, 2);
+}
+
+bool
 conf_verify_decoration(keychain_t *chain, const struct yml_node *node)
 {
     assert(yml_is_dict(node));
@@ -450,6 +457,7 @@ conf_verify_bar(const struct yml_node *bar)
 
         {"border", false, &verify_bar_border},
         {"font", false, &conf_verify_font},
+        {"font-shaping", false, &conf_verify_font_shaping},
         {"foreground", false, &conf_verify_color},
 
         {"left", false, &verify_module_list},
