@@ -7,11 +7,11 @@ endif
 
 if backend_wayland
   wayland_protocols = dependency('wayland-protocols')
-  wayland_protocols_datadir = wayland_protocols.get_pkgconfig_variable('pkgdatadir')
+  wayland_protocols_datadir = wayland_protocols.get_variable('pkgdatadir')
 
   wscanner = dependency('wayland-scanner', native: true)
   wscanner_prog = find_program(
-    wscanner.get_pkgconfig_variable('wayland_scanner'), native: true)
+    wscanner.get_variable('wayland_scanner'), native: true)
 
   wl_proto_headers = []
   wl_proto_src = []

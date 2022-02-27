@@ -1,7 +1,7 @@
 sh = find_program('sh', native: true)
 
 scdoc = dependency('scdoc', native: true)
-scdoc_prog = find_program(scdoc.get_pkgconfig_variable('scdoc'), native: true)
+scdoc_prog = find_program(scdoc.get_variable('scdoc'), native: true)
 
 foreach man_src : ['yambar.1.scd', 'yambar.5.scd', 'yambar-decorations.5.scd',
                    'yambar-modules-alsa.5.scd', 'yambar-modules-backlight.5.scd',
@@ -25,7 +25,7 @@ foreach man_src : ['yambar.1.scd', 'yambar.5.scd', 'yambar-decorations.5.scd',
     out,
     output: out,
     input: man_src,
-    command: [sh, '-c', '@0@ < @INPUT@'.format(scdoc_prog.path())],
+    command: [sh, '-c', '@0@ < @INPUT@'.format(scdoc_prog.full_path())],
     capture: true,
     install: true,
     install_dir: join_paths(get_option('mandir'), 'man@0@'.format(section)))

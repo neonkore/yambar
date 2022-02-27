@@ -1,7 +1,7 @@
 project('yambar', 'c',
         version: '1.8.0',
         license: 'MIT',
-        meson_version: '>=0.53.0',
+        meson_version: '>=0.58.0',
         default_options: ['c_std=c18',
                           'warning_level=1',
                           'werror=true',
@@ -18,7 +18,7 @@ endif
 
 # Compute the relative path used by compiler invocations.
 source_root = meson.current_source_dir().split('/')
-build_root = meson.build_root().split('/')
+build_root = meson.global_build_root().split('/')
 relative_dir_parts = []
 i = 0
 in_prefix = true

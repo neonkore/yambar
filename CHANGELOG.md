@@ -23,6 +23,10 @@
 
 
 ### Changed
+
+* Minimum required meson version is now 0.58.
+
+
 ### Deprecated
 ### Removed
 ### Fixed
