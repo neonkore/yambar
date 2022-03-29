@@ -167,7 +167,7 @@ nl_pid_value(void)
 static int
 netlink_connect_rt(void)
 {
-    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    int sock = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
     if (sock == -1) {
         LOG_ERRNO("failed to create netlink socket");
         return -1;
@@ -191,7 +191,7 @@ netlink_connect_rt(void)
 static int
 netlink_connect_genl(void)
 {
-    int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+    int sock = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_GENERIC);
     if (sock == -1) {
         LOG_ERRNO("failed to create netlink socket");
         return -1;

@@ -223,7 +223,7 @@ wait_for_socket_create(const struct module *mod)
     struct stat st;
     if (stat(m->host, &st) == 0 && S_ISSOCK(st.st_mode)) {
 
-        int s = socket(AF_UNIX, SOCK_STREAM, 0);
+        int s = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
         struct sockaddr_un addr = {.sun_family = AF_UNIX};
         strncpy(addr.sun_path, m->host, sizeof(addr.sun_path) - 1);
