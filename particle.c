@@ -277,11 +277,6 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
                     goto fail;
                 }
 
-                /* Close *all* other FDs (e.g. script modules' FDs) */
-                for (int i = STDERR_FILENO + 1; i < 65536; i++)
-                    if (i != pipe_fds[1])
-                        close(i);
-
                 execvp(argv[0], argv);
 
             fail:
