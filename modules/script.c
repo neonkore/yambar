@@ -396,7 +396,7 @@ execute_script(struct module *mod)
 
     /* Stdout redirection pipe */
     int comm_pipe[2];
-    if (pipe(comm_pipe) < 0) {
+    if (pipe2(comm_pipe, O_CLOEXEC) < 0) {
         LOG_ERRNO("failed to create stdin/stdout redirection pipe");
         close(exec_pipe[0]);
         close(exec_pipe[1]);
@@ -444,7 +444,7 @@ execute_script(struct module *mod)
         close(comm_pipe[0]);
 
         /* Re-direct stdin/stdout */
-        int dev_null = open("/dev/null", O_RDONLY);
+        int dev_null = open("/dev/null", O_RDONLY | O_CLOEXEC);
         if (dev_null < 0)
             goto fail;
 
