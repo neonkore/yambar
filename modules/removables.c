@@ -164,11 +164,17 @@ content(struct module *mod)
 static void
 find_mount_points(const char *dev_path, mount_point_list_t *mount_points)
 {
-    FILE *f = fopen("/proc/self/mountinfo", "r");
-    assert(f != NULL);
+    int fd = open("/proc/self/mountinfo", O_RDONLY | O_CLOEXEC);
+    FILE *f = fd >= 0 ? fdopen(fd, "r") : NULL;
+
+    if (fd < 0 || f == NULL) {
+        LOG_ERRNO("failed to open /proc/self/mountinfo");
+        if (fd >= 0)
+            close(fd);
+        return;
+    }
 
     char line[4096];
-
     while (fgets(line, sizeof(line), f) != NULL) {
         char *dev = NULL, *path = NULL;
 
@@ -641,7 +647,7 @@ run(struct module *mod)
 
     /* To be able to poll() mountinfo for changes, to detect
      * mount/unmount operations */
-    int mount_info_fd = open("/proc/self/mountinfo", O_RDONLY);
+    int mount_info_fd = open("/proc/self/mountinfo", O_RDONLY | O_CLOEXEC);
 
     int ret = 1;
 
