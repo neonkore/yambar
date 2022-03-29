@@ -34,6 +34,9 @@
 * i3: fixed “missing workspace indicator” (_err: modules/i3.c:94:
   workspace reply/event without 'name' and/or 'output', and/or 'focus'
   properties_).
+* Slow/laggy behavior when quickly spawning many `on-click` handlers,
+  e.g. when handling mouse wheel events
+  (https://codeberg.org/dnkl/yambar/issues/169).
 
 
 ### Security

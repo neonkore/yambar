@@ -458,16 +458,6 @@ execute_script(struct module *mod)
         close(comm_pipe[1]);
         comm_pipe[1] = -1;
 
-        /* Close *all* other FDs */
-        for (int i = STDERR_FILENO + 1; i < 65536; i++) {
-            if (i == exec_pipe[1]) {
-                /* Needed for error reporting. Automatically closed
-                 * when execvp() succeeds */
-                continue;
-            }
-            close(i);
-        }
-
         execvp(m->path, argv);
 
     fail:
