@@ -10,6 +10,7 @@
 
 
 ## Unreleased
+
 ### Added
 
 * Support for custom font fallbacks
@@ -37,6 +38,8 @@
 * Slow/laggy behavior when quickly spawning many `on-click` handlers,
   e.g. when handling mouse wheel events
   (https://codeberg.org/dnkl/yambar/issues/169).
+* cpu: don’t error out on systems where SMT has been disabled
+  (https://codeberg.org/dnkl/yambar/issues/172).
 
 
 ### Security
