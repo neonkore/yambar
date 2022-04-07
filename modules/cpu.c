@@ -10,6 +10,8 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include <sys/sysinfo.h>
+
 #define LOG_MODULE "cpu"
 #define LOG_ENABLE_DBG 0
 #define SMALLEST_INTERVAL 500
@@ -55,34 +57,8 @@ description(struct module *mod)
 static uint32_t
 get_cpu_nb_cores()
 {
-    uint32_t nb_cores = 0;
-    FILE *fp = NULL;
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
-
-    fp = fopen("/proc/cpuinfo", "r");
-    if (NULL == fp) {
-        LOG_ERRNO("unable to open /proc/cpuinfo");
-        return 0;
-    }
-    while ((read = getline(&line, &len, fp)) != -1) {
-        if (strncmp(line, "siblings", sizeof("siblings") - 1) == 0) {
-            char *pos = (char *)memchr(line, ':', read);
-            if (pos == NULL) {
-                LOG_ERR("unable to parse siblings field to find the number of cores");
-                return 0;
-            }
-            errno = 0;
-            nb_cores = strtoul(pos + 1, NULL, 10);
-            if (errno == ERANGE) {
-                LOG_ERR("number of cores is out of range");
-            }
-            break;
-        }
-    }
-    fclose(fp);
-    free(line);
+    int nb_cores = get_nprocs();
+    LOG_DBG("CPU count: %d", nb_cores);
 
     return nb_cores;
 }
