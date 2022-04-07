@@ -64,22 +64,27 @@ get_cpu_nb_cores()
 }
 
 static bool
-parse_proc_stat_line(const char *line, int32_t *core, uint32_t *user, uint32_t *nice, uint32_t *system, uint32_t *idle,
+parse_proc_stat_line(const char *line, uint32_t *user, uint32_t *nice, uint32_t *system, uint32_t *idle,
                      uint32_t *iowait, uint32_t *irq, uint32_t *softirq, uint32_t *steal, uint32_t *guest,
                      uint32_t *guestnice)
 {
+    int32_t core_id;
     if (line[sizeof("cpu") - 1] == ' ') {
-        int read = sscanf(line,
-                          "cpu %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32
-                          " %" SCNu32 " %" SCNu32 " %" SCNu32,
-                          user, nice, system, idle, iowait, irq, softirq, steal, guest, guestnice);
-        *core = -1;
+        int read = sscanf(
+            line,
+            "cpu %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32
+            " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32,
+            user, nice, system, idle, iowait, irq, softirq, steal, guest,
+            guestnice);
         return read == 10;
     } else {
-        int read = sscanf(line,
-                          "cpu%" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32
-                          " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32,
-                          core, user, nice, system, idle, iowait, irq, softirq, steal, guest, guestnice);
+        int read = sscanf(
+            line,
+            "cpu%" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32
+            " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32 " %" SCNu32
+            " %" SCNu32,
+            &core_id, user, nice, system, idle, iowait, irq, softirq, steal,
+            guest, guestnice);
         return read == 11;
     }
 }
@@ -125,20 +130,23 @@ refresh_cpu_stats(struct cpu_stats *cpu_stats)
         return;
     }
 
-    while ((read = getline(&line, &len, fp)) != -1) {
+    while ((read = getline(&line, &len, fp)) != -1 && core <= nb_cores) {
         if (strncmp(line, "cpu", sizeof("cpu") - 1) == 0) {
-            if (!parse_proc_stat_line(line, &core, &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal,
-                                            &guest, &guestnice)
-                || core < -1 || core >= (int32_t)nb_cores) {
+            if (!parse_proc_stat_line(
+                    line, &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal,
+                    &guest, &guestnice))
+            {
                 LOG_ERR("unable to parse /proc/stat line");
                 goto exit;
             }
 
-            cpu_stats->prev_cores_idle[core + 1] = cpu_stats->cur_cores_idle[core + 1];
-            cpu_stats->prev_cores_nidle[core + 1] = cpu_stats->cur_cores_nidle[core + 1];
+            cpu_stats->prev_cores_idle[core] = cpu_stats->cur_cores_idle[core];
+            cpu_stats->prev_cores_nidle[core] = cpu_stats->cur_cores_nidle[core];
 
-            cpu_stats->cur_cores_idle[core + 1] = idle + iowait;
-            cpu_stats->cur_cores_nidle[core + 1] = user + nice + system + irq + softirq + steal;
+            cpu_stats->cur_cores_idle[core] = idle + iowait;
+            cpu_stats->cur_cores_nidle[core] = user + nice + system + irq + softirq + steal;
+
+            core++;
         }
     }
 exit:
