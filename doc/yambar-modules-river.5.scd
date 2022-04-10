@@ -79,10 +79,9 @@ bar:
         title: {string: { text: "{seat} - {title}" }}
         content:
           map:
-            tag: occupied
-            values:
-              false: {empty: {}}
-              true:
+            conditions:
+              (occupied == false): {empty: {}}
+              (occupied == true):
                 string:
                   margin: 5
                   text: "{id}: {state}"

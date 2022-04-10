@@ -102,10 +102,9 @@ bar:
         content:
           "":
             map:
-              tag: state
               default: {string: {text: "{name}"}}
-              values:
-                focused: {string: {text: "{name}*"}}
+              conditions:
+                (state == focused): {string: {text: "{name}*"}}
           current: { string: {text: "{application}: {title}"}}
 ```
 
