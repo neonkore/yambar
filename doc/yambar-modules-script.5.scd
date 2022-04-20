@@ -134,8 +134,8 @@ bar:
         content:
           map:
             conditions:
-              (status == Paused): {empty: {}}
-              (status == Playing):
+              status == Paused: {empty: {}}
+              status == Playing:
                 content: {string: {text: "{artist} - {title}"}}
 ```
 

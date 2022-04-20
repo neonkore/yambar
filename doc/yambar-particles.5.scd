@@ -208,9 +208,13 @@ content:
 # MAP
 
 This particle maps the values of a specific tag to different
-particles based on conditions. A condition takes the form of:
+particles based on conditions. A condition takes either the form of:
 
 <tag> <operation> <value>
+
+Or, for boolean tags:
+
+<tag>
 
 Where <tag> is the tag you would like to map, <operation> is one of:
 
@@ -221,22 +225,11 @@ Where <tag> is the tag you would like to map, <operation> is one of:
 :- <=
 :- <
 
-and <value> is the value you would like to compare it to. Conditions
-may be chained together using either '&&' or '||':
+and <value> is the value you would like to compare it to.
 
-<condition1> && <condition2>
+For boolean tags, negation is done with a preceding '~':
 
-You may surround the *whole expression* with parenthesis to make it
-more readable:
-
-(<condition1> && <condition2>)
-
-Note that "nested" conditions are *NOT* supported. That is, something
-like (<condition1> && (<condition2> || <condition3>)) will *NOT* work.
-
-Furthermore, *conditions are evaluated with a strcmp*. This means
-some odd behaviour may arise if prefixes (such as zeroes) are added
-to numerical constants.
+~<tag>
 
 In addition to explicit tag values, you can also specify a
 default/fallback particle.
@@ -264,15 +257,28 @@ content:
     default:
       string:
         text: this is the default particle; the tag's value is now {tag_name}
-	# Note, below, how the parenthesis are optional
     conditions:
-      (tag == one_value):
+      tag == one_value:
         string:
           text: tag's value is now one_value
       tag == another_value:
         string:
           text: tag's value is now another_value
 
+```
+
+For a boolean tag:
+
+```
+content:
+  map:
+    conditions:
+      tag:
+        string:
+        text: tag is true
+      ~tag:
+        string:
+        text: tag is false
 ```
 
 # RAMP

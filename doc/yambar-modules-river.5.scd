@@ -80,8 +80,8 @@ bar:
         content:
           map:
             conditions:
-              (occupied == false): {empty: {}}
-              (occupied == true):
+              ~occupied: {empty: {}}
+              occupied:
                 string:
                   margin: 5
                   text: "{id}: {state}"

@@ -75,11 +75,11 @@ bar:
         content:
           map:
             conditions:
-              (mounted == false):
+              ~mounted:
                 string:
                   on-click: udisksctl mount -b {device}
                   text: "{label}"
-              (mounted == true):
+              mounted:
                 string:
                   on-click: udisksctl unmount -b {device}
                   text: "{label}"

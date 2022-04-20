@@ -68,8 +68,8 @@ bar:
         content:
           map:
             conditions:
-              (activated == false): {empty: {}}
-              (activated == true):
+              ~activated: {empty: {}}
+              activated:
                 - string: {text: "{app-id}: {title}"}
 ```
 

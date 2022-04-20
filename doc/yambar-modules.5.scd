@@ -69,16 +69,16 @@ in red.
 content:
   map:
     conditions:
-      (carrier == false): {empty: {}}
-      (carrier == true):
+      ~carrier: {empty: {}}
+      carrier:
         map:
           default: {string: {text: , font: *awesome, foreground: ffffff66}}
           conditions:
-            (state == up):
+            state == up:
               map:
                 default: {string: {text: , font: *awesome}}
                 conditions:
-                  (ipv4 == ""): {string: {text: , font: *awesome, foreground: ffffff66}}
+                  ipv4 == "": {string: {text: , font: *awesome, foreground: ffffff66}}
 ```
 
 ## Use yaml anchors

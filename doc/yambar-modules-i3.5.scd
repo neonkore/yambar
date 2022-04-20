@@ -104,7 +104,7 @@ bar:
             map:
               default: {string: {text: "{name}"}}
               conditions:
-                (state == focused): {string: {text: "{name}*"}}
+                state == focused: {string: {text: "{name}*"}}
           current: { string: {text: "{application}: {title}"}}
 ```
 
