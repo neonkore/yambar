@@ -203,7 +203,16 @@ map_condition_from_str(const char *str)
     op_str[0] = '\0';
 
     cond->tag = strdup(trim(tag));
-    cond->value = value != NULL ? strdup(trim(value)) : NULL;
+
+    cond->value = NULL;
+    if (value != NULL){
+        value = trim(value);
+        if (value[0] == '"' && value[strlen(value) - 1] == '"'){
+            value[strlen(value) - 1] = '\0';
+            ++value;
+        }
+        cond->value = strdup(value);
+    }
 
     free(str_cpy);
     return cond;

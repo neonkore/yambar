@@ -231,6 +231,10 @@ For boolean tags, negation is done with a preceding '~':
 
 ~<tag>
 
+To match for empty strings, use ' "" ':
+
+<tag> == ""
+
 In addition to explicit tag values, you can also specify a
 default/fallback particle.
 
