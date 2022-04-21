@@ -101,7 +101,7 @@ eval_map_condition(const struct map_condition* map_cond, const struct tag_set *t
         char *end;
         const long cond_value = strtol(map_cond->value, &end, 0);
 
-        if (errno==ERANGE) {
+        if (errno == ERANGE) {
             LOG_WARN("value %s is too large", map_cond->value);
             return false;
         } else if (*end != '\0') {
@@ -117,7 +117,7 @@ eval_map_condition(const struct map_condition* map_cond, const struct tag_set *t
         char *end;
         const double cond_value = strtod(map_cond->value, &end);
 
-        if (errno==ERANGE) {
+        if (errno == ERANGE) {
             LOG_WARN("value %s is too large", map_cond->value);
             return false;
         } else if (*end != '\0') {
@@ -205,10 +205,11 @@ map_condition_from_str(const char *str)
     cond->tag = strdup(trim(tag));
 
     cond->value = NULL;
-    if (value != NULL){
+    if (value != NULL) {
         value = trim(value);
-        if (value[0] == '"' && value[strlen(value) - 1] == '"'){
-            value[strlen(value) - 1] = '\0';
+		const size_t value_len = strlen(value);
+        if (value[0] == '"' && value[value_len - 1] == '"') {
+            value[value_len - 1] = '\0';
             ++value;
         }
         cond->value = strdup(value);
