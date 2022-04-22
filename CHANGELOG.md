@@ -13,14 +13,12 @@
 
 ### Added
 
-* Support for custom font fallbacks
-  ([#153](https://codeberg.org/dnkl/yambar/issues/153)).
-* overline: new decoration
-  ([#153](https://codeberg.org/dnkl/yambar/issues/153)).
+* Support for custom font fallbacks ([#153][153]).
+* overline: new decoration ([#153][153]).
 * i3/sway: boolean option `strip-workspace-numbers`.
 * font-shaping: new inheritable configuration option, allowing you to
   configure whether strings should be _shaped_ using HarfBuzz, or not
-  ([#159](https://codeberg.org/dnkl/yambar/issues/159)).
+  ([#159][159]).
 
 
 ### Changed
@@ -36,14 +34,18 @@
   workspace reply/event without 'name' and/or 'output', and/or 'focus'
   properties_).
 * Slow/laggy behavior when quickly spawning many `on-click` handlers,
-  e.g. when handling mouse wheel events
-  ([#169](https://codeberg.org/dnkl/yambar/issues/169)).
+  e.g. when handling mouse wheel events ([#169][169]).
 * cpu: don’t error out on systems where SMT has been disabled
-  ([#172](https://codeberg.org/dnkl/yambar/issues/172)).
+  ([#172][172]).
 
 
 ### Security
 ### Contributors
+
+[153]: https://codeberg.org/dnkl/yambar/issues/153
+[159]: https://codeberg.org/dnkl/yambar/issues/159
+[169]: https://codeberg.org/dnkl/yambar/issues/169
+[172]: https://codeberg.org/dnkl/yambar/issues/172
 
 
 ## 1.8.0
