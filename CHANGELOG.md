@@ -20,6 +20,9 @@
   configure whether strings should be _shaped_ using HarfBuzz, or not
   ([#159][159]).
 
+[153]: https://codeberg.org/dnkl/yambar/issues/153
+[159]: https://codeberg.org/dnkl/yambar/issues/159
+
 
 ### Changed
 
@@ -38,14 +41,12 @@
 * cpu: don’t error out on systems where SMT has been disabled
   ([#172][172]).
 
+[169]: https://codeberg.org/dnkl/yambar/issues/169
+[172]: https://codeberg.org/dnkl/yambar/issues/172
+
 
 ### Security
 ### Contributors
-
-[153]: https://codeberg.org/dnkl/yambar/issues/153
-[159]: https://codeberg.org/dnkl/yambar/issues/159
-[169]: https://codeberg.org/dnkl/yambar/issues/169
-[172]: https://codeberg.org/dnkl/yambar/issues/172
 
 
 ## 1.8.0
