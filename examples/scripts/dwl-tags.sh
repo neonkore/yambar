@@ -127,7 +127,7 @@ while true; do
   inotifywait -qq --event modify "${fname}"
 
   # Get info from the file
-  output="$(tail -n4 "${fname}")"
+  output="$(tail -n6 "${fname}")"
   title="$(echo "${output}" | grep title | cut -d ' ' -f 3- )"
   #selmon="$(echo "${output}" | grep 'selmon')"
   layout="$(echo "${output}" | grep layout | cut -d ' ' -f 3- )"
