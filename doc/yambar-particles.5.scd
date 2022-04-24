@@ -238,6 +238,25 @@ To match for empty strings, use ' "" ':
 In addition to explicit tag values, you can also specify a
 default/fallback particle.
 
+Note that conditions are evaluated in the order they appear. *If
+multiple conditions are true, the first one will be used*. This means
+that in a configuration such as:
+
+```
+tx-bitrate > 1000:
+tx-bitrate > 1000000:
+```
+
+the second condition would never run, since whenever the second
+condition is true, the first is also true. The correct way of doing
+this would be to invert the order of the conditions:
+
+```
+tx-bitrate > 1000000:
+tx-bitrate > 1000:
+```
+
+
 ## CONFIGURATION
 
 [[ *Name*
