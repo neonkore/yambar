@@ -80,9 +80,11 @@
   e.g. when handling mouse wheel events ([#169][169]).
 * cpu: don’t error out on systems where SMT has been disabled
   ([#172][172]).
+* examples/dwl-tags: updated parsing of `output` name ([#178][178]).
 
 [169]: https://codeberg.org/dnkl/yambar/issues/169
 [172]: https://codeberg.org/dnkl/yambar/issues/172
+[178]: https://codeberg.org/dnkl/yambar/issues/178
 
 
 ### Security
