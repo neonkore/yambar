@@ -208,8 +208,54 @@ content:
 # MAP
 
 This particle maps the values of a specific tag to different
-particles. In addition to explicit tag values, you can also specify a
+particles based on conditions. A condition takes either the form of:
+
+<tag> <operation> <value>
+
+Or, for boolean tags:
+
+<tag>
+
+Where <tag> is the tag you would like to map, <operation> is one of:
+
+[-  ==
+:- !=
+:- >=
+:- >
+:- <=
+:- <
+
+and <value> is the value you would like to compare it to.
+
+For boolean tags, negation is done with a preceding '~':
+
+~<tag>
+
+To match for empty strings, use ' "" ':
+
+<tag> == ""
+
+In addition to explicit tag values, you can also specify a
 default/fallback particle.
+
+Note that conditions are evaluated in the order they appear. *If
+multiple conditions are true, the first one will be used*. This means
+that in a configuration such as:
+
+```
+tx-bitrate > 1000:
+tx-bitrate > 1000000:
+```
+
+the second condition would never run, since whenever the second
+condition is true, the first is also true. The correct way of doing
+this would be to invert the order of the conditions:
+
+```
+tx-bitrate > 1000000:
+tx-bitrate > 1000:
+```
+
 
 ## CONFIGURATION
 
@@ -217,37 +263,45 @@ default/fallback particle.
 :[ *Type*
 :[ *Req*
 :[ *Description*
-|  tag
-:  string
-:  yes
-:  The tag (name of) which values should be mapped
-|  values
+|  conditions
 :  associative array
 :  yes
-:  An associative array of tag values mapped to particles
+:  An associative array  of conditions (see above) mapped to particles
 |  default
 :  particle
 :  no
-:  Default particle to use, when tag's value does not match any of the
-   mapped values.
+:  Default particle to use, none of the conditions are true
 
 ## EXAMPLES
 
 ```
 content:
   map:
-    tag: tag_name
     default:
       string:
         text: this is the default particle; the tag's value is now {tag_name}
-    values:
-      one_value:
+    conditions:
+      tag == one_value:
         string:
           text: tag's value is now one_value
-      another_value:
+      tag == another_value:
         string:
           text: tag's value is now another_value
 
+```
+
+For a boolean tag:
+
+```
+content:
+  map:
+    conditions:
+      tag:
+        string:
+        text: tag is true
+      ~tag:
+        string:
+        text: tag is false
 ```
 
 # RAMP

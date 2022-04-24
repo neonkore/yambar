@@ -3,6 +3,13 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+enum tag_type {
+    TAG_TYPE_BOOL,
+    TAG_TYPE_INT,
+    TAG_TYPE_FLOAT,
+    TAG_TYPE_STRING,
+};
+
 enum tag_realtime_unit {
     TAG_REALTIME_NONE,
     TAG_REALTIME_SECS,
@@ -17,6 +24,7 @@ struct tag {
 
     void (*destroy)(struct tag *tag);
     const char *(*name)(const struct tag *tag);
+    enum tag_type (*type)(const struct tag *tag);
     const char *(*as_string)(const struct tag *tag);
     long (*as_int)(const struct tag *tag);
     bool (*as_bool)(const struct tag *tag);

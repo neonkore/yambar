@@ -27,6 +27,46 @@
 ### Changed
 
 * Minimum required meson version is now 0.58.
+* **BREAKING CHANGE**: overhaul of the `map` particle. Instead of
+  specifying a `tag` and then an array of `values`, you must now
+  simply use an array of `conditions`, that consist of:
+
+  `<tag> <operation> <value>`
+
+  where `<operation>` is one of:
+
+  `== != < <= > >=`
+
+  Note that boolean tags must be used as is:
+
+  `online`
+
+  `~online # use '~' to match for their falsehood`
+
+  As an example, if you previously had something like:
+
+  ```
+  map:
+    tag: State
+    values:
+      unrecognized:
+        ...
+  ```
+
+  You would now write it as:
+
+  ```
+  map:
+    conditions:
+      State == unrecognized:
+        ...
+  ```
+
+  For a more thorough explanation, see the updated map section in the
+  man page for yambar-particles([#137][137] and [#175][175]).
+
+  [137]: https://codeberg.org/dnkl/yambar/issues/137
+  [175]: https://codeberg.org/dnkl/yambar/issues/172
 
 
 ### Deprecated
@@ -47,6 +87,8 @@
 
 ### Security
 ### Contributors
+
+* Horus
 
 
 ## 1.8.0

@@ -67,10 +67,9 @@ bar:
     - foreign-toplevel:
         content:
           map:
-            tag: activated
-            values:
-              false: {empty: {}}
-              true:
+            conditions:
+              ~activated: {empty: {}}
+              activated:
                 - string: {text: "{app-id}: {title}"}
 ```
 

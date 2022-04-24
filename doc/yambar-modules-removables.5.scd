@@ -74,13 +74,12 @@ bar:
     - removables:
         content:
           map:
-            tag: mounted
-            values:
-              false:
+            conditions:
+              ~mounted:
                 string:
                   on-click: udisksctl mount -b {device}
                   text: "{label}"
-              true:
+              mounted:
                 string:
                   on-click: udisksctl unmount -b {device}
                   text: "{label}"

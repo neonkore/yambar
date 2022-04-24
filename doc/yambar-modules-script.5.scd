@@ -133,10 +133,9 @@ bar:
             title|string|{{title}}
         content:
           map:
-            tag: status
-            values:
-              Paused: {empty: {}}
-              Playing:
+            conditions:
+              status == Paused: {empty: {}}
+              status == Playing:
                 content: {string: {text: "{artist} - {title}"}}
 ```
 
