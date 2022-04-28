@@ -36,6 +36,7 @@ EXTERN_MODULE(alsa);
 EXTERN_MODULE(backlight);
 EXTERN_MODULE(battery);
 EXTERN_MODULE(clock);
+EXTERN_MODULE(disk_io);
 EXTERN_MODULE(foreign_toplevel);
 EXTERN_MODULE(i3);
 EXTERN_MODULE(label);
@@ -118,6 +119,7 @@ init(void)
     REGISTER_CORE_MODULE(backlight, backlight);
     REGISTER_CORE_MODULE(battery, battery);
     REGISTER_CORE_MODULE(clock, clock);
+    REGISTER_CORE_MODULE(disk-io, disk_io);
 #if defined(HAVE_PLUGIN_foreign_toplevel)
     REGISTER_CORE_MODULE(foreign-toplevel, foreign_toplevel);
 #endif

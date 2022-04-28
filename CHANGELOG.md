@@ -24,6 +24,7 @@
   in the `title` particle.
 * network: request link stats and expose under tags `dl-speed` and
   `ul-speed` when `poll-interval` is set.
+* new module: disk-io.
 
 
 [153]: https://codeberg.org/dnkl/yambar/issues/153

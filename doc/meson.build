@@ -6,6 +6,7 @@ scdoc_prog = find_program(scdoc.get_variable('scdoc'), native: true)
 foreach man_src : ['yambar.1.scd', 'yambar.5.scd', 'yambar-decorations.5.scd',
                    'yambar-modules-alsa.5.scd', 'yambar-modules-backlight.5.scd',
                    'yambar-modules-battery.5.scd', 'yambar-modules-clock.5.scd',
+                   'yambar-modules-disk-io.5.scd',
                    'yambar-modules-foreign-toplevel.5.scd',
                    'yambar-modules-i3.5.scd', 'yambar-modules-label.5.scd',
                    'yambar-modules-mpd.5.scd', 'yambar-modules-network.5.scd',
