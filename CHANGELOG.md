@@ -22,6 +22,8 @@
 * river: support for the new “mode” event present in version 3 of the
   river status manager protocol, in the form of a new tag, _”mode”_,
   in the `title` particle.
+* network: request link stats and expose under tags `dl-speed` and
+  `ul-speed` when `poll-interval` is set.
 
 
 [153]: https://codeberg.org/dnkl/yambar/issues/153

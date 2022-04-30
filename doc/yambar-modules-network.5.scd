@@ -51,6 +51,12 @@ address.
 |  tx-bitrate
 :  int
 :  TX bitrate in bits/s
+|  dl-speed
+:  int
+:  Download speed in bits/s
+|  ul-speed
+:  int
+:  Upload speed in bits/s
 
 
 # CONFIGURATION
@@ -66,7 +72,8 @@ address.
 |  poll-interval
 :  int
 :  no
-:  Periodically (in seconds) update the signal and rx+tx bitrate tags.
+:  Periodically (in seconds) update the signal, rx+tx bitrate, and
+   ul+dl speed tags.
 
 
 # EXAMPLES

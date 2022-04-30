@@ -31,6 +31,11 @@
 
 #define UNUSED __attribute__((unused))
 
+struct rt_stats_msg {
+    struct rtmsg rth;
+    struct rtnl_link_stats64 stats;
+};
+
 struct af_addr {
     int family;
     union {
@@ -68,6 +73,12 @@ struct private {
     int signal_strength_dbm;
     uint32_t rx_bitrate;
     uint32_t tx_bitrate;
+
+    uint64_t ul_speed;
+    uint64_t ul_bits;
+
+    uint64_t dl_speed;
+    uint64_t dl_bits;
 };
 
 static void
@@ -145,8 +156,10 @@ content(struct module *mod)
             tag_new_int(mod, "signal", m->signal_strength_dbm),
             tag_new_int(mod, "rx-bitrate", m->rx_bitrate),
             tag_new_int(mod, "tx-bitrate", m->tx_bitrate),
+            tag_new_float(mod, "dl-speed", m->dl_speed),
+            tag_new_float(mod, "ul-speed", m->ul_speed),
         },
-        .count = 11,
+        .count = 13,
     };
 
     mtx_unlock(&mod->lock);
@@ -249,6 +262,36 @@ send_rt_request(struct private *m, int request)
         return false;
     }
 
+    return true;
+}
+
+static bool
+send_rt_getstats_request(struct private *m)
+{
+    struct {
+        struct nlmsghdr hdr;
+        struct if_stats_msg rt;
+    } req = {
+        .hdr = {
+            .nlmsg_len = NLMSG_LENGTH(sizeof(req.rt)),
+            .nlmsg_type = RTM_GETSTATS,
+            .nlmsg_flags = NLM_F_REQUEST,
+            .nlmsg_seq = 1,
+            .nlmsg_pid = nl_pid_value(),
+        },
+
+        .rt = {
+            .ifindex = m->ifindex,
+            .filter_mask = IFLA_STATS_LINK_64,
+            .family = AF_UNSPEC,
+        },
+    };
+
+    if (!send_nlmsg(m->rt_sock, &req, req.hdr.nlmsg_len)) {
+        LOG_ERRNO("%s: failed to send netlink RT getstats request (%d)",
+                m->iface, RTM_GETSTATS);
+        return false;
+    }
     return true;
 }
 
@@ -929,6 +972,23 @@ netlink_receive_messages(int sock, void **reply, size_t *len)
     return true;
 }
 
+static void
+handle_stats(struct module *mod, struct rt_stats_msg *msg)
+{
+    struct private *m = mod->private;
+    uint64_t ul_bits = msg->stats.tx_bytes*8;
+    uint64_t dl_bits = msg->stats.rx_bytes*8;
+
+    if (m->ul_bits != 0) {
+        m->ul_speed = (ul_bits - m->ul_bits) / m->poll_interval;
+    }
+    if (m->dl_bits != 0) {
+        m->dl_speed = (dl_bits - m->dl_bits) / m->poll_interval;
+    }
+    m->ul_bits = ul_bits;
+    m->dl_bits = dl_bits;
+}
+
 static bool
 parse_rt_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
 {
@@ -965,6 +1025,11 @@ parse_rt_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
             size_t msg_len = IFA_PAYLOAD(hdr);
 
             handle_address(mod, hdr->nlmsg_type, msg, msg_len);
+            break;
+        }
+        case RTM_NEWSTATS: {
+            struct rt_stats_msg *msg = NLMSG_DATA(hdr);
+            handle_stats(mod, msg);
             break;
         }
 
@@ -1200,6 +1265,7 @@ run(struct module *mod)
             }
 
             send_nl80211_get_station(m);
+            send_rt_getstats_request(m);
         }
     }
 
