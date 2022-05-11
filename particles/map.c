@@ -11,38 +11,7 @@
 #include "../plugin.h"
 #include "dynlist.h"
 
-enum map_op{
-    MAP_OP_EQ,
-    MAP_OP_NE,
-    MAP_OP_LE,
-    MAP_OP_LT,
-    MAP_OP_GE,
-    MAP_OP_GT,
-    /* The next two are for bool types */
-    MAP_OP_SELF,
-    MAP_OP_NOT,
-};
-
-struct map_condition {
-    char *tag;
-    enum map_op op;
-    char *value;
-};
-
-static char *
-trim(char *s)
-{
-    while (*s == ' ')
-        s++;
-
-    char *end = s + strlen(s) - 1;
-    while (*end == ' ') {
-        *end = '\0';
-        end--;
-    }
-
-    return s;
-}
+#include "map.h"
 
 bool
 int_condition(const long tag_value, const long cond_value, enum map_op op)
@@ -54,6 +23,7 @@ int_condition(const long tag_value, const long cond_value, enum map_op op)
     case MAP_OP_LT: return tag_value < cond_value;
     case MAP_OP_GE: return tag_value >= cond_value;
     case MAP_OP_GT: return tag_value > cond_value;
+    case MAP_OP_SELF: LOG_WARN("using int tag as bool");
     default: return false;
     }
 }
@@ -68,6 +38,7 @@ float_condition(const double tag_value, const double cond_value, enum map_op op)
     case MAP_OP_LT: return tag_value < cond_value;
     case MAP_OP_GE: return tag_value >= cond_value;
     case MAP_OP_GT: return tag_value > cond_value;
+    case MAP_OP_SELF: LOG_WARN("using float tag as bool");
     default: return false;
     }
 }
@@ -82,12 +53,13 @@ str_condition(const char* tag_value, const char* cond_value, enum map_op op)
     case MAP_OP_LT: return strcmp(tag_value, cond_value) < 0;
     case MAP_OP_GE: return strcmp(tag_value, cond_value) >= 0;
     case MAP_OP_GT: return strcmp(tag_value, cond_value) > 0;
+    case MAP_OP_SELF: LOG_WARN("using String tag as bool");
     default: return false;
     }
 }
 
 bool
-eval_map_condition(const struct map_condition* map_cond, const struct tag_set *tags)
+eval_comparison(const struct map_condition* map_cond, const struct tag_set *tags)
 {
     const struct tag *tag = tag_for_name(tags, map_cond->tag);
     if (tag == NULL) {
@@ -131,8 +103,6 @@ eval_map_condition(const struct map_condition* map_cond, const struct tag_set *t
     case TAG_TYPE_BOOL:
         if (map_cond->op == MAP_OP_SELF)
             return tag->as_bool(tag);
-        else if (map_cond->op == MAP_OP_NOT)
-            return !tag->as_bool(tag);
         else {
             LOG_WARN("boolean tag '%s' should be used directly", map_cond->tag);
             return false;
@@ -145,86 +115,43 @@ eval_map_condition(const struct map_condition* map_cond, const struct tag_set *t
     return false;
 }
 
-struct map_condition*
-map_condition_from_str(const char *str)
+bool
+eval_map_condition(const struct map_condition* map_cond, const struct tag_set *tags)
 {
-    struct map_condition *cond = malloc(sizeof(*cond));
-
-    /* This strdup is just to discard the 'const' qualifier */
-    char *str_cpy = strdup(str);
-    char *op_str = strpbrk(str_cpy, "=!<>~");
-
-    /* we've already checked things in the verify functions, so these should all work */
-    char *tag = str_cpy;
-    char *value = NULL;
-
-    if (op_str == NULL) {
-        cond->tag = strdup(trim(tag));
-        cond->op = MAP_OP_SELF;
-        cond->value = NULL;
-        free(str_cpy);
-        return cond;
+    switch(map_cond->op)
+    {
+    case MAP_OP_NOT: return !eval_map_condition(map_cond->cond1, tags);
+    case MAP_OP_AND: return eval_map_condition(map_cond->cond1, tags) && eval_map_condition(map_cond->cond2, tags);
+    case MAP_OP_OR: return eval_map_condition(map_cond->cond1, tags) || eval_map_condition(map_cond->cond2, tags);
+    default: return eval_comparison(map_cond, tags);
     }
-
-    switch (op_str[0]) {
-        case '=':
-            cond->op = MAP_OP_EQ;
-            value = op_str + 2;
-            break;
-        case '!':
-            cond->op = MAP_OP_NE;
-            value = op_str + 2;
-            break;
-        case '<':
-            if (op_str[1] == '=') {
-                cond->op = MAP_OP_LE;
-                value = op_str + 2;
-            } else {
-                cond->op = MAP_OP_LT;
-                value = op_str + 1;
-            }
-            break;
-        case '>':
-            if (op_str[1] == '=') {
-                cond->op = MAP_OP_GE;
-                value = op_str + 2;
-            } else {
-                cond->op = MAP_OP_GT;
-                value = op_str + 1;
-            }
-            break;
-        case '~':
-            tag = op_str + 1;
-            cond->op = MAP_OP_NOT;
-            break;
-    }
-
-    /* NULL terminate the tag value */
-    op_str[0] = '\0';
-
-    cond->tag = strdup(trim(tag));
-
-    cond->value = NULL;
-    if (value != NULL) {
-        value = trim(value);
-		const size_t value_len = strlen(value);
-        if (value[0] == '"' && value[value_len - 1] == '"') {
-            value[value_len - 1] = '\0';
-            ++value;
-        }
-        cond->value = strdup(value);
-    }
-
-    free(str_cpy);
-    return cond;
 }
 
 void
-free_map_condition(struct map_condition* mc)
+free_map_condition(struct map_condition* c)
 {
-    free(mc->tag);
-    free(mc->value);
-    free(mc);
+    switch (c->op)
+    {
+        case MAP_OP_EQ:
+        case MAP_OP_NE:
+        case MAP_OP_LE:
+        case MAP_OP_LT:
+        case MAP_OP_GE:
+        case MAP_OP_GT:
+            free(c->value);
+            /* FALLTHROUGH */
+        case MAP_OP_SELF:
+            free(c->tag);
+            break;
+        case MAP_OP_AND:
+        case MAP_OP_OR:
+            free_map_condition(c->cond2);
+            /* FALLTHROUGH */
+        case MAP_OP_NOT:
+            free_map_condition(c->cond1);
+            break;
+    }
+    free(c);
 }
 
 struct particle_map {
@@ -379,101 +306,6 @@ map_new(struct particle *common, const struct particle_map particle_map[],
     return common;
 }
 
-static bool
-verify_map_condition_syntax(keychain_t *chain, const struct yml_node *node,
-        const char *line)
-{
-    /* We need this strdup to discard the 'const' qualifier */
-    char *cond = strdup(line);
-    char *op_str = strpbrk(cond, " =!<>~");
-    if (op_str == NULL) {
-        char *tag = trim(cond);
-        if (tag[0] == '\0')
-            goto syntax_fail_missing_tag;
-
-        free(cond);
-        return true;
-    }
-    op_str = trim(op_str);
-
-    char *tag = cond;
-    char *value = NULL;
-
-    switch (op_str[0]) {
-    case '=':
-        if (op_str[1] != '=')
-            goto syntax_fail_invalid_op;
-
-        value = op_str + 2;
-        break;
-
-    case '!':
-        if (op_str[1] != '=')
-            goto syntax_fail_invalid_op;
-
-        value = op_str + 2;
-        break;
-
-    case '<':
-        if (op_str[1] == '=')
-            value = op_str + 2;
-        else
-            value = op_str + 1;
-        break;
-
-    case '>':
-        if (op_str[1] == '=')
-            value = op_str + 2;
-        else
-            value = op_str + 1;
-        break;
-
-    case '~':
-        tag = op_str + 1;
-        if (strpbrk(tag, " =!<>~") != NULL)
-            goto syntax_fail_bad_not;
-        value = NULL;
-        break;
-    default:
-        goto syntax_fail_invalid_op;
-    }
-
-    /* NULL terminate the tag value */
-    op_str[0] = '\0';
-
-    tag = trim(tag);
-    if (tag[0] == '\0')
-        goto syntax_fail_missing_tag;
-
-    value = value != NULL ? trim(value) : NULL;
-
-    if (value != NULL && value[0] == '\0')
-        goto syntax_fail_missing_value;
-
-    free(cond);
-    return true;
-
-syntax_fail_invalid_op:
-    LOG_ERR("%s: \"%s\" invalid operator", conf_err_prefix(chain, node), line);
-    goto err;
-
-syntax_fail_missing_tag:
-    LOG_ERR("%s: \"%s\" missing tag", conf_err_prefix(chain, node), line);
-    goto err;
-
-syntax_fail_missing_value:
-    LOG_ERR("%s: \"%s\" missing value", conf_err_prefix(chain, node), line);
-    goto err;
-
-syntax_fail_bad_not:
-    LOG_ERR("%s: \"%s\" '~' cannot be used with other operators",
-            conf_err_prefix(chain, node), line);
-    goto err;
-
-err:
-    free(cond);
-    return false;
-}
 
 static bool
 verify_map_conditions(keychain_t *chain, const struct yml_node *node)
@@ -485,6 +317,7 @@ verify_map_conditions(keychain_t *chain, const struct yml_node *node)
         return false;
     }
 
+    bool result = true;
     for (struct yml_dict_iter it = yml_dict_iter(node);
          it.key != NULL;
          yml_dict_next(&it))
@@ -494,9 +327,16 @@ verify_map_conditions(keychain_t *chain, const struct yml_node *node)
             LOG_ERR("%s: key must be a string", conf_err_prefix(chain, it.key));
             return false;
         }
-
-        if (!verify_map_condition_syntax(chain, it.key, key))
-            return false;
+        char *key_clone = strdup(key);
+        YY_BUFFER_STATE buffer = yy_scan_string(key_clone);
+        if (yyparse() != 0) {
+            LOG_ERR("%s: %s", conf_err_prefix(chain, it.key), MAP_PARSER_ERROR_MSG);
+            free(MAP_PARSER_ERROR_MSG);
+            result = false;
+        } else
+            free_map_condition(MAP_CONDITION_PARSE_RESULT);
+        yy_delete_buffer(buffer);
+        free(key_clone);
 
         if (!conf_verify_particle(chain_push(chain, key), it.value))
             return false;
@@ -504,7 +344,7 @@ verify_map_conditions(keychain_t *chain, const struct yml_node *node)
         chain_pop(chain);
     }
 
-    return true;
+    return result;
 }
 
 static struct particle *
@@ -526,7 +366,13 @@ from_conf(const struct yml_node *node, struct particle *common)
          it.key != NULL;
          yml_dict_next(&it), idx++)
     {
-        particle_map[idx].condition = map_condition_from_str(yml_value_as_string(it.key));
+        /* Note we can skip the error checking here */
+        char *key_clone = strdup(yml_value_as_string(it.key));
+        YY_BUFFER_STATE buffer = yy_scan_string(key_clone);
+        yyparse();
+        particle_map[idx].condition = MAP_CONDITION_PARSE_RESULT;
+        yy_delete_buffer(buffer);
+        free(key_clone);
         particle_map[idx].particle = conf_to_particle(it.value, inherited);
     }
 

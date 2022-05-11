@@ -40,6 +40,7 @@ pipeline:
       - apk add json-c-dev libmpdclient-dev alsa-lib-dev
       - apk add ttf-dejavu
       - apk add git
+      - apk add flex bison
 
       # Debug
       - apk add gcovr
@@ -97,6 +98,7 @@ pipeline:
       - apk add json-c-dev libmpdclient-dev alsa-lib-dev
       - apk add ttf-dejavu
       - apk add git
+      - apk add flex bison
 
       # Debug
       - mkdir -p bld/debug-x86

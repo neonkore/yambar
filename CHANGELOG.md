@@ -87,6 +87,20 @@
         ...
   ```
 
+  Note that if `<value>` contains any non-alphanumerical characters,
+  it **must** be surrounded by `""`:
+
+  `State == "very confused!!!"`
+
+  Finally, you can mix and match conditions using the boolean
+  operators `&&` and `||`:
+
+  ```
+  <condition1> && <condition2>
+  <condition1> && (<condition2> || <condition3>) # parenthesis work
+  ~(<condition1> && <condition2>) # '~' can be applied to any condition
+  ```
+
   For a more thorough explanation, see the updated map section in the
   man page for yambar-particles([#137][137] and [#175][175]).
 

@@ -218,11 +218,15 @@ content:
 This particle maps the values of a specific tag to different
 particles based on conditions. A condition takes either the form of:
 
+```
 <tag> <operation> <value>
+```
 
 Or, for boolean tags:
 
+```
 <tag>
+```
 
 Where <tag> is the tag you would like to map, <operation> is one of:
 
@@ -233,15 +237,46 @@ Where <tag> is the tag you would like to map, <operation> is one of:
 :- <=
 :- <
 
-and <value> is the value you would like to compare it to.
+and <value> is the value you would like to compare it to. *If the
+value contains any non-alphanumerical characters, you must
+surround it with ' " ' *:
 
-For boolean tags, negation is done with a preceding '~':
+```
+"hello world"
+"@#$%"
+```
 
+Negation is done with a preceding '~':
+
+```
 ~<tag>
+~<condition>
+```
 
 To match for empty strings, use ' "" ':
 
+```
 <tag> == ""
+```
+
+Furthermore, you may use the boolean operators:
+
+[-  &&
+:- ||
+
+in order to create more complex conditions:
+
+```
+<condition1> && <condition2>
+```
+
+You may surround <condition> with parenthesis for clarity or
+specifying precedence:
+
+```
+(<condition>)
+<condition1> && (<condition2> || <condition3>)
+```
 
 In addition to explicit tag values, you can also specify a
 default/fallback particle.
