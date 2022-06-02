@@ -207,21 +207,27 @@ handle_input_event(int type, const struct json_object *json, void *_mod)
         return true;
     }
 
-    if (is_removed || is_added) {
-        mtx_lock(&mod->lock);
-        assert((is_removed && input->exists) ||
-               (is_added && !input->exists));
+    if (is_removed) {
+        if (input->exists) {
+            mtx_lock(&mod->lock);
+            input->exists = false;
+            m->num_existing_inputs--;
+            m->dirty = true;
+            mtx_unlock(&mod->lock);
+        }
+        return true;
+    }
 
-        input->exists = !input->exists;
-        m->num_existing_inputs += is_added ? 1 : -1;
-        m->dirty = true;
+    if (is_added) {
+        if (!input->exists) {
+            mtx_lock(&mod->lock);
+            input->exists = true;
+            m->num_existing_inputs++;
+            m->dirty = true;
+            mtx_unlock(&mod->lock);
+        }
 
-        mtx_unlock(&mod->lock);
-
-        if (is_removed)
-            return true;
-
-        /* let is_added fall through, to update layout */
+        /* “fallthrough”, to query current/active layout */
     }
 
     /* Get current/active layout */
