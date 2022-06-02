@@ -91,10 +91,13 @@
 * cpu: don’t error out on systems where SMT has been disabled
   ([#172][172]).
 * examples/dwl-tags: updated parsing of `output` name ([#178][178]).
+* sway-xkb: don’t crash when Sway sends an _”added”_ event for a
+  device yambar is already tracking ([#177][177]).
 
 [169]: https://codeberg.org/dnkl/yambar/issues/169
 [172]: https://codeberg.org/dnkl/yambar/issues/172
 [178]: https://codeberg.org/dnkl/yambar/issues/178
+[177]: https://codeberg.org/dnkl/yambar/issues/177
 
 
 ### Security
