@@ -143,8 +143,8 @@ content(struct module *mod)
             tag_new_string(mod, "ipv6", ipv6_str),
             tag_new_string(mod, "ssid", m->ssid),
             tag_new_int(mod, "signal", m->signal_strength_dbm),
-            tag_new_int(mod, "rx-bitrate", m->rx_bitrate / 1000 / 1000),
-            tag_new_int(mod, "tx-bitrate", m->tx_bitrate / 1000 / 1000),
+            tag_new_int(mod, "rx-bitrate", m->rx_bitrate),
+            tag_new_int(mod, "tx-bitrate", m->tx_bitrate),
         },
         .count = 11,
     };

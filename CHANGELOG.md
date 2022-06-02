@@ -34,6 +34,9 @@
 * Float tags are now treated as floats instead of integers when
   formatted with the `kb`/`kib`/`mb`/`mib`/`gb`/`gib` string particle
   formatters.
+* network: `tx-bitrate` and `rx-bitrate` are now in bits/s instead of
+  Mb/s. Use the `mb` string formatter to render these tags as before
+  (e.g. `string: {text: "{tx-bitrate:mb}"}`).
 * **BREAKING CHANGE**: overhaul of the `map` particle. Instead of
   specifying a `tag` and then an array of `values`, you must now
   simply use an array of `conditions`, that consist of:

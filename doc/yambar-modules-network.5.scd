@@ -47,10 +47,10 @@ address.
 :  Signal strength, in dBm (Wi-Fi only)
 |  rx-bitrate
 :  int
-:  RX bitrate, in Mbit/s
+:  RX bitrate, in bits/s
 |  tx-bitrate
 :  int
-:  TX bitrate in Mbit/s
+:  TX bitrate in bits/s
 
 
 # CONFIGURATION
