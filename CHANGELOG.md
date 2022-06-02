@@ -39,6 +39,8 @@
 * network: `tx-bitrate` and `rx-bitrate` are now in bits/s instead of
   Mb/s. Use the `mb` string formatter to render these tags as before
   (e.g. `string: {text: "{tx-bitrate:mb}"}`).
+* i3: newly created, and **unfocused** workspaces are now considered
+  non-empty ([#191][191])
 * **BREAKING CHANGE**: overhaul of the `map` particle. Instead of
   specifying a `tag` and then an array of `values`, you must now
   simply use an array of `conditions`, that consist of:
@@ -79,6 +81,7 @@
 
 [137]: https://codeberg.org/dnkl/yambar/issues/137
 [175]: https://codeberg.org/dnkl/yambar/issues/172
+[191]: https://codeberg.org/dnkl/yambar/issues/191
 
 
 ### Deprecated
