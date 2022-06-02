@@ -19,6 +19,10 @@
 * font-shaping: new inheritable configuration option, allowing you to
   configure whether strings should be _shaped_ using HarfBuzz, or not
   ([#159][159]).
+* river: support for the new “mode” event present in version 3 of the
+  river status manager protocol, in the form of a new tag, _”mode”_,
+  in the `title` particle.
+
 
 [153]: https://codeberg.org/dnkl/yambar/issues/153
 [159]: https://codeberg.org/dnkl/yambar/issues/159

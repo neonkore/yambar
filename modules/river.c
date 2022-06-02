@@ -16,6 +16,8 @@
 #include "river-status-unstable-v1.h"
 #include "xdg-output-unstable-v1.h"
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+
 struct private;
 
 struct output {
@@ -39,6 +41,7 @@ struct seat {
     uint32_t wl_name;
     char *name;
 
+    char *mode;
     char *title;
     struct output *output;
 };
@@ -158,8 +161,9 @@ content(struct module *mod)
                 .tags = (struct tag *[]){
                     tag_new_string(mod, "seat", seat->name),
                     tag_new_string(mod, "title", seat->title),
+                    tag_new_string(mod, "mode", seat->mode),
                 },
-                .count = 2,
+                .count = 3,
             };
 
             tag_parts[i++] = m->title->instantiate(m->title, &tags);
@@ -199,6 +203,7 @@ seat_destroy(struct seat *seat)
 {
     free(seat->title);
     free(seat->name);
+    free(seat->mode);
     if (seat->status != NULL)
         zriver_seat_status_v1_destroy(seat->status);
     if (seat->wl_seat != NULL)
@@ -435,10 +440,34 @@ focused_view(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
     }
 }
 
+#if defined(ZRIVER_SEAT_STATUS_V1_MODE_SINCE_VERSION)
+static void
+mode(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
+     const char *name)
+{
+    struct seat *seat = data;
+    struct module *mod = seat->m->mod;
+
+    mtx_lock(&mod->lock);
+    {
+        free(seat->mode);
+        seat->mode = strdup(name);
+        mtx_unlock(&mod->lock);
+    }
+    mod->bar->refresh(mod->bar);
+
+    LOG_DBG("seat: %s, current mode: %s", seat->name, seat->mode);
+}
+
+#endif
+
 static const struct zriver_seat_status_v1_listener river_seat_status_listener = {
     .focused_output = &focused_output,
     .unfocused_output = &unfocused_output,
     .focused_view = &focused_view,
+#if defined(ZRIVER_SEAT_STATUS_V1_MODE_SINCE_VERSION)
+    .mode = &mode,
+#endif
 };
 
 static void
@@ -557,7 +586,7 @@ handle_global(void *data, struct wl_registry *registry,
             return;
 
         m->status_manager = wl_registry_bind(
-            registry, name, &zriver_status_manager_v1_interface, required);
+            registry, name, &zriver_status_manager_v1_interface, min(version, 3));
 
         mtx_lock(&m->mod->lock);
         tll_foreach(m->outputs, it)

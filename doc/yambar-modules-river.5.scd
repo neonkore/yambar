@@ -13,13 +13,14 @@ It has an interface similar to the i3/sway module.
 
 The configuration for the river module specifies one _title_ particle,
 which will be instantiated once for each seat, with tags representing
-the seats' name and the title of the seats' currently focused view.
+the seats' name, the title of the seats' currently focused view, and
+its current river "mode".
 
 It also specifies a _content_ template particle, which is instantiated
 once for all 32 river tags. This means you probably want to use a
 *map* particle to hide unused river tags.
 
-# TAGS
+# TAGS (for the "content" particle)
 
 [[ *Name*
 :[ *Type*
@@ -42,12 +43,23 @@ once for all 32 river tags. This means you probably want to use a
 |  state
 :  string
 :  Set to *urgent* if _urgent_ is true, *focused* if _focused_ is true, *unfocused* if _visible_ is true, but _focused_ is false, or *invisible* if the river tag is not visible on any monitors.
+
+
+# TAGS (for the "title" particle)
+
+[[ *Name*
+:[ *Type*
+:[ *Description*
 |  seat
 :  string
 :  The name of the seat (*title* particle only, see CONFIGURATION)
 |  title
 :  string
 :  The seat's focused view's title (*title* particle only, see CONFIGURATION)
+|  mode
+:  string
+:  The seat's current mode (entered with e.g. *riverctl enter-mode foobar*)
+
 
 # CONFIGURATION
 
@@ -76,7 +88,7 @@ once for all 32 river tags. This means you probably want to use a
 bar:
   left:
     - river:
-        title: {string: { text: "{seat} - {title}" }}
+        title: {string: { text: "{seat} - {title} ({mode})" }}
         content:
           map:
             conditions:
