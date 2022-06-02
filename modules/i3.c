@@ -139,7 +139,7 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
         .visible = json_object_get_boolean(visible),
         .focused = json_object_get_boolean(focused),
         .urgent = json_object_get_boolean(urgent),
-        .empty = is_empty,
+        .empty = is_empty && json_object_get_boolean(focused),
         .window = {.title = NULL, .pid = -1},
     };
 
