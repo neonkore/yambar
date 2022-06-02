@@ -74,12 +74,12 @@ be used.
 :  Range tags
 |  kb, mb, gb
 :  format
-:  Renders a tag's value (in decimal) divided by 1024, 1024^2 or
-   1024^3. Note: no unit suffix is appended)
+:  Renders a tag's value (in decimal) divided by 1000, 1000^2 or
+   1000^3. Note: no unit suffix is appended)
 :  All tag types
 |  kib, mib, gib
 :  format
-:  Same as *kb*, *mb* and *gb*, but divide by 1000^n instead of 1024^n.
+:  Same as *kb*, *mb* and *gb*, but divide by 1024^n instead of 1000^n.
 :  All tag types
 |  min
 :  selector
