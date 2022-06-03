@@ -583,7 +583,7 @@ tags_expand_template(const char *template, const struct tag_set *tags)
 
                 char str[24];
                 if (tag->type(tag) == TAG_TYPE_FLOAT)
-                    snprintf(str, sizeof(str), "%f", tag->as_float(tag) / (double)divider);
+                    snprintf(str, sizeof(str), "%.2f", tag->as_float(tag) / (double)divider);
                 else
                     snprintf(str, sizeof(str), "%lu", tag->as_int(tag) / divider);
                 sbuf_append(&formatted, str);
