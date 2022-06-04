@@ -134,6 +134,18 @@ expose(const struct bar *_bar)
 
     int y = bar->border.top_width;
     int x = bar->border.left_width + bar->left_margin - bar->left_spacing;
+    pixman_region32_t clip;
+    pixman_region32_init_rect(
+        &clip,
+        bar->border.left_width + bar->left_margin,
+        bar->border.top_width,
+        (bar->width -
+         bar->left_margin - bar->right_margin -
+         bar->border.left_width - bar->border.right_width),
+        bar->height);
+    pixman_image_set_clip_region32(pix, &clip);
+    pixman_region32_fini(&clip);
+
     for (size_t i = 0; i < bar->left.count; i++) {
         const struct exposable *e = bar->left.exps[i];
         e->expose(e, pix, x + bar->left_spacing, y, bar->height);
