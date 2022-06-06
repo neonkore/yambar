@@ -1062,10 +1062,10 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                     foreach_nlattr(mod, genl, msg_size, &handle_nl80211_new_station);
                 }
 
-                LOG_INFO("%s: signal: %d dBm, RX=%u Mbit/s, TX=%u Mbit/s",
-                         m->iface, m->signal_strength_dbm,
-                         m->rx_bitrate / 1000 / 1000,
-                         m->tx_bitrate / 1000 / 1000);
+                LOG_DBG("%s: signal: %d dBm, RX=%u Mbit/s, TX=%u Mbit/s",
+                        m->iface, m->signal_strength_dbm,
+                        m->rx_bitrate / 1000 / 1000,
+                        m->tx_bitrate / 1000 / 1000);
                 break;
 
             default:
