@@ -176,7 +176,7 @@ instantiate(const struct particle *particle, const struct tag_set *tags)
 
     /* Not in cache - we need to rasterize it. First, convert to char32_t */
     wtext = ambstoc32(text);
-    size_t chars = c32len(wtext);
+    size_t chars = wtext != NULL ? c32len(wtext) : 0;
 
     /* Truncate, if necessary */
     if (p->max_len > 0 && chars > p->max_len) {

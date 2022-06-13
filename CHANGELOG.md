@@ -100,6 +100,8 @@
   device yambar is already tracking ([#177][177]).
 * Crash when a particle is “too wide”, and tries to render outside the
   bar ([#198][198]).
+* string: crash when failing to convert string to UTF-32.
+
 
 [169]: https://codeberg.org/dnkl/yambar/issues/169
 [172]: https://codeberg.org/dnkl/yambar/issues/172
