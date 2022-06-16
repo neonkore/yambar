@@ -23,7 +23,9 @@ struct channel {
     enum channel_type type;
     char *name;
 
+    bool use_db;
     long vol_cur;
+    long db_cur;
     bool muted;
 };
 
@@ -42,9 +44,17 @@ struct private {
     long playback_vol_min;
     long playback_vol_max;
 
+    bool has_playback_db;
+    long playback_db_min;
+    long playback_db_max;
+
     bool has_capture_volume;
     long capture_vol_min;
     long capture_vol_max;
+
+    long has_capture_db;
+    long capture_db_min;
+    long capture_db_max;
 
     const struct channel *volume_chan;
     const struct channel *muted_chan;
@@ -94,30 +104,57 @@ content(struct module *mod)
 
     bool muted = muted_chan != NULL ? muted_chan->muted : false;
     long vol_min = 0, vol_max = 0, vol_cur = 0;
+    long db_min = 0, db_max = 0, db_cur = 0;
+    bool use_db = false;
 
     if (volume_chan != NULL) {
         if (volume_chan->type == CHANNEL_PLAYBACK) {
+            db_min = m->playback_db_min;
+            db_max = m->playback_db_max;
             vol_min = m->playback_vol_min;
             vol_max = m->playback_vol_max;
         } else {
+            db_min = m->capture_db_min;
+            db_max = m->capture_db_max;
             vol_min = m->capture_vol_min;
             vol_max = m->capture_vol_max;
         }
         vol_cur = volume_chan->vol_cur;
+        db_cur = volume_chan->db_cur;
+        use_db = volume_chan->use_db;
     }
 
-    int percent = vol_max - vol_min > 0
-        ? round(100. * vol_cur / (vol_max - vol_min))
-        : 0;
+    int percent;
+
+    if (use_db) {
+        bool use_linear = db_max - db_min <= 24 * 100;
+        if (use_linear) {
+            percent = db_min - db_max > 0
+                ? round(100. * (db_cur - db_min) / (db_max - db_min))
+                : 0;
+        } else {
+            double normalized = pow(10, (double)(db_cur - db_max) / 6000.);
+            if (db_min != SND_CTL_TLV_DB_GAIN_MUTE) {
+                double min_norm = pow(10, (double)(db_min - db_max) / 6000.);
+                normalized = (normalized - min_norm) / (1. - min_norm);
+            }
+            percent = round(100. * normalized);
+        }
+    } else {
+        percent = vol_max - vol_min > 0
+            ? round(100. * (vol_cur - vol_min) / (vol_max - vol_min))
+            : 0;
+    }
 
     struct tag_set tags = {
         .tags = (struct tag *[]){
             tag_new_bool(mod, "online", m->online),
             tag_new_int_range(mod, "volume", vol_cur, vol_min, vol_max),
+            tag_new_int_range(mod, "dB", db_cur, db_min, db_max),
             tag_new_int_range(mod, "percent", percent, 0, 100),
             tag_new_bool(mod, "muted", muted),
         },
-        .count = 4,
+        .count = 5,
     };
     mtx_unlock(&mod->lock);
 
@@ -132,6 +169,8 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
 {
     struct private *m = mod->private;
 
+    mtx_lock(&mod->lock);
+
     /* If volume level can be changed (i.e. this isn't just a switch;
      * e.g. a digital channel), get current channel levels */
     tll_foreach(m->channels, it) {
@@ -139,14 +178,57 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
 
         const bool has_volume = chan->type == CHANNEL_PLAYBACK
             ? m->has_playback_volume : m->has_capture_volume;
+        const bool has_db = chan->type == CHANNEL_PLAYBACK
+            ? m->has_playback_db : m->has_capture_db;
+
+        if (!has_volume && !has_db)
+            continue;
+
+
+        if (has_db) {
+            chan->use_db = true;
+
+            const long min = chan->type == CHANNEL_PLAYBACK
+                ? m->playback_db_min : m->capture_db_min;
+            const long max = chan->type == CHANNEL_PLAYBACK
+                ? m->playback_db_max : m->capture_db_max;
+            assert(min <= max);
+
+            int r = chan->type == CHANNEL_PLAYBACK
+                ? snd_mixer_selem_get_playback_dB(elem, chan->id, &chan->db_cur)
+                : snd_mixer_selem_get_capture_dB(elem, chan->id, &chan->db_cur);
+
+            if (r < 0) {
+                LOG_ERR("%s,%s: %s: failed to get current dB",
+                        m->card, m->mixer, chan->name);
+            }
+
+            if (chan->db_cur < min) {
+                LOG_WARN(
+                    "%s,%s: %s: current dB is less than the indicated minimum: "
+                    "%ld < %ld", m->card, m->mixer, chan->name, chan->db_cur, min);
+                chan->db_cur = min;
+            }
+
+            if (chan->db_cur > max) {
+                LOG_WARN(
+                    "%s,%s: %s: current dB is greater than the indicated maximum: "
+                    "%ld > %ld", m->card, m->mixer, chan->name, chan->db_cur, max);
+                chan->db_cur = max;
+            }
+
+            assert(chan->db_cur >= min);
+            assert(chan->db_cur <= max );
+
+            LOG_DBG("%s,%s: %s: dB: %ld",
+                    m->card, m->mixer, chan->name, chan->db_cur);
+        } else
+            chan->use_db = false;
+
         const long min = chan->type == CHANNEL_PLAYBACK
             ? m->playback_vol_min : m->capture_vol_min;
         const long max = chan->type == CHANNEL_PLAYBACK
             ? m->playback_vol_max : m->capture_vol_max;
-
-        if (!has_volume)
-            continue;
-
         assert(min <= max);
 
         int r = chan->type == CHANNEL_PLAYBACK
@@ -199,10 +281,9 @@ update_state(struct module *mod, snd_mixer_elem_t *elem)
         LOG_DBG("%s,%s: %s: muted: %d", m->card, m->mixer, chan->name, !unmuted);
     }
 
-    mtx_lock(&mod->lock);
     m->online = true;
-    mtx_unlock(&mod->lock);
 
+    mtx_unlock(&mod->lock);
     mod->bar->refresh(mod->bar);
 }
 
@@ -269,6 +350,16 @@ run_while_online(struct module *mod)
         }
     }
 
+    if (snd_mixer_selem_get_playback_dB_range(
+            elem, &m->playback_db_min, &m->playback_db_max) < 0)
+    {
+        LOG_WARN(
+            "%s,%s: failed to get playback dB range, "
+            "will use raw volume values instead", m->card, m->mixer);
+        m->has_playback_db = false;
+    } else
+        m->has_playback_db = true;
+
     /* Get capture volume range */
     m->has_capture_volume = snd_mixer_selem_has_capture_volume(elem) > 0;
     if (m->has_capture_volume) {
@@ -289,6 +380,16 @@ run_while_online(struct module *mod)
             m->capture_vol_min = m->capture_vol_max;
         }
     }
+
+    if (snd_mixer_selem_get_capture_dB_range(
+            elem, &m->capture_db_min, &m->capture_db_max) < 0)
+    {
+        LOG_WARN(
+            "%s,%s: failed to get capture dB range, "
+            "will use raw volume values instead", m->card, m->mixer);
+        m->has_capture_db = false;
+    } else
+        m->has_capture_db = true;
 
     /* Get available channels */
     for (size_t i = 0; i < SND_MIXER_SCHN_LAST; i++) {
@@ -361,13 +462,24 @@ run_while_online(struct module *mod)
     update_state(mod, elem);
 
     LOG_INFO(
-        "%s,%s: volume range=%ld-%ld, current=%ld%s (sources: volume=%s, muted=%s)",
+        "%s,%s: %s range=%ld-%ld, current=%ld%s (sources: volume=%s, muted=%s)",
         m->card, m->mixer,
-        m->volume_chan->type == CHANNEL_PLAYBACK
-        ? m->playback_vol_min : m->capture_vol_min,
-        m->volume_chan->type == CHANNEL_PLAYBACK
-        ? m->playback_vol_max : m->capture_vol_max,
-        m->volume_chan->vol_cur,
+        m->volume_chan->use_db ? "dB" : "volume",
+        (m->volume_chan->type == CHANNEL_PLAYBACK
+         ? (m->volume_chan->use_db
+            ? m->playback_db_min
+            : m->playback_vol_min)
+         : (m->volume_chan->use_db
+            ? m->capture_db_min
+            : m->capture_vol_min)),
+        (m->volume_chan->type == CHANNEL_PLAYBACK
+         ? (m->volume_chan->use_db
+            ? m->playback_db_max
+            : m->playback_vol_max)
+         : (m->volume_chan->use_db
+            ? m->capture_db_max
+            : m->capture_vol_max)),
+        m->volume_chan->use_db ? m->volume_chan->db_cur : m->volume_chan->vol_cur,
         m->muted_chan->muted ? " (muted)" : "",
         m->volume_chan->name, m->muted_chan->name);
 

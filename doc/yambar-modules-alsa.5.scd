@@ -11,12 +11,17 @@ alsa - Monitors an alsa soundcard for volume and mute/unmute changes
 |  online
 :  bool
 :  True when the ALSA device has successfully been opened
+|  dB
+:  range
+:  Volume level (in dB), with min and max as start and end range
+   values.
 |  volume
 :  range
-:  Volume level, with min and max as start and end range values
+:  Volume level (raw), with min and max as start and end range values
 |  percent
 :  range
-:  Volume level, as a percentage
+:  Volume level, as a percentage. This value is based on the *dB* tag
+   if available, otherwise the *volume* tag.
 |  muted
 :  bool
 :  True if muted, otherwise false

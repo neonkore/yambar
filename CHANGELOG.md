@@ -25,10 +25,11 @@
 * network: request link stats and expose under tags `dl-speed` and
   `ul-speed` when `poll-interval` is set.
 * new module: disk-io.
-
+* alsa: `dB` tag ([#202][202])
 
 [153]: https://codeberg.org/dnkl/yambar/issues/153
 [159]: https://codeberg.org/dnkl/yambar/issues/159
+[202]: https://codeberg.org/dnkl/yambar/issues/202
 
 
 ### Changed
@@ -42,6 +43,8 @@
   (e.g. `string: {text: "{tx-bitrate:mb}"}`).
 * i3: newly created, and **unfocused** workspaces are now considered
   non-empty ([#191][191])
+* alsa: use dB instead of raw volume values, if possible, when
+  calculating the `percent` tag ([#202][202])
 * **BREAKING CHANGE**: overhaul of the `map` particle. Instead of
   specifying a `tag` and then an array of `values`, you must now
   simply use an array of `conditions`, that consist of:
@@ -83,6 +86,7 @@
 [137]: https://codeberg.org/dnkl/yambar/issues/137
 [175]: https://codeberg.org/dnkl/yambar/issues/172
 [191]: https://codeberg.org/dnkl/yambar/issues/191
+[202]: https://codeberg.org/dnkl/yambar/issues/202
 
 
 ### Deprecated
