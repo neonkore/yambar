@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <signal.h>
 
 #include <poll.h>
 #include <fcntl.h>
