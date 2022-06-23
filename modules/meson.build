@@ -59,7 +59,7 @@ if backend_wayland
   endforeach
 
   mod_data += {
-    'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], [dynlist]],
+    'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], [dynlist, wayland_client]],
   }
 
   ftop_proto_headers = []
@@ -81,7 +81,7 @@ if backend_wayland
   endforeach
 
   mod_data += {
-    'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [dynlist]],
+    'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [dynlist, wayland_client]],
   }
 endif
 
