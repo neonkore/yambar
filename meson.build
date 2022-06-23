@@ -90,7 +90,11 @@ if backend_x11
     c_args: xcb_errors.found() ? '-DHAVE_XCB_ERRORS' : [],
     pic: plugs_as_libs)
 
-  xcb_stuff = declare_dependency(link_with: xcb_stuff_lib)
+  xcb_stuff = declare_dependency(
+    link_with: xcb_stuff_lib,
+    dependencies: [xcb_aux, xcb_cursor, xcb_event, xcb_ewmh, xcb_randr,
+                   xcb_render, xcb_errors],
+    )
   install_headers('xcb.h', subdir: 'yambar')
 endif
 
