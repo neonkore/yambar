@@ -9,8 +9,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
-
-#include <sys/sysinfo.h>
+#include <unistd.h>
 
 #define LOG_MODULE "cpu"
 #define LOG_ENABLE_DBG 0
@@ -57,7 +56,7 @@ description(struct module *mod)
 static uint32_t
 get_cpu_nb_cores()
 {
-    int nb_cores = get_nprocs();
+    int nb_cores = sysconf(_SC_NPROCESSORS_ONLN);
     LOG_DBG("CPU count: %d", nb_cores);
 
     return nb_cores;
