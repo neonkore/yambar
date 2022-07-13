@@ -31,39 +31,33 @@
 #         content:
 #           - map:
 #               margin: 4
-#               tag: tag_0_occupied
-#               values:
-#                 true:
+#               conditions:
+#                 tag_0_occupied:
 #                   map:
-#                     tag: tag_0_focused
-#                     values:
-#                       true: {string: {text: "{tag_0}", <<: *focused}}
-#                       false: {string: {text: "{tag_0}", <<: *occupied}}
-#                 false:
+#                     conditions:
+#                       tag_0_focused: {string: {text: "{tag_0}", <<: *focused}}
+#                       ~tag_0_focused: {string: {text: "{tag_0}", <<: *occupied}}
+#                 ~tag_0_occupied:
 #                   map:
-#                     tag: tag_0_focused
-#                     values:
-#                       true: {string: {text: "{tag_0}", <<: *focused}}
-#                       false: {string: {text: "{tag_0}", <<: *default}}
+#                     conditions:
+#                       tag_0_focused: {string: {text: "{tag_0}", <<: *focused}}
+#                       ~tag_0_focused: {string: {text: "{tag_0}", <<: *default}}
 #           ...
-#           ... 
+#           ...
 #           ...
 #           - map:
 #               margin: 4
-#               tag: tag_8_occupied
-#               values:
-#                 true:
+#               conditions:
+#                 tag_8_occupied:
 #                   map:
-#                     tag: tag_8_focused
-#                     values:
-#                       true: {string: {text: "{tag_8}", <<: *focused}}
-#                       false: {string: {text: "{tag_8}", <<: *occupied}}
-#                 false:
+#                     conditions:
+#                       tag_8_focused: {string: {text: "{tag_8}", <<: *focused}}
+#                       ~tag_8_focused: {string: {text: "{tag_8}", <<: *occupied}}
+#                 ~tag_8_occupied:
 #                   map:
-#                     tag: tag_8_focused
 #                     values:
-#                       true: {string: {text: "{tag_8}", <<: *focused}}
-#                       false: {string: {text: "{tag_8}", <<: *default}}
+#                       tag_8_focused: {string: {text: "{tag_8}", <<: *focused}}
+#                       ~tag_8_focused: {string: {text: "{tag_8}", <<: *default}}
 #           - list:
 #               spacing: 3
 #               items:

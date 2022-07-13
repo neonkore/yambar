@@ -24,10 +24,9 @@
 #      args: [] 
 #      content:
 #        map:
-#          tag: pkg
 #          default: { string: { text: "{pacman} + {aur} = {pkg}" } }
-#          values:
-#            0: {string: {text: no updates}}
+#          conditions:
+#            pkg == 0: {string: {text: no updates}}
 
 
 declare interval aur_helper pacman_num aur_num pkg_num
