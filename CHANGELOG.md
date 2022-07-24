@@ -13,6 +13,7 @@
 
 ### Added
 
+* Support for specifying number of decimals when printing a float tag ([#200][200]).
 * Support for custom font fallbacks ([#153][153]).
 * overline: new decoration ([#153][153]).
 * i3/sway: boolean option `strip-workspace-numbers`.
@@ -31,6 +32,7 @@
 
 [153]: https://codeberg.org/dnkl/yambar/issues/153
 [159]: https://codeberg.org/dnkl/yambar/issues/159
+[200]: https://codeberg.org/dnkl/yambar/issues/200
 [202]: https://codeberg.org/dnkl/yambar/issues/202
 [219]: https://codeberg.org/dnkl/yambar/pulls/219
 [228]: https://codeberg.org/dnkl/yambar/pulls/228

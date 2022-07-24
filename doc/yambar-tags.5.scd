@@ -59,7 +59,11 @@ be used.
 [[ *Formatter*
 :[ *Kind*
 :[ *Description*
-:[ *Applies to*]
+:[ *Applies to*
+|  .<number>
+:  format
+:  How many decimals to print
+:  Float tags
 |  hex
 :  format
 :  Renders a tag's value in hex

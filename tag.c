@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <assert.h>
 
 #define LOG_MODULE "tag"
@@ -425,6 +427,16 @@ sbuf_append(struct sbuf *s1, const char *s2)
     sbuf_append_at_most(s1, s2, strlen(s2));
 }
 
+bool
+is_number(const char *str) {
+    while (*str != '\0') {
+        if (!isdigit(*str))
+            return false;
+        ++str;
+    }
+    return true;
+}
+
 char *
 tags_expand_template(const char *template, const struct tag_set *tags)
 {
@@ -456,7 +468,7 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         strncpy(tag_name_and_arg, begin + 1, end - begin - 1);
         tag_name_and_arg[end - begin - 1] = '\0';
 
-        static const size_t MAX_TAG_ARGS = 3;
+        static const size_t MAX_TAG_ARGS = 4;
         const char *tag_name = NULL;
         const char *tag_args[MAX_TAG_ARGS];
         memset(tag_args, 0, sizeof(tag_args));
@@ -507,6 +519,9 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             VALUE_UNIT,
         } kind = VALUE_VALUE;
 
+        int decimals = 2;
+        char *float_fmt_end;
+
         for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
             if (tag_args[i] == NULL)
                 break;
@@ -534,6 +549,8 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 kind = VALUE_MAX;
             else if (strcmp(tag_args[i], "unit") == 0)
                 kind = VALUE_UNIT;
+            else if (tag_args[i][0] == '.' && is_number(tag_args[i] + 1))
+                decimals = strtol(tag_args[i] + 1, &float_fmt_end, 10);
             else
                 LOG_WARN("invalid tag formatter: %s", tag_args[i]);
         }
@@ -542,9 +559,16 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         switch (kind) {
         case VALUE_VALUE:
             switch (format) {
-            case FMT_DEFAULT:
-                sbuf_append(&formatted, tag->as_string(tag));
+            case FMT_DEFAULT: {
+                if (tag->type(tag) == TAG_TYPE_FLOAT){
+                    char str[24];
+                    snprintf(str, sizeof(str), "%.*f", decimals, tag->as_float(tag));
+                    sbuf_append(&formatted, str);
+                } else {
+                    sbuf_append(&formatted, tag->as_string(tag));
+                }
                 break;
+            }
 
             case FMT_HEX:
             case FMT_OCT: {
@@ -583,7 +607,7 @@ tags_expand_template(const char *template, const struct tag_set *tags)
 
                 char str[24];
                 if (tag->type(tag) == TAG_TYPE_FLOAT)
-                    snprintf(str, sizeof(str), "%.2f", tag->as_float(tag) / (double)divider);
+                    snprintf(str, sizeof(str), "%.*f", decimals, tag->as_float(tag) / (double)divider);
                 else
                     snprintf(str, sizeof(str), "%lu", tag->as_int(tag) / divider);
                 sbuf_append(&formatted, str);
