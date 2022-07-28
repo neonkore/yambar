@@ -13,7 +13,7 @@ before_script:
   - apk add pixman-dev freetype-dev fontconfig-dev
   - apk add libxcb-dev xcb-util-wm-dev xcb-util-cursor-dev yaml-dev
   - apk add wayland-dev wayland-protocols wlroots-dev
-  - apk add json-c-dev libmpdclient-dev alsa-lib-dev
+  - apk add json-c-dev libmpdclient-dev alsa-lib-dev pulseaudio-dev
   - apk add ttf-dejavu
   - apk add git
   - apk add flex bison

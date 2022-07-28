@@ -150,6 +150,8 @@ Available modules have their own pages:
 
 *yambar-modules-network*(5)
 
+*yambar-modules-pulse*(5)
+
 *yambar-modules-removables*(5)
 
 *yambar-modules-river*(5)

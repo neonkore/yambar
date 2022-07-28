@@ -16,6 +16,7 @@ depends=(
   'libudev.so'
   'json-c'
   'libmpdclient'
+  'libpulse'
   'fcft>=3.0.0' 'fcft<4.0.0')
 source=()
 

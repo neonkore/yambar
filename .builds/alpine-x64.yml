@@ -18,6 +18,7 @@ packages:
   - wlroots-dev
   - json-c-dev
   - libmpdclient-dev
+  - libpulse
   - alsa-lib-dev
   - ttf-dejavu
   - gcovr

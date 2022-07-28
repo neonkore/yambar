@@ -27,7 +27,8 @@
 * network: request link stats and expose under tags `dl-speed` and
   `ul-speed` when `poll-interval` is set.
 * new module: disk-io.
-* alsa: `dB` tag ([#202][202])
+* new module: pulse ([#223][223]).
+* alsa: `dB` tag ([#202][202]).
 * mpd: `file` tag ([#219][219]).
 * on-click: support `next`/`previous` mouse buttons ([#228][228]).
 
@@ -36,6 +37,7 @@
 [200]: https://codeberg.org/dnkl/yambar/issues/200
 [202]: https://codeberg.org/dnkl/yambar/issues/202
 [219]: https://codeberg.org/dnkl/yambar/pulls/219
+[223]: https://codeberg.org/dnkl/yambar/pulls/223
 [228]: https://codeberg.org/dnkl/yambar/pulls/228
 
 

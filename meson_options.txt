@@ -8,3 +8,6 @@ option(
 option(
   'plugin-mpd', type: 'feature', value: 'auto',
   description: 'Music Player Daemon (MPD) support')
+option(
+  'plugin-pulse', type: 'feature', value: 'auto',
+  description: 'PulseAudio support')

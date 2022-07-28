@@ -11,6 +11,9 @@ xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
 plugin_mpd_enabled = mpd.found()
 
+pulse = dependency('libpulse', required: get_option('plugin-pulse'))
+plugin_pulse_enabled = pulse.found()
+
 # Module name -> (source-list, dep-list)
 mod_data = {
   'alsa': [[], [m, alsa]],
@@ -30,6 +33,10 @@ mod_data = {
 
 if plugin_mpd_enabled
   mod_data += {'mpd': [[], [mpd]]}
+endif
+
+if plugin_pulse_enabled
+  mod_data += {'pulse': [[], [pulse]]}
 endif
 
 if backend_x11

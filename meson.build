@@ -131,7 +131,8 @@ yambar = executable(
   version,
   dependencies: [bar, libepoll, libinotify,  pixman, yaml, threads, dl, tllist, fcft] +
                 decorations + particles + modules,
-  c_args: [plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[]],
+  c_args: [plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[],
+           plugin_pulse_enabled? '-DPLUGIN_ENABLED_PULSE':[]],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
   install: true,
@@ -168,7 +169,10 @@ summary(
 )
 
 summary(
-  {'Music Player Daemon (MPD)': plugin_mpd_enabled},
+  {
+    'Music Player Daemon (MPD)': plugin_mpd_enabled,
+    'PulseAudio': plugin_pulse_enabled,
+  },
   section: 'Optional modules',
   bool_yn: true
 )

@@ -86,6 +86,7 @@ Available modules:
 * mem
 * mpd
 * network
+* pulse
 * removables
 * river
 * script (see script [examples](examples/scripts))
