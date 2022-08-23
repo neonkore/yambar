@@ -25,7 +25,7 @@ packages:
   - py3-pip
 
 sources:
-  - https://codeberg.org/dnkl/yambar
+  - https://git.sr.ht/~dnkl/yambar
 
 # triggers:
 #   - action: email
