@@ -442,7 +442,12 @@ send_nl80211_get_station(struct private *m)
 
     LOG_DBG("%s: sending nl80211 get-station request", m->iface);
 
-    uint32_t seq = time(NULL);
+    uint32_t seq;
+    if (read(m->urandom_fd, &seq, sizeof(seq)) != sizeof(seq)) {
+        LOG_ERRNO("failed to read from /dev/urandom");
+        return false;
+    }
+
     if (send_nl80211_request(
             m, NL80211_CMD_GET_STATION, NLM_F_REQUEST | NLM_F_DUMP, seq))
     {
