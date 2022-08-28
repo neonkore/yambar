@@ -11,6 +11,9 @@
 #include <poll.h>
 #include <sys/timerfd.h>
 
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <arpa/inet.h>
 #include <linux/if.h>
 #include <linux/netlink.h>
@@ -51,6 +54,7 @@ struct private {
 
     int genl_sock;
     int rt_sock;
+    int urandom_fd;
 
     struct {
         uint16_t family_id;
@@ -89,6 +93,9 @@ destroy(struct module *mod)
     assert(m->rt_sock == -1);
 
     m->label->destroy(m->label);
+
+    if (m->urandom_fd >= 0)
+        close(m->urandom_fd);
 
     tll_free(m->addrs);
     free(m->ssid);
@@ -411,7 +418,12 @@ send_nl80211_get_interface(struct private *m)
 
     LOG_DBG("%s: sending nl80211 get-interface request", m->iface);
 
-    uint32_t seq = time(NULL);
+    uint32_t seq;
+    if (read(m->urandom_fd, &seq, sizeof(seq)) != sizeof(seq)) {
+        LOG_ERRNO("failed to read from /dev/urandom");
+        return false;
+    }
+
     if (send_nl80211_request(m, NL80211_CMD_GET_INTERFACE, NLM_F_REQUEST, seq)) {
         m->nl80211.get_interface_seq_nr = seq;
         return true;
@@ -1285,6 +1297,12 @@ run(struct module *mod)
 static struct module *
 network_new(const char *iface, struct particle *label, int poll_interval)
 {
+    int urandom_fd = open("/dev/urandom", O_RDONLY);
+    if (urandom_fd < 0) {
+        LOG_ERRNO("failed to open /dev/urandom");
+        return NULL;
+    }
+
     struct private *priv = calloc(1, sizeof(*priv));
     priv->iface = strdup(iface);
     priv->label = label;
@@ -1292,6 +1310,7 @@ network_new(const char *iface, struct particle *label, int poll_interval)
 
     priv->genl_sock = -1;
     priv->rt_sock = -1;
+    priv->urandom_fd = urandom_fd;
     priv->nl80211.family_id = -1;
     priv->get_addresses = true;
     priv->ifindex = -1;
