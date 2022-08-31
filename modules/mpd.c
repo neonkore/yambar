@@ -42,6 +42,7 @@ struct private {
     char *album;
     char *artist;
     char *title;
+    char *file;
 
     struct {
         uint64_t value;
@@ -75,6 +76,7 @@ destroy(struct module *mod)
     free(m->album);
     free(m->artist);
     free(m->title);
+    free(m->file);
     assert(m->conn == NULL);
 
     m->label->destroy(m->label);
@@ -173,13 +175,14 @@ content(struct module *mod)
             tag_new_string(mod, "album", m->album),
             tag_new_string(mod, "artist", m->artist),
             tag_new_string(mod, "title", m->title),
+            tag_new_string(mod, "file", m->file),
             tag_new_string(mod, "pos", pos),
             tag_new_string(mod, "end", end),
             tag_new_int(mod, "duration", m->duration),
             tag_new_int_realtime(
                 mod, "elapsed", elapsed, 0, m->duration, realtime),
         },
-        .count = 12,
+        .count = 13,
     };
 
     mtx_unlock(&mod->lock);
@@ -354,20 +357,24 @@ update_status(struct module *mod)
         free(m->album); m->album = NULL;
         free(m->artist); m->artist = NULL;
         free(m->title); m->title = NULL;
+        free(m->file); m->file = NULL;
         mtx_unlock(&mod->lock);
     } else {
         const char *album = mpd_song_get_tag(song, MPD_TAG_ALBUM, 0);
         const char *artist = mpd_song_get_tag(song, MPD_TAG_ARTIST, 0);
         const char *title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
+        const char *file = mpd_song_get_uri(song);
 
         mtx_lock(&mod->lock);
         free(m->album);
         free(m->artist);
         free(m->title);
+        free(m->file);
 
         m->album = album != NULL ? strdup(album) : NULL;
         m->artist = artist != NULL ? strdup(artist) : NULL;
         m->title = title != NULL ? strdup(title) : NULL;
+        m->file = file != NULL ? strdup(file) : NULL;
         mtx_unlock(&mod->lock);
 
         mpd_song_free(song);
@@ -397,6 +404,7 @@ run(struct module *mod)
         free(m->album); m->album = NULL;
         free(m->artist); m->artist = NULL;
         free(m->title); m->title = NULL;
+        free(m->file); m->file = NULL;
         m->state = MPD_STATE_UNKNOWN;
         m->elapsed.value = m->duration = 0;
         m->elapsed.when.tv_sec = m->elapsed.when.tv_nsec = 0;

@@ -32,6 +32,9 @@ mpd - This module provides MPD status such as currently playing artist/album/son
 |  title
 :  string
 :  Title of currently playing song (also valid in *paused* state)
+|  file
+:  string
+:  Filename or URL of currently playing song (also valid in *paused* state)
 |  pos
 :  string
 :  *%M:%S*-formatted string describing the song's current position

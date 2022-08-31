@@ -26,10 +26,12 @@
   `ul-speed` when `poll-interval` is set.
 * new module: disk-io.
 * alsa: `dB` tag ([#202][202])
+* mpd: `file` tag ([#219][219]).
 
 [153]: https://codeberg.org/dnkl/yambar/issues/153
 [159]: https://codeberg.org/dnkl/yambar/issues/159
 [202]: https://codeberg.org/dnkl/yambar/issues/202
+[219]: https://codeberg.org/dnkl/yambar/pulls/219
 
 
 ### Changed
