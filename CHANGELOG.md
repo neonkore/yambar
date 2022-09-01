@@ -106,13 +106,15 @@
 * Crash when a particle is “too wide”, and tries to render outside the
   bar ([#198][198]).
 * string: crash when failing to convert string to UTF-32.
-
+* script: only first transaction processed when receiving multiple
+  transactions in a single batch ([#221][221]).
 
 [169]: https://codeberg.org/dnkl/yambar/issues/169
 [172]: https://codeberg.org/dnkl/yambar/issues/172
 [178]: https://codeberg.org/dnkl/yambar/issues/178
 [177]: https://codeberg.org/dnkl/yambar/issues/177
 [198]: https://codeberg.org/dnkl/yambar/issues/198
+[221]: https://codeberg.org/dnkl/yambar/issues/221
 
 
 ### Security

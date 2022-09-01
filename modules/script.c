@@ -313,20 +313,22 @@ data_received(struct module *mod, const char *data, size_t len)
     memcpy(&m->recv_buf.data[m->recv_buf.idx], data, len);
     m->recv_buf.idx += len;
 
-    const char *eot = memmem(m->recv_buf.data, m->recv_buf.idx, "\n\n", 2);
-    if (eot == NULL) {
-        /* End of transaction not yet available */
-        return true;
+    while (true) {
+        const char *eot = memmem(m->recv_buf.data, m->recv_buf.idx, "\n\n", 2);
+        if (eot == NULL) {
+            /* End of transaction not yet available */
+            return true;
+        }
+
+        const size_t transaction_size = eot - m->recv_buf.data + 1;
+        process_transaction(mod, transaction_size);
+
+        assert(m->recv_buf.idx >= transaction_size + 1);
+        memmove(m->recv_buf.data,
+                &m->recv_buf.data[transaction_size + 1],
+                m->recv_buf.idx - (transaction_size + 1));
+        m->recv_buf.idx -= transaction_size + 1;
     }
-
-    const size_t transaction_size = eot - m->recv_buf.data + 1;
-    process_transaction(mod, transaction_size);
-
-    assert(m->recv_buf.idx >= transaction_size + 1);
-    memmove(m->recv_buf.data,
-            &m->recv_buf.data[transaction_size + 1],
-            m->recv_buf.idx - (transaction_size + 1));
-    m->recv_buf.idx -= transaction_size + 1;
 
     return true;
 }
