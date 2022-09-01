@@ -106,7 +106,7 @@ of free text mixed with tag specifiers.
 |  text
 :  string
 :  yes
-:  Format string. Tags are spcified with _{tag_name}_. Some tag types
+:  Format string. Tags are specified with _{tag_name}_. Some tag types
    have suffixes that can be appended (e.g. _{tag_name:suffix}_). See
    *yambar-modules*(5)).
 |  max
@@ -114,9 +114,9 @@ of free text mixed with tag specifiers.
 :  no
 :  Sets the rendered string's maximum length. If the final string's
    length exceeds this, the rendered string will be truncated, and
-   "..."  will be appended. Note that the trailing "..." are
+   "…"  will be appended. Note that the trailing "…" is
    *included* in the maximum length. I.e. if you set _max_ to '5', you
-   will only get *2* characters from the string.
+   will only get *4* characters from the string.
 
 ## EXAMPLES
 
