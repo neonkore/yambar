@@ -60,6 +60,7 @@ struct private {
         uint16_t family_id;
         uint32_t get_interface_seq_nr;
         uint32_t get_station_seq_nr;
+        uint32_t get_scan_seq_nr;
     } nl80211;
 
     bool get_addresses;
@@ -458,6 +459,32 @@ send_nl80211_get_station(struct private *m)
 }
 
 static bool
+send_nl80211_get_scan(struct private *m)
+{
+    if (m->nl80211.get_scan_seq_nr > 0) {
+        LOG_ERR(
+            "%s: nl80211 get-scan request already in progress", m->iface);
+        return true;
+    }
+
+    LOG_DBG("%s: sending nl80211 get-scan request", m->iface);
+
+    uint32_t seq;
+    if (read(m->urandom_fd, &seq, sizeof(seq)) != sizeof(seq)) {
+        LOG_ERRNO("failed to read from /dev/urandom");
+        return false;
+    }
+
+    if (send_nl80211_request(
+            m, NL80211_CMD_GET_SCAN, NLM_F_REQUEST | NLM_F_DUMP, seq))
+    {
+        m->nl80211.get_scan_seq_nr = seq;
+        return true;
+    } else
+        return false;
+}
+
+static bool
 find_my_ifindex(struct module *mod, const struct ifinfomsg *msg, size_t len)
 {
     struct private *m = mod->private;
@@ -810,6 +837,7 @@ handle_nl80211_new_interface(struct module *mod, uint16_t type, bool nested,
 
     case NL80211_ATTR_SSID: {
         const char *ssid = payload;
+        LOG_INFO("%s: SSID: %.*s", m->iface, (int)len, ssid);
 
         mtx_lock(&mod->lock);
         free(m->ssid);
@@ -951,6 +979,102 @@ handle_nl80211_new_station(struct module *mod, uint16_t type, bool nested,
     return true;
 }
 
+static bool
+handle_ies(struct module *mod, const void *_ies, size_t len)
+{
+    struct private *m = mod->private;
+    const uint8_t *ies = _ies;
+
+    while (len >= 2 && len - 2 >= ies[1]) {
+        switch (ies[0]) {
+        case 0: {  /* SSID */
+            const char *ssid = (const char *)&ies[2];
+            const size_t ssid_len = ies[1];
+
+            LOG_INFO("%s: SSID: %.*s", m->iface, (int)ssid_len, ssid);
+
+            mtx_lock(&mod->lock);
+            free(m->ssid);
+            m->ssid = strndup(ssid, ssid_len);
+            mtx_unlock(&mod->lock);
+
+            mod->bar->refresh(mod->bar);
+            break;
+        }
+        }
+        len -= ies[1] + 2;
+        ies += ies[1] + 2;
+    }
+
+    return true;
+}
+
+struct scan_results_context {
+    bool associated;
+
+    const void *ies;
+    size_t ies_size;
+};
+
+static bool
+handle_nl80211_bss(struct module *mod, uint16_t type, bool nested,
+                   const void *payload, size_t len, void *_ctx)
+{
+    struct private *m UNUSED = mod->private;
+    struct scan_results_context *ctx = _ctx;
+
+    switch (type) {
+    case NL80211_BSS_STATUS: {
+        const uint32_t status = *(uint32_t *)payload;
+
+        if (status == NL80211_BSS_STATUS_ASSOCIATED) {
+            ctx->associated = true;
+
+            if (ctx->ies != NULL) {
+                /* Deferred handling of BSS_INFORMATION_ELEMENTS */
+                return handle_ies(mod, ctx->ies, ctx->ies_size);
+            }
+        }
+        break;
+    }
+
+    case NL80211_BSS_INFORMATION_ELEMENTS:
+        if (ctx->associated)
+            return handle_ies(mod, payload, len);
+        else {
+            /*
+             * We’re either not associated, or, we haven’t seen the
+             * BSS_STATUS attribute yet.
+             *
+             * Save a pointer to the IES payload, so that we can
+             * process it later, if we see a
+             *   BSS_STATUS == BSS_STATUS_ASSOCIATED.
+             */
+            ctx->ies = payload;
+            ctx->ies_size = len;
+        }
+    }
+
+    return true;
+}
+
+static bool
+handle_nl80211_scan_results(struct module *mod, uint16_t type, bool nested,
+                            const void *payload, size_t len)
+{
+    struct private *m UNUSED = mod->private;
+
+    struct scan_results_context ctx = {0};
+
+    switch (type) {
+    case NL80211_ATTR_BSS:
+        foreach_nlattr_nested(mod, payload, len, &handle_nl80211_bss, &ctx);
+        break;
+    }
+
+    return true;
+}
+
 /*
  * Reads at least one (possibly more) message.
  *
@@ -1083,6 +1207,11 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                 /* Current request is now considered complete */
                 m->nl80211.get_station_seq_nr = 0;
             }
+
+            else if (hdr->nlmsg_seq == m->nl80211.get_scan_seq_nr) {
+                /* Current request is now considered complete */
+                m->nl80211.get_scan_seq_nr = 0;
+            }
         }
 
         else if (hdr->nlmsg_type == GENL_ID_CTRL) {
@@ -1101,8 +1230,6 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                     LOG_DBG("%s: got interface information", m->iface);
                     foreach_nlattr(
                         mod, genl, msg_size, &handle_nl80211_new_interface);
-
-                    LOG_INFO("%s: SSID: %s", m->iface, m->ssid);
                 }
                 break;
 
@@ -1148,6 +1275,18 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
                         m->iface, m->signal_strength_dbm,
                         m->rx_bitrate / 1000 / 1000,
                         m->tx_bitrate / 1000 / 1000);
+
+                /* Can’t issue both get-station and get-scan at the
+                 * same time. So, always run a get-scan when a
+                 * get-station is complete */
+                send_nl80211_get_scan(m);
+                break;
+
+            case NL80211_CMD_NEW_SCAN_RESULTS:
+                if (nl80211_is_for_us(mod, genl, msg_size)) {
+                    LOG_DBG("%s: got scan results", m->iface);
+                    foreach_nlattr(mod, genl, msg_size, &handle_nl80211_scan_results);
+                }
                 break;
 
             default:
@@ -1165,7 +1304,8 @@ parse_genl_reply(struct module *mod, const struct nlmsghdr *hdr, size_t len)
             else if (nl_errno == ENOENT)
                 ; /* iface down? */
             else
-                LOG_ERRNO_P(nl_errno, "%s: nl80211 reply", m->iface);
+                LOG_ERRNO_P(nl_errno, "%s: nl80211 reply (seq-nr: %u)",
+                            m->iface, hdr->nlmsg_seq);
         }
 
         else {

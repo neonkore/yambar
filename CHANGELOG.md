@@ -110,6 +110,9 @@
 * string: crash when failing to convert string to UTF-32.
 * script: only first transaction processed when receiving multiple
   transactions in a single batch ([#221][221]).
+* network: missing SSID (recent kernels, or possibly wireless drivers,
+  no longer provide the SSID in the `NL80211_CMD_NEW_STATION`
+  response) ([#226][226]).
 
 [169]: https://codeberg.org/dnkl/yambar/issues/169
 [172]: https://codeberg.org/dnkl/yambar/issues/172
@@ -117,6 +120,7 @@
 [177]: https://codeberg.org/dnkl/yambar/issues/177
 [198]: https://codeberg.org/dnkl/yambar/issues/198
 [221]: https://codeberg.org/dnkl/yambar/issues/221
+[226]: https://codeberg.org/dnkl/yambar/issues/226
 
 
 ### Security
