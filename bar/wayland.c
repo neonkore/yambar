@@ -292,6 +292,8 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
         case BTN_LEFT:   btn = MOUSE_BTN_LEFT; break;
         case BTN_MIDDLE: btn = MOUSE_BTN_MIDDLE; break;
         case BTN_RIGHT:  btn = MOUSE_BTN_RIGHT; break;
+        case BTN_SIDE:   btn = MOUSE_BTN_PREVIOUS; break;
+        case BTN_EXTRA:  btn = MOUSE_BTN_NEXT; break;
         default:
             return;
         }

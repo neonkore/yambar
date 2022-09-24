@@ -68,6 +68,14 @@ following attributes are supported by all particles:
 :  string
 :  no
 :  Command to execute every time a 'wheel-down' event is triggered.
+|  on-click.previous
+:  string
+:  no
+:  Command to execute when the particle is clicked with the 'previous' button.
+|  on-click.next
+:  string
+:  no
+:  Command to execute when the particle is clicked with the 'next' button.
 |  deco
 :  decoration
 :  no

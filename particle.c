@@ -165,6 +165,8 @@ exposable_default_on_mouse(struct exposable *exposable, struct bar *bar,
         [MOUSE_BTN_COUNT] = "count",
         [MOUSE_BTN_WHEEL_UP] = "wheel-up",
         [MOUSE_BTN_WHEEL_DOWN] = "wheel-down",
+        [MOUSE_BTN_PREVIOUS] = "previous",
+        [MOUSE_BTN_NEXT] = "next",
     };
     LOG_DBG("on_mouse: exposable=%p, event=%s, btn=%s, x=%d, y=%d (on-click=%s)",
             exposable, event == ON_MOUSE_MOTION ? "motion" : "click",

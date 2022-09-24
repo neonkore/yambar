@@ -188,6 +188,8 @@ conf_verify_on_click(keychain_t *chain, const struct yml_node *node)
         {"right", false, &conf_verify_string},
         {"wheel-up", false, &conf_verify_string},
         {"wheel-down", false, &conf_verify_string},
+        {"previous", false, &conf_verify_string},
+        {"next", false, &conf_verify_string},
         {NULL, false, NULL},
     };
 
