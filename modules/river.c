@@ -637,6 +637,7 @@ run(struct module *mod)
     int ret = 1;
     struct wl_display *display = NULL;
     struct wl_registry *registry = NULL;
+    bool unlock_at_exit = false;
 
     if ((display = wl_display_connect(NULL)) == NULL) {
         LOG_ERR("no Wayland compositor running?");
@@ -659,8 +660,8 @@ run(struct module *mod)
 
     wl_display_roundtrip(display);
 
-    bool unlock_at_exit = true;
     mtx_lock(&mod->lock);
+    unlock_at_exit = true;
 
     m->is_starting_up = false;
 
