@@ -67,6 +67,7 @@ content(struct module *mod)
 
     mtx_lock(&mod->lock);
 
+    assert(m->num_existing_inputs <= m->num_inputs);
     struct exposable *particles[max(m->num_existing_inputs, 1)];
 
     for (size_t i = 0, j = 0; i < m->num_inputs; i++) {
@@ -120,8 +121,11 @@ handle_input_reply(int type, const struct json_object *json, void *_mod)
         struct input *input = NULL;
         for (size_t i = 0; i < m->num_inputs; i++) {
             struct input *maybe_input = &m->inputs[i];
-            if (strcmp(maybe_input->identifier, id) == 0) {
+            if (strcmp(maybe_input->identifier, id) == 0 && !maybe_input->exists)
+            {
                 input = maybe_input;
+
+                LOG_DBG("adding: %s", id);
 
                 mtx_lock(&mod->lock);
                 input->exists = true;
@@ -209,6 +213,8 @@ handle_input_event(int type, const struct json_object *json, void *_mod)
 
     if (is_removed) {
         if (input->exists) {
+            LOG_DBG("removing: %s", id);
+
             mtx_lock(&mod->lock);
             input->exists = false;
             m->num_existing_inputs--;
@@ -220,6 +226,8 @@ handle_input_event(int type, const struct json_object *json, void *_mod)
 
     if (is_added) {
         if (!input->exists) {
+            LOG_DBG("adding: %s", id);
+
             mtx_lock(&mod->lock);
             input->exists = true;
             m->num_existing_inputs++;

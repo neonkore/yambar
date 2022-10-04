@@ -115,6 +115,8 @@
 * network: missing SSID (recent kernels, or possibly wireless drivers,
   no longer provide the SSID in the `NL80211_CMD_NEW_STATION`
   response) ([#226][226]).
+* sway-xkb: crash when compositor presents multiple inputs with
+  identical IDs ([#229][229]).
 
 [169]: https://codeberg.org/dnkl/yambar/issues/169
 [172]: https://codeberg.org/dnkl/yambar/issues/172
@@ -123,6 +125,7 @@
 [198]: https://codeberg.org/dnkl/yambar/issues/198
 [221]: https://codeberg.org/dnkl/yambar/issues/221
 [226]: https://codeberg.org/dnkl/yambar/issues/226
+[229]: https://codeberg.org/dnkl/yambar/issues/229
 
 
 ### Security
