@@ -837,7 +837,9 @@ handle_nl80211_new_interface(struct module *mod, uint16_t type, bool nested,
 
     case NL80211_ATTR_SSID: {
         const char *ssid = payload;
-        LOG_INFO("%s: SSID: %.*s", m->iface, (int)len, ssid);
+
+        if (m->ssid == NULL || strncmp(m->ssid, ssid, len) != 0)
+            LOG_INFO("%s: SSID: %.*s", m->iface, (int)len, ssid);
 
         mtx_lock(&mod->lock);
         free(m->ssid);
@@ -991,7 +993,8 @@ handle_ies(struct module *mod, const void *_ies, size_t len)
             const char *ssid = (const char *)&ies[2];
             const size_t ssid_len = ies[1];
 
-            LOG_INFO("%s: SSID: %.*s", m->iface, (int)ssid_len, ssid);
+            if (m->ssid == NULL || strncmp(m->ssid, ssid, ssid_len) != 0)
+                LOG_INFO("%s: SSID: %.*s", m->iface, (int)ssid_len, ssid);
 
             mtx_lock(&mod->lock);
             free(m->ssid);
