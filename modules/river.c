@@ -54,7 +54,6 @@ struct private {
     struct particle *title;
     bool all_monitors;
 
-    bool is_starting_up;
     tll(struct output) outputs;
     tll(struct seat) seats;
 };
@@ -112,8 +111,7 @@ content(struct module *mod)
         }
     }
 
-    const size_t seat_count = m->title != NULL && !m->is_starting_up
-        ? tll_length(m->seats) : 0;
+    const size_t seat_count = m->title != NULL ? tll_length(m->seats) : 0;
     struct exposable *tag_parts[32 + seat_count];
 
     for (unsigned i = 0; i < 32; i++) {
@@ -152,7 +150,7 @@ content(struct module *mod)
         tag_set_destroy(&tags);
     }
 
-    if (m->title != NULL && !m->is_starting_up) {
+    if (m->title != NULL) {
         size_t i = 32;
         tll_foreach(m->seats, it) {
             const struct seat *seat = &it->item;
@@ -189,6 +187,11 @@ verify_iface_version(const char *iface, uint32_t version, uint32_t wanted)
 static void
 output_destroy(struct output *output)
 {
+    tll_foreach(output->m->seats, it) {
+        struct seat *seat = &it->item;
+        if (seat->output == output)
+            seat->output = NULL;
+    }
     free(output->name);
     if (output->status != NULL)
         zriver_output_status_v1_destroy(output->status);
@@ -323,14 +326,20 @@ static struct zxdg_output_v1_listener xdg_output_listener = {
 };
 
 static void
-instantiate_output(struct output *output)
+update_output(struct output *output)
 {
-    if (output->m->is_starting_up)
-        return;
-
     assert(output->wl_output != NULL);
 
-    if (output->m->status_manager != NULL && output->status == NULL) {
+    if (output->m->status_manager != NULL) {
+        /*
+         * Bind river output status, if we have already bound the status manager
+         */
+
+        if (output->status != NULL) {
+            zriver_output_status_v1_destroy(output->status);
+            output->status = NULL;
+        }
+
         output->status = zriver_status_manager_v1_get_river_output_status(
             output->m->status_manager, output->wl_output);
 
@@ -382,7 +391,7 @@ focused_output(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
 
 static void
 unfocused_output(void *data, struct zriver_seat_status_v1 *zriver_seat_status_v1,
-				 struct wl_output *wl_output)
+                 struct wl_output *wl_output)
 {
     struct seat *seat = data;
     struct private *m = seat->m;
@@ -497,15 +506,17 @@ static const struct wl_seat_listener seat_listener = {
 };
 
 static void
-instantiate_seat(struct seat *seat)
+update_seat(struct seat *seat)
 {
     assert(seat->wl_seat != NULL);
 
-    if (seat->m->is_starting_up)
-        return;
-
     if (seat->m->status_manager == NULL)
         return;
+
+    if (seat->status != NULL) {
+        zriver_seat_status_v1_destroy(seat->status);
+        seat->status = NULL;
+    }
 
     seat->status = zriver_status_manager_v1_get_river_seat_status(
         seat->m->status_manager, seat->wl_seat);
@@ -542,7 +553,9 @@ handle_global(void *data, struct wl_registry *registry,
 
         mtx_lock(&m->mod->lock);
         tll_push_back(m->outputs, output);
-        instantiate_output(&tll_back(m->outputs));
+        update_output(&tll_back(m->outputs));
+        tll_foreach(m->seats, it)
+            update_seat(&it->item);
         mtx_unlock(&m->mod->lock);
     }
 
@@ -556,7 +569,7 @@ handle_global(void *data, struct wl_registry *registry,
 
         mtx_lock(&m->mod->lock);
         tll_foreach(m->outputs, it)
-            instantiate_output(&it->item);
+            update_output(&it->item);
         mtx_unlock(&m->mod->lock);
     }
 
@@ -576,7 +589,7 @@ handle_global(void *data, struct wl_registry *registry,
         struct seat *seat = &tll_back(m->seats);
 
         wl_seat_add_listener(wl_seat, &seat_listener, seat);
-        instantiate_seat(seat);
+        update_seat(seat);
         mtx_unlock(&m->mod->lock);
     }
 
@@ -590,9 +603,9 @@ handle_global(void *data, struct wl_registry *registry,
 
         mtx_lock(&m->mod->lock);
         tll_foreach(m->outputs, it)
-            instantiate_output(&it->item);
+            update_output(&it->item);
         tll_foreach(m->seats, it)
-            instantiate_seat(&it->item);
+            update_seat(&it->item);
         mtx_unlock(&m->mod->lock);
     }
 }
@@ -637,7 +650,6 @@ run(struct module *mod)
     int ret = 1;
     struct wl_display *display = NULL;
     struct wl_registry *registry = NULL;
-    bool unlock_at_exit = false;
 
     if ((display = wl_display_connect(NULL)) == NULL) {
         LOG_ERR("no Wayland compositor running?");
@@ -659,19 +671,6 @@ run(struct module *mod)
     }
 
     wl_display_roundtrip(display);
-
-    mtx_lock(&mod->lock);
-    unlock_at_exit = true;
-
-    m->is_starting_up = false;
-
-    tll_foreach(m->outputs, it)
-        instantiate_output(&it->item);
-    tll_foreach(m->seats, it)
-        instantiate_seat(&it->item);
-
-    unlock_at_exit = false;
-    mtx_unlock(&mod->lock);
 
     while (true) {
         wl_display_flush(display);
@@ -719,9 +718,6 @@ out:
         wl_registry_destroy(registry);
     if (display != NULL)
         wl_display_disconnect(display);
-
-    if (unlock_at_exit)
-        mtx_unlock(&mod->lock);
     return ret;
 }
 
@@ -732,7 +728,6 @@ river_new(struct particle *template, struct particle *title, bool all_monitors)
     m->template = template;
     m->title = title;
     m->all_monitors = all_monitors;
-    m->is_starting_up = true;
 
     struct module *mod = module_common_new();
     mod->private = m;
