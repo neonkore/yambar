@@ -133,7 +133,7 @@ content(struct module *mod)
 
 #if 0
         LOG_DBG("tag: #%u, visible=%d, focused=%d, occupied=%d, state=%s",
-                i, visible, focused, occupied & (1u << i), state);
+                i, is_visible, is_focused, is_occupied & (1u << i), state);
 #endif
 
         struct tag_set tags = {
