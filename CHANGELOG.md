@@ -13,7 +13,8 @@
 
 ### Added
 
-* Support for specifying number of decimals when printing a float tag ([#200][200]).
+* Support for specifying number of decimals when printing a float tag
+  ([#200][200]).
 * Support for custom font fallbacks ([#153][153]).
 * overline: new decoration ([#153][153]).
 * i3/sway: boolean option `strip-workspace-numbers`.
