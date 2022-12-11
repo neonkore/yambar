@@ -16,6 +16,7 @@ before_script:
   - apk add json-c-dev libmpdclient-dev alsa-lib-dev
   - apk add ttf-dejavu
   - apk add git
+  - apk add flex bison
 
 versions:
   stage: info
