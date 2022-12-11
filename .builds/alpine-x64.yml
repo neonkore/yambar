@@ -23,6 +23,8 @@ packages:
   - gcovr
   - python3
   - py3-pip
+  - flex
+  - bison
 
 sources:
   - https://git.sr.ht/~dnkl/yambar
