@@ -102,10 +102,11 @@
   ```
 
   For a more thorough explanation, see the updated map section in the
-  man page for yambar-particles([#137][137] and [#175][175]).
+  man page for yambar-particles([#137][137], [#175][175] and [#][182]).
 
 [137]: https://codeberg.org/dnkl/yambar/issues/137
 [175]: https://codeberg.org/dnkl/yambar/issues/172
+[182]: https://codeberg.org/dnkl/yambar/issues/182
 [191]: https://codeberg.org/dnkl/yambar/issues/191
 [202]: https://codeberg.org/dnkl/yambar/issues/202
 
