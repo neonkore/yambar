@@ -78,8 +78,12 @@ Available modules:
 * backlight
 * battery
 * clock
+* cpu
+* disk-io
+* foreign-toplevel
 * i3 (and Sway)
 * label
+* mem
 * mpd
 * network
 * removables
