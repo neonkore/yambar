@@ -131,8 +131,11 @@ yambar = executable(
   version,
   dependencies: [bar, libepoll, libinotify,  pixman, yaml, threads, dl, tllist, fcft] +
                 decorations + particles + modules,
-  c_args: [plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[],
-           plugin_pulse_enabled? '-DPLUGIN_ENABLED_PULSE':[]],
+  c_args: [
+    plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[],
+    plugin_pulse_enabled? '-DPLUGIN_ENABLED_PULSE':[],
+    plugin_pipewire_enabled? '-DPLUGIN_ENABLED_PIPEWIRE':[],
+  ],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
   install: true,
@@ -172,6 +175,7 @@ summary(
   {
     'Music Player Daemon (MPD)': plugin_mpd_enabled,
     'PulseAudio': plugin_pulse_enabled,
+    'Pipewire': plugin_pipewire_enabled
   },
   section: 'Optional modules',
   bool_yn: true

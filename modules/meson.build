@@ -10,6 +10,8 @@ xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 # Optional deps
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
 plugin_mpd_enabled = mpd.found()
+pipewire = dependency('libpipewire-0.3', required: get_option('plugin-pipewire'))
+plugin_pipewire_enabled = pipewire.found()
 
 pulse = dependency('libpulse', required: get_option('plugin-pulse'))
 plugin_pulse_enabled = pulse.found()
@@ -33,6 +35,9 @@ mod_data = {
 
 if plugin_mpd_enabled
   mod_data += {'mpd': [[], [mpd]]}
+endif
+if plugin_pipewire_enabled
+  mod_data += {'pipewire': [[], [pipewire, dynlist, json]]}
 endif
 
 if plugin_pulse_enabled

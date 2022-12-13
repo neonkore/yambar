@@ -47,6 +47,9 @@ EXTERN_MODULE(network);
 #if defined(PLUGIN_ENABLED_PULSE)
 EXTERN_MODULE(pulse);
 #endif
+#if defined(PLUGIN_ENABLED_PIPEWIRE)
+EXTERN_MODULE(pipewire);
+#endif
 EXTERN_MODULE(removables);
 EXTERN_MODULE(river);
 EXTERN_MODULE(sway_xkb);
@@ -134,6 +137,9 @@ init(void)
     REGISTER_CORE_MODULE(network, network);
 #if defined(PLUGIN_ENABLED_PULSE)
     REGISTER_CORE_MODULE(pulse, pulse);
+#endif
+#if defined(PLUGIN_ENABLED_PIPEWIRE)
+    REGISTER_CORE_MODULE(pipewire, pipewire);
 #endif
     REGISTER_CORE_MODULE(removables, removables);
 #if defined(HAVE_PLUGIN_river)

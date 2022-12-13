@@ -11,3 +11,6 @@ option(
 option(
   'plugin-pulse', type: 'feature', value: 'auto',
   description: 'PulseAudio support')
+option(
+  'plugin-pipewire', type: 'feature', value: 'auto',
+  description: 'Pipewire support')
