@@ -32,7 +32,9 @@
         keychain_t *chain, const struct yml_node *node);                \
     extern struct deco *plug_name##_from_conf(const struct yml_node *node);
 
+#if defined(PLUGIN_ENABLED_ALSA)
 EXTERN_MODULE(alsa);
+#endif
 EXTERN_MODULE(backlight);
 EXTERN_MODULE(battery);
 EXTERN_MODULE(clock);
@@ -124,7 +126,9 @@ init(void)
         tll_back(plugins).decoration = &deco_##func_prefix##_iface;     \
     } while (0)
 
+#if defined(PLUGIN_ENABLED_ALSA)
     REGISTER_CORE_MODULE(alsa, alsa);
+#endif
     REGISTER_CORE_MODULE(backlight, backlight);
     REGISTER_CORE_MODULE(battery, battery);
     REGISTER_CORE_MODULE(clock, clock);

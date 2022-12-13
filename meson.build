@@ -132,10 +132,11 @@ yambar = executable(
   dependencies: [bar, libepoll, libinotify,  pixman, yaml, threads, dl, tllist, fcft] +
                 decorations + particles + modules,
   c_args: [
-    plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[],
-    plugin_pulse_enabled? '-DPLUGIN_ENABLED_PULSE':[],
-    plugin_pipewire_enabled? '-DPLUGIN_ENABLED_PIPEWIRE':[],
-    plugin_dwl_enabled? '-DPLUGIN_ENABLED_DWL':[],
+    plugin_alsa_enabled ? '-DPLUGIN_ENABLED_ALSA' : [],
+    plugin_dwl_enabled ? '-DPLUGIN_ENABLED_DWL' : [],
+    plugin_mpd_enabled ? '-DPLUGIN_ENABLED_MPD' : [],
+    plugin_pipewire_enabled ? '-DPLUGIN_ENABLED_PIPEWIRE' : [],
+    plugin_pulse_enabled ? '-DPLUGIN_ENABLED_PULSE' : [],
   ],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -174,6 +175,7 @@ summary(
 
 summary(
   {
+    'ALSA': plugin_alsa_enabled,
     'DWL (dwm for Wayland)': plugin_dwl_enabled,
     'Music Player Daemon (MPD)': plugin_mpd_enabled,
     'Pipewire': plugin_pipewire_enabled,
