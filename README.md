@@ -80,6 +80,7 @@ Available modules:
 * clock
 * cpu
 * disk-io
+* dwl
 * foreign-toplevel
 * i3 (and Sway)
 * label
