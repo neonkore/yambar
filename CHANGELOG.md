@@ -47,7 +47,7 @@
 
 ### Changed
 
-* Minimum required meson version is now 0.58.
+* Minimum required meson version is now 0.59.
 * Float tags are now treated as floats instead of integers when
   formatted with the `kb`/`kib`/`mb`/`mib`/`gb`/`gib` string particle
   formatters.

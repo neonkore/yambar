@@ -1,7 +1,7 @@
 project('yambar', 'c',
         version: '1.8.0',
         license: 'MIT',
-        meson_version: '>=0.58.0',
+        meson_version: '>=0.59.0',
         default_options: ['c_std=c18',
                           'warning_level=1',
                           'werror=true',
