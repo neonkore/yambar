@@ -5,15 +5,12 @@ option(
 option(
   'core-plugins-as-shared-libraries', type: 'boolean', value: false,
   description: 'Compiles modules, particles and decorations as shared libraries, which are loaded on-demand')
-option(
-  'plugin-mpd', type: 'feature', value: 'auto',
-  description: 'Music Player Daemon (MPD) support')
-option(
-  'plugin-pulse', type: 'feature', value: 'auto',
-  description: 'PulseAudio support')
-option(
-  'plugin-pipewire', type: 'feature', value: 'auto',
-  description: 'Pipewire support')
-option(
-  'plugin-dwl', type: 'feature', value: 'auto',
-  description: 'DWL (dwm for wayland) support')
+
+option('plugin-dwl', type: 'feature', value: 'auto',
+       description: 'DWL (dwm for wayland) support')
+option('plugin-mpd', type: 'feature', value: 'auto',
+       description: 'Music Player Daemon (MPD) support')
+option('plugin-pipewire', type: 'feature', value: 'auto',
+       description: 'Pipewire support')
+option('plugin-pulse', type: 'feature', value: 'auto',
+       description: 'PulseAudio support')
