@@ -174,7 +174,7 @@ summary(
 
 summary(
   {
-    'DWL (dwm for wayland)': plugin_dwl_enabled,
+    'DWL (dwm for Wayland)': plugin_dwl_enabled,
     'Music Player Daemon (MPD)': plugin_mpd_enabled,
     'Pipewire': plugin_pipewire_enabled,
     'PulseAudio': plugin_pulse_enabled,
