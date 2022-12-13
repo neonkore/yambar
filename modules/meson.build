@@ -13,6 +13,9 @@ plugin_alsa_enabled = alsa.found()
 udev_backlight = dependency('libudev', required: get_option('plugin-backlight'))
 plugin_backlight_enabled = udev_backlight.found()
 
+udev_battery = dependency('libudev', required: get_option('plugin-battery'))
+plugin_battery_enabled = udev_battery.found()
+
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
 plugin_mpd_enabled = mpd.found()
 
@@ -26,7 +29,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'battery': [[], [udev]],
   'clock': [[], []],
   'cpu': [[], []],
   'disk-io': [[], [dynlist]],
@@ -45,6 +47,10 @@ endif
 
 if plugin_backlight_enabled
   mod_data += {'backlight': [[], [m, udev_backlight]]}
+endif
+
+if plugin_battery_enabled
+  mod_data += {'battery': [[], [udev_battery]]}
 endif
 
 if plugin_dwl_enabled

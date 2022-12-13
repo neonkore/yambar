@@ -38,7 +38,9 @@ EXTERN_MODULE(alsa);
 #if defined(PLUGIN_ENABLED_BACKLIGHT)
 EXTERN_MODULE(backlight);
 #endif
+#if defined(PLUGIN_ENABLED_BATTERY)
 EXTERN_MODULE(battery);
+#endif
 EXTERN_MODULE(clock);
 EXTERN_MODULE(disk_io);
 #if defined(PLUGIN_ENABLED_DWL)
@@ -134,7 +136,9 @@ init(void)
 #if defined(PLUGIN_ENABLED_BACKLIGHT)
     REGISTER_CORE_MODULE(backlight, backlight);
 #endif
+#if defined(PLUGIN_ENABLED_BATTERY)
     REGISTER_CORE_MODULE(battery, battery);
+#endif
     REGISTER_CORE_MODULE(clock, clock);
     REGISTER_CORE_MODULE(disk-io, disk_io);
 #if defined(PLUGIN_ENABLED_DWL)

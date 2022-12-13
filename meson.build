@@ -134,6 +134,7 @@ yambar = executable(
   c_args: [
     plugin_alsa_enabled ? '-DPLUGIN_ENABLED_ALSA' : [],
     plugin_backlight_enabled ? '-DPLUGIN_ENABLED_BACKLIGHT' : [],
+    plugin_battery_enabled ? '-DPLUGIN_ENABLED_BATTERY' : [],
     plugin_dwl_enabled ? '-DPLUGIN_ENABLED_DWL' : [],
     plugin_mpd_enabled ? '-DPLUGIN_ENABLED_MPD' : [],
     plugin_pipewire_enabled ? '-DPLUGIN_ENABLED_PIPEWIRE' : [],
@@ -178,6 +179,7 @@ summary(
   {
     'ALSA': plugin_alsa_enabled,
     'Backlight': plugin_backlight_enabled,
+    'Battery': plugin_battery_enabled,
     'DWL (dwm for Wayland)': plugin_dwl_enabled,
     'Music Player Daemon (MPD)': plugin_mpd_enabled,
     'Pipewire': plugin_pipewire_enabled,
