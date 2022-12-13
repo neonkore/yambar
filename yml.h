@@ -13,6 +13,8 @@ bool yml_is_list(const struct yml_node *node);
 
 const struct yml_node *yml_get_value(
     const struct yml_node *node, const char *path);
+const struct yml_node *yml_get_key(
+    struct yml_node const *node, char const *path);
 
 struct yml_list_iter {
     const struct yml_node *node;

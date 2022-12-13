@@ -640,9 +640,11 @@ yml_is_list(const struct yml_node *node)
     return node->type == LIST;
 }
 
- const struct yml_node *
-yml_get_value(const struct yml_node *node, const char *_path)
+static struct yml_node const *
+yml_get_(struct yml_node const *node, char const *_path, bool value)
 {
+    /* value: true for value, false for key */
+
     if (node != NULL && node->type == ROOT)
         node = node->root.root;
 
@@ -662,7 +664,11 @@ yml_get_value(const struct yml_node *node, const char *_path)
             if (strcmp(it->item.key->scalar.value, part) == 0) {
                 if (next_part == NULL) {
                     free(path);
-                    return it->item.value;
+
+                    if (value)
+                        return it->item.value;
+                    else
+                        return it->item.key;
                 }
 
                 node = it->item.value;
@@ -673,6 +679,17 @@ yml_get_value(const struct yml_node *node, const char *_path)
 
     free(path);
     return NULL;
+}
+
+const struct yml_node *
+yml_get_value(const struct yml_node *node, const char *_path)
+{
+    return yml_get_(node, _path, true);
+}
+
+struct yml_node const *
+yml_get_key(struct yml_node const *node, char const *_path) {
+    return yml_get_(node, _path, false);
 }
 
 struct yml_list_iter

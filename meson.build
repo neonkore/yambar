@@ -135,6 +135,7 @@ yambar = executable(
     plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[],
     plugin_pulse_enabled? '-DPLUGIN_ENABLED_PULSE':[],
     plugin_pipewire_enabled? '-DPLUGIN_ENABLED_PIPEWIRE':[],
+    plugin_dwl_enabled? '-DPLUGIN_ENABLED_DWL':[],
   ],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -175,7 +176,8 @@ summary(
   {
     'Music Player Daemon (MPD)': plugin_mpd_enabled,
     'PulseAudio': plugin_pulse_enabled,
-    'Pipewire': plugin_pipewire_enabled
+    'Pipewire': plugin_pipewire_enabled,
+    'DWL (dwm for wayland)': plugin_dwl_enabled,
   },
   section: 'Optional modules',
   bool_yn: true

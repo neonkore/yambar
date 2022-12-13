@@ -16,6 +16,8 @@ plugin_pipewire_enabled = pipewire.found()
 pulse = dependency('libpulse', required: get_option('plugin-pulse'))
 plugin_pulse_enabled = pulse.found()
 
+plugin_dwl_enabled = get_option('plugin-dwl').allowed()
+
 # Module name -> (source-list, dep-list)
 mod_data = {
   'alsa': [[], [m, alsa]],
@@ -32,6 +34,10 @@ mod_data = {
   'script': [[], []],
   'sway-xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
 }
+
+if plugin_dwl_enabled
+  mod_data += {'dwl': [[], [dynlist]]}
+endif
 
 if plugin_mpd_enabled
   mod_data += {'mpd': [[], [mpd]]}
