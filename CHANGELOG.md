@@ -33,6 +33,8 @@
 * pipewire: add a new module for pipewire ([#224][224])
 * on-click: support `next`/`previous` mouse buttons ([#228][228]).
 * dwl: add a new module for DWL ([#218][218])
+* sway: support for workspace ‘rename’ and ‘move’ events
+  ([#216][216]).
 
 [153]: https://codeberg.org/dnkl/yambar/issues/153
 [159]: https://codeberg.org/dnkl/yambar/issues/159
@@ -43,6 +45,7 @@
 [223]: https://codeberg.org/dnkl/yambar/pulls/223
 [224]: https://codeberg.org/dnkl/yambar/pulls/224
 [228]: https://codeberg.org/dnkl/yambar/pulls/228
+[216]: https://codeberg.org/dnkl/yambar/issues/216
 
 
 ### Changed
