@@ -6,7 +6,12 @@ option(
   'core-plugins-as-shared-libraries', type: 'boolean', value: false,
   description: 'Compiles modules, particles and decorations as shared libraries, which are loaded on-demand')
 
-option('plugin-alsa', type: 'feature', value: 'auto', description: 'ALSA')
+option('plugin-alsa', type: 'feature', value: 'auto',
+       description: 'ALSA support')
+option('plugin-backlight', type: 'feature', value: 'auto',
+       description: 'Backlight support')
+option('plugin-battery', type: 'feature', value: 'auto',
+       description: 'Battery support')
 option('plugin-dwl', type: 'feature', value: 'auto',
        description: 'DWL (dwm for wayland) support')
 option('plugin-mpd', type: 'feature', value: 'auto',

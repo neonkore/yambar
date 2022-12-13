@@ -2,13 +2,16 @@ module_sdk = declare_dependency(dependencies: [pixman, threads, tllist, fcft])
 
 modules = []
 
-udev = dependency('libudev')
+udev = dependency('udev')
 json = dependency('json-c')
 xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 
 # Optional deps
 alsa = dependency('alsa', required: get_option('plugin-alsa'))
 plugin_alsa_enabled = alsa.found()
+
+udev_backlight = dependency('libudev', required: get_option('plugin-backlight'))
+plugin_backlight_enabled = udev_backlight.found()
 
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
 plugin_mpd_enabled = mpd.found()
@@ -23,7 +26,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'backlight': [[], [m, udev]],
   'battery': [[], [udev]],
   'clock': [[], []],
   'cpu': [[], []],
@@ -39,6 +41,10 @@ mod_data = {
 
 if plugin_alsa_enabled
   mod_data += {'alsa': [[], [m, alsa]]}
+endif
+
+if plugin_backlight_enabled
+  mod_data += {'backlight': [[], [m, udev_backlight]]}
 endif
 
 if plugin_dwl_enabled
