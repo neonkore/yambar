@@ -18,8 +18,8 @@ packages:
   - wlroots-dev
   - json-c-dev
   - libmpdclient-dev
-  - libpulse-dev
   - alsa-lib-dev
+  - pulseaudio-dev
   - pipewire-dev
   - ttf-dejavu
   - gcovr
