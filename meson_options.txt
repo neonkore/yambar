@@ -14,6 +14,8 @@ option('plugin-battery', type: 'feature', value: 'auto',
        description: 'Battery support')
 option('plugin-clock', type: 'feature', value: 'auto',
        description: 'Clock support')
+option('plugin-cpu', type: 'feature', value: 'auto',
+       description: 'CPU support')
 option('plugin-dwl', type: 'feature', value: 'auto',
        description: 'DWL (dwm for wayland) support')
 option('plugin-mpd', type: 'feature', value: 'auto',

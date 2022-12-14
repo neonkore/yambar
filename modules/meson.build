@@ -17,6 +17,7 @@ udev_battery = dependency('libudev', required: get_option('plugin-battery'))
 plugin_battery_enabled = udev_battery.found()
 
 plugin_clock_enabled = get_option('plugin-clock').allowed()
+plugin_cpu_enabled = get_option('plugin-cpu').allowed()
 
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
 plugin_mpd_enabled = mpd.found()
@@ -31,7 +32,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'cpu': [[], []],
   'disk-io': [[], [dynlist]],
   'mem': [[], []],
   'i3': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
@@ -56,6 +56,10 @@ endif
 
 if plugin_clock_enabled
   mod_data += {'clock': [[], []]}
+endif
+
+if plugin_cpu_enabled
+  mod_data += {'cpu': [[], []]}
 endif
 
 if plugin_dwl_enabled
