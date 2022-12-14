@@ -62,6 +62,9 @@
   non-empty ([#191][191])
 * alsa: use dB instead of raw volume values, if possible, when
   calculating the `percent` tag ([#202][202])
+* cpu: `content` particle is now a template instantiated once for each
+  core, and once for the total CPU usage. See
+  **yambar-modules-cpu**(5) for more information ([#207][207]).
 * **BREAKING CHANGE**: overhaul of the `map` particle. Instead of
   specifying a `tag` and then an array of `values`, you must now
   simply use an array of `conditions`, that consist of:
@@ -119,6 +122,7 @@
 [182]: https://codeberg.org/dnkl/yambar/issues/182
 [191]: https://codeberg.org/dnkl/yambar/issues/191
 [202]: https://codeberg.org/dnkl/yambar/issues/202
+[207]: https://codeberg.org/dnkl/yambar/issues/207
 
 
 ### Deprecated

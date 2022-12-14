@@ -14,11 +14,14 @@
 #define LOG_MODULE "cpu"
 #define LOG_ENABLE_DBG 0
 #define SMALLEST_INTERVAL 500
+#include "../log.h"
+
 #include "../bar/bar.h"
 #include "../config-verify.h"
 #include "../config.h"
-#include "../log.h"
+#include "../particles/dynlist.h"
 #include "../plugin.h"
+
 struct cpu_stats {
     uint32_t *prev_cores_idle;
     uint32_t *prev_cores_nidle;
@@ -27,10 +30,10 @@ struct cpu_stats {
     uint32_t *cur_cores_nidle;
 };
 
-struct private
-{
-    struct particle *label;
+struct private {
+    struct particle *template;
     uint16_t interval;
+    size_t core_count;
     struct cpu_stats cpu_stats;
 };
 
@@ -38,12 +41,14 @@ static void
 destroy(struct module *mod)
 {
     struct private *m = mod->private;
-    m->label->destroy(m->label);
+
+    m->template->destroy(m->template);
     free(m->cpu_stats.prev_cores_idle);
     free(m->cpu_stats.prev_cores_nidle);
     free(m->cpu_stats.cur_cores_idle);
     free(m->cpu_stats.cur_cores_nidle);
     free(m);
+
     module_default_destroy(mod);
 }
 
@@ -63,9 +68,10 @@ get_cpu_nb_cores()
 }
 
 static bool
-parse_proc_stat_line(const char *line, uint32_t *user, uint32_t *nice, uint32_t *system, uint32_t *idle,
-                     uint32_t *iowait, uint32_t *irq, uint32_t *softirq, uint32_t *steal, uint32_t *guest,
-                     uint32_t *guestnice)
+parse_proc_stat_line(const char *line, uint32_t *user, uint32_t *nice,
+                     uint32_t *system, uint32_t *idle, uint32_t *iowait,
+                     uint32_t *irq, uint32_t *softirq, uint32_t *steal,
+                     uint32_t *guest, uint32_t *guestnice)
 {
     int32_t core_id;
     if (line[sizeof("cpu") - 1] == ' ') {
@@ -91,21 +97,26 @@ parse_proc_stat_line(const char *line, uint32_t *user, uint32_t *nice, uint32_t 
 static uint8_t
 get_cpu_usage_percent(const struct cpu_stats *cpu_stats, int8_t core_idx)
 {
-    uint32_t prev_total = cpu_stats->prev_cores_idle[core_idx + 1] + cpu_stats->prev_cores_nidle[core_idx + 1];
-    uint32_t cur_total = cpu_stats->cur_cores_idle[core_idx + 1] + cpu_stats->cur_cores_nidle[core_idx + 1];
+    uint32_t prev_total =
+        cpu_stats->prev_cores_idle[core_idx + 1] +
+        cpu_stats->prev_cores_nidle[core_idx + 1];
+
+    uint32_t cur_total =
+        cpu_stats->cur_cores_idle[core_idx + 1] +
+        cpu_stats->cur_cores_nidle[core_idx + 1];
 
     double totald = cur_total - prev_total;
-    double nidled = cpu_stats->cur_cores_nidle[core_idx + 1] - cpu_stats->prev_cores_nidle[core_idx + 1];
+    double nidled =
+        cpu_stats->cur_cores_nidle[core_idx + 1] -
+        cpu_stats->prev_cores_nidle[core_idx + 1];
 
     double percent = (nidled * 100) / (totald + 1);
-
     return round(percent);
 }
 
 static void
-refresh_cpu_stats(struct cpu_stats *cpu_stats)
+refresh_cpu_stats(struct cpu_stats *cpu_stats, size_t core_count)
 {
-    uint32_t nb_cores = get_cpu_nb_cores();
     int32_t core = 0;
     uint32_t user = 0;
     uint32_t nice = 0;
@@ -129,11 +140,11 @@ refresh_cpu_stats(struct cpu_stats *cpu_stats)
         return;
     }
 
-    while ((read = getline(&line, &len, fp)) != -1 && core <= nb_cores) {
+    while ((read = getline(&line, &len, fp)) != -1 && core <= core_count) {
         if (strncmp(line, "cpu", sizeof("cpu") - 1) == 0) {
             if (!parse_proc_stat_line(
-                    line, &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal,
-                    &guest, &guestnice))
+                    line, &user, &nice, &system, &idle, &iowait, &irq, &softirq,
+                    &steal, &guest, &guestnice))
             {
                 LOG_ERR("unable to parse /proc/stat line");
                 goto exit;
@@ -148,6 +159,7 @@ refresh_cpu_stats(struct cpu_stats *cpu_stats)
             core++;
         }
     }
+
 exit:
     fclose(fp);
     free(line);
@@ -156,29 +168,45 @@ exit:
 static struct exposable *
 content(struct module *mod)
 {
-    const struct private *p = mod->private;
-    uint32_t nb_cores = get_cpu_nb_cores();
+    const struct private *m = mod->private;
 
-    char cpu_name[32];
-    struct tag_set tags;
-    tags.count = nb_cores + 1;
-    tags.tags = calloc(tags.count, sizeof(*tags.tags));
     mtx_lock(&mod->lock);
-    uint8_t cpu_usage = get_cpu_usage_percent(&p->cpu_stats, -1);
-    tags.tags[0] = tag_new_int_range(mod, "cpu", cpu_usage, 0, 100);
 
-    for (uint32_t i = 0; i < nb_cores; ++i) {
-        uint8_t cpu_usage = get_cpu_usage_percent(&p->cpu_stats, i);
-        snprintf(cpu_name, sizeof(cpu_name), "cpu%u", i);
-        tags.tags[i + 1] = tag_new_int_range(mod, cpu_name, cpu_usage, 0, 100);
+    const size_t list_count = m->core_count + 1;
+    struct exposable *parts[list_count];
+
+    {
+        uint8_t total_usage = get_cpu_usage_percent(&m->cpu_stats, -1);
+
+        struct tag_set tags = {
+            .tags = (struct tag *[]){
+                tag_new_int(mod, "id", -1),
+                tag_new_int_range(mod, "cpu", total_usage, 0, 100),
+            },
+            .count = 2,
+        };
+
+        parts[0] = m->template->instantiate(m->template, &tags);
+        tag_set_destroy(&tags);
     }
+
+    for (size_t i = 0; i < m->core_count; i++) {
+        uint8_t core_usage = get_cpu_usage_percent(&m->cpu_stats, i);
+
+        struct tag_set tags = {
+            .tags = (struct tag *[]){
+                tag_new_int(mod, "id", i),
+                tag_new_int_range(mod, "cpu", core_usage, 0, 100),
+            },
+            .count = 2,
+        };
+
+        parts[i + 1] = m->template->instantiate(m->template, &tags);
+        tag_set_destroy(&tags);
+    }
+
     mtx_unlock(&mod->lock);
-
-    struct exposable *exposable = p->label->instantiate(p->label, &tags);
-
-    tag_set_destroy(&tags);
-    free(tags.tags);
-    return exposable;
+    return dynlist_exposable_new(parts, list_count, 0, 0);
 }
 
 static int
@@ -186,6 +214,7 @@ run(struct module *mod)
 {
     const struct bar *bar = mod->bar;
     bar->refresh(bar);
+
     struct private *p = mod->private;
     while (true) {
         struct pollfd fds[] = {{.fd = mod->abort_fd, .events = POLLIN}};
@@ -203,7 +232,7 @@ run(struct module *mod)
             break;
 
         mtx_lock(&mod->lock);
-        refresh_cpu_stats(&p->cpu_stats);
+        refresh_cpu_stats(&p->cpu_stats, p->core_count);
         mtx_unlock(&mod->lock);
         bar->refresh(bar);
     }
@@ -212,17 +241,24 @@ run(struct module *mod)
 }
 
 static struct module *
-cpu_new(uint16_t interval, struct particle *label)
+cpu_new(uint16_t interval, struct particle *template)
 {
-    struct private *p = calloc(1, sizeof(*p));
-    p->label = label;
     uint32_t nb_cores = get_cpu_nb_cores();
-    p->interval = interval;
-    p->cpu_stats.prev_cores_nidle = calloc(nb_cores + 1, sizeof(*p->cpu_stats.prev_cores_nidle));
-    p->cpu_stats.prev_cores_idle = calloc(nb_cores + 1, sizeof(*p->cpu_stats.prev_cores_idle));
 
-    p->cpu_stats.cur_cores_nidle = calloc(nb_cores + 1, sizeof(*p->cpu_stats.cur_cores_nidle));
-    p->cpu_stats.cur_cores_idle = calloc(nb_cores + 1, sizeof(*p->cpu_stats.cur_cores_idle));
+    struct private *p = calloc(1, sizeof(*p));
+    p->template = template;
+    p->interval = interval;
+    p->core_count = nb_cores;
+
+    p->cpu_stats.prev_cores_nidle = calloc(
+        nb_cores + 1, sizeof(*p->cpu_stats.prev_cores_nidle));
+    p->cpu_stats.prev_cores_idle = calloc(
+        nb_cores + 1, sizeof(*p->cpu_stats.prev_cores_idle));
+
+    p->cpu_stats.cur_cores_nidle = calloc(
+        nb_cores + 1, sizeof(*p->cpu_stats.cur_cores_nidle));
+    p->cpu_stats.cur_cores_idle = calloc(
+        nb_cores + 1, sizeof(*p->cpu_stats.cur_cores_idle));
 
     struct module *mod = module_common_new();
     mod->private = p;
@@ -236,10 +272,12 @@ cpu_new(uint16_t interval, struct particle *label)
 static struct module *
 from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
-    const struct yml_node *interval = yml_get_value(node, "interval");
+    const struct yml_node *interval = yml_get_value(node, "poll-interval");
     const struct yml_node *c = yml_get_value(node, "content");
 
-    return cpu_new(interval == NULL ? SMALLEST_INTERVAL : yml_value_as_int(interval), conf_to_particle(c, inherited));
+    return cpu_new(
+        interval == NULL ? SMALLEST_INTERVAL : yml_value_as_int(interval),
+        conf_to_particle(c, inherited));
 }
 
 static bool
@@ -249,7 +287,8 @@ conf_verify_interval(keychain_t *chain, const struct yml_node *node)
         return false;
 
     if (yml_value_as_int(node) < SMALLEST_INTERVAL) {
-        LOG_ERR("%s: interval value cannot be less than %d ms", conf_err_prefix(chain, node), SMALLEST_INTERVAL);
+        LOG_ERR("%s: interval value cannot be less than %d ms",
+                conf_err_prefix(chain, node), SMALLEST_INTERVAL);
         return false;
     }
 
@@ -260,7 +299,7 @@ static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"interval", false, &conf_verify_interval},
+        {"poll-interval", false, &conf_verify_interval},
         MODULE_COMMON_ATTRS,
     };
 

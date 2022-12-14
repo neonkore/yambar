@@ -70,7 +70,7 @@ if plugin_clock_enabled
 endif
 
 if plugin_cpu_enabled
-  mod_data += {'cpu': [[], []]}
+  mod_data += {'cpu': [[], [dynlist]]}
 endif
 
 if plugin_disk_io_enabled
