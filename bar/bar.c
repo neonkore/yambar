@@ -345,20 +345,29 @@ run(struct bar *_bar)
     int mod_ret;
     for (size_t i = 0; i < bar->left.count; i++) {
         thrd_join(thrd_left[i], &mod_ret);
-        if (mod_ret != 0)
-            LOG_ERR("module: LEFT #%zu: non-zero exit value: %d", i, mod_ret);
+        if (mod_ret != 0) {
+            const struct module *m = bar->left.mods[i];
+            LOG_ERR("module: LEFT #%zu (%s): non-zero exit value: %d",
+                    i, m->description(m), mod_ret);
+        }
         ret = ret == 0 && mod_ret != 0 ? mod_ret : ret;
     }
     for (size_t i = 0; i < bar->center.count; i++) {
         thrd_join(thrd_center[i], &mod_ret);
-        if (mod_ret != 0)
-            LOG_ERR("module: CENTER #%zu: non-zero exit value: %d", i, mod_ret);
+        if (mod_ret != 0) {
+            const struct module *m = bar->center.mods[i];
+            LOG_ERR("module: CENTER #%zu (%s): non-zero exit value: %d",
+                    i, m->description(m), mod_ret);
+        }
         ret = ret == 0 && mod_ret != 0 ? mod_ret : ret;
     }
     for (size_t i = 0; i < bar->right.count; i++) {
         thrd_join(thrd_right[i], &mod_ret);
-        if (mod_ret != 0)
-            LOG_ERR("module: RIGHT #%zu: non-zero exit value: %d", i, mod_ret);
+        if (mod_ret != 0) {
+            const struct module *m = bar->right.mods[i];
+            LOG_ERR("module: RIGHT #%zu (%s): non-zero exit value: %d",
+                    i, m->description(m), mod_ret);
+        }
         ret = ret == 0 && mod_ret != 0 ? mod_ret : ret;
     }
 
