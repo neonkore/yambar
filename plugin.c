@@ -78,6 +78,9 @@ EXTERN_MODULE(pulse);
 #if defined(PLUGIN_ENABLED_REMOVABLES)
 EXTERN_MODULE(removables);
 #endif
+#if defined(PLUGIN_ENABLED_RIVER)
+EXTERN_MODULE(river);
+#endif
 #if defined(PLUGIN_ENABLED_SCRIPT)
 EXTERN_MODULE(script);
 #endif
@@ -90,7 +93,6 @@ EXTERN_MODULE(xkb);
 #if defined(PLUGIN_ENABLED_XWINDOW)
 EXTERN_MODULE(xwindow);
 #endif
-EXTERN_MODULE(river);
 
 EXTERN_PARTICLE(empty);
 EXTERN_PARTICLE(list);
@@ -202,6 +204,9 @@ init(void)
 #if defined(PLUGIN_ENABLED_REMOVABLES)
     REGISTER_CORE_MODULE(removables, removables);
 #endif
+#if defined(PLUGIN_ENABLED_RIVER)
+    REGISTER_CORE_MODULE(river, river);
+#endif
 #if defined(PLUGIN_ENABLED_SCRIPT)
     REGISTER_CORE_MODULE(script, script);
 #endif
@@ -213,9 +218,6 @@ init(void)
 #endif
 #if defined(PLUGIN_ENABLED_XWINDOW)
     REGISTER_CORE_MODULE(xwindow, xwindow);
-#endif
-#if defined(HAVE_PLUGIN_river)
-    REGISTER_CORE_MODULE(river, river);
 #endif
 
     REGISTER_CORE_PARTICLE(empty, empty);

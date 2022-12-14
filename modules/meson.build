@@ -37,6 +37,8 @@ plugin_pulse_enabled = pulse.found()
 udev_removables = dependency('udev', required: get_option('plugin-removables'))
 plugin_removables_enabled = udev_removables.found()
 
+plugin_river_enabled = backend_wayland and get_option('plugin-river').allowed()
+
 plugin_script_enabled = get_option('plugin-script').allowed()
 
 json_sway_xkb = dependency('json-c', required: get_option('plugin-sway-xkb'))
@@ -126,7 +128,7 @@ if plugin_xwindow_enabled
   mod_data += {'xwindow': [[], [xcb_stuff]]}
 endif
 
-if backend_wayland
+if plugin_river_enabled
   river_proto_headers = []
   river_proto_src = []
 
@@ -145,10 +147,10 @@ if backend_wayland
       command: [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
   endforeach
 
-  mod_data += {
-    'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], [dynlist, wayland_client]],
-  }
+  mod_data += {'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], [dynlist, wayland_client]]}
+endif
 
+if backend_wayland
   ftop_proto_headers = []
   ftop_proto_src = []
 

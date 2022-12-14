@@ -36,6 +36,8 @@ option('plugin-pulse', type: 'feature', value: 'auto',
        description: 'PulseAudio support')
 option('plugin-removables', type: 'feature', value: 'auto',
        description: 'Removables (USB sticks, CD-ROM etc) monitoring support')
+option('plugin-river', type: 'feature', value: 'auto',
+       description: 'River support')
 option('plugin-script', type: 'feature', value: 'auto',
        description: 'Script support')
 option('plugin-sway-xkb', type: 'feature', value: 'auto',
