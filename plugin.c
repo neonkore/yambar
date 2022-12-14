@@ -32,68 +32,68 @@
         keychain_t *chain, const struct yml_node *node);                \
     extern struct deco *plug_name##_from_conf(const struct yml_node *node);
 
-#if defined(PLUGIN_ENABLED_ALSA)
-EXTERN_MODULE(alsa);
+#if defined(HAVE_PLUGIN_alsa)
+ EXTERN_MODULE(alsa);
 #endif
-#if defined(PLUGIN_ENABLED_BACKLIGHT)
-EXTERN_MODULE(backlight);
+#if defined(HAVE_PLUGIN_backlight)
+ EXTERN_MODULE(backlight);
 #endif
-#if defined(PLUGIN_ENABLED_BATTERY)
-EXTERN_MODULE(battery);
+#if defined(HAVE_PLUGIN_battery)
+ EXTERN_MODULE(battery);
 #endif
-#if defined(PLUGIN_ENABLED_CLOCK)
-EXTERN_MODULE(clock);
+#if defined(HAVE_PLUGIN_clock)
+ EXTERN_MODULE(clock);
 #endif
-#if defined(PLUGIN_ENABLED_CPU)
-EXTERN_MODULE(cpu);
+#if defined(HAVE_PLUGIN_cpu)
+ EXTERN_MODULE(cpu);
 #endif
-#if defined(PLUGIN_ENABLED_DISK_IO)
-EXTERN_MODULE(disk_io);
+#if defined(HAVE_PLUGIN_disk_io)
+ EXTERN_MODULE(disk_io);
 #endif
-#if defined(PLUGIN_ENABLED_DWL)
-EXTERN_MODULE(dwl);
+#if defined(HAVE_PLUGIN_dwl)
+ EXTERN_MODULE(dwl);
 #endif
-#if defined(PLUGIN_ENABLED_FOREIGN_TOPLEVEL)
-EXTERN_MODULE(foreign_toplevel);
+#if defined(HAVE_PLUGIN_foreign_toplevel)
+ EXTERN_MODULE(foreign_toplevel);
 #endif
-#if defined(PLUGIN_ENABLED_MEM)
-EXTERN_MODULE(mem);
+#if defined(HAVE_PLUGIN_mem)
+ EXTERN_MODULE(mem);
 #endif
-#if defined(PLUGIN_ENABLED_MPD)
-EXTERN_MODULE(mpd);
+#if defined(HAVE_PLUGIN_mpd)
+  EXTERN_MODULE(mpd);
 #endif
-#if defined(PLUGIN_ENABLED_I3)
-EXTERN_MODULE(i3);
+#if defined(HAVE_PLUGIN_i3)
+ EXTERN_MODULE(i3);
 #endif
-#if defined(PLUGIN_ENABLED_LABEL)
-EXTERN_MODULE(label);
+#if defined(HAVE_PLUGIN_label)
+ EXTERN_MODULE(label);
 #endif
-#if defined(PLUGIN_ENABLED_NETWORK)
-EXTERN_MODULE(network);
+#if defined(HAVE_PLUGIN_network)
+ EXTERN_MODULE(network);
 #endif
-#if defined(PLUGIN_ENABLED_PIPEWIRE)
-EXTERN_MODULE(pipewire);
+#if defined(HAVE_PLUGIN_pipewire)
+ EXTERN_MODULE(pipewire);
 #endif
-#if defined(PLUGIN_ENABLED_PULSE)
-EXTERN_MODULE(pulse);
+#if defined(HAVE_PLUGIN_pulse)
+ EXTERN_MODULE(pulse);
 #endif
-#if defined(PLUGIN_ENABLED_REMOVABLES)
-EXTERN_MODULE(removables);
+#if defined(HAVE_PLUGIN_removables)
+ EXTERN_MODULE(removables);
 #endif
-#if defined(PLUGIN_ENABLED_RIVER)
-EXTERN_MODULE(river);
+#if defined(HAVE_PLUGIN_river)
+ EXTERN_MODULE(river);
 #endif
-#if defined(PLUGIN_ENABLED_SCRIPT)
-EXTERN_MODULE(script);
+#if defined(HAVE_PLUGIN_script)
+ EXTERN_MODULE(script);
 #endif
-#if defined(PLUGIN_ENABLED_SWAY_XKB)
-EXTERN_MODULE(sway_xkb);
+#if defined(HAVE_PLUGIN_sway_xkb)
+ EXTERN_MODULE(sway_xkb);
 #endif
-#if defined(PLUGIN_ENABLED_XKB)
-EXTERN_MODULE(xkb);
+#if defined(HAVE_PLUGIN_xkb)
+ EXTERN_MODULE(xkb);
 #endif
-#if defined(PLUGIN_ENABLED_XWINDOW)
-EXTERN_MODULE(xwindow);
+#if defined(HAVE_PLUGIN_xwindow)
+ EXTERN_MODULE(xwindow);
 #endif
 
 EXTERN_PARTICLE(empty);
@@ -158,67 +158,67 @@ init(void)
         tll_back(plugins).decoration = &deco_##func_prefix##_iface;     \
     } while (0)
 
-#if defined(PLUGIN_ENABLED_ALSA)
+#if defined(HAVE_PLUGIN_alsa)
     REGISTER_CORE_MODULE(alsa, alsa);
 #endif
-#if defined(PLUGIN_ENABLED_BACKLIGHT)
+#if defined(HAVE_PLUGIN_backlight)
     REGISTER_CORE_MODULE(backlight, backlight);
 #endif
-#if defined(PLUGIN_ENABLED_BATTERY)
+#if defined(HAVE_PLUGIN_battery)
     REGISTER_CORE_MODULE(battery, battery);
 #endif
-#if defined(PLUGIN_ENABLED_CLOCK)
+#if defined(HAVE_PLUGIN_clock)
     REGISTER_CORE_MODULE(clock, clock);
 #endif
-#if defined(PLUGIN_ENABLED_CPU)
+#if defined(HAVE_PLUGIN_cpu)
     REGISTER_CORE_MODULE(cpu, cpu);
 #endif
-#if defined(PLUGIN_ENABLED_DISK_IO)
+#if defined(HAVE_PLUGIN_disk_io)
     REGISTER_CORE_MODULE(disk-io, disk_io);
 #endif
-#if defined(PLUGIN_ENABLED_DWL)
+#if defined(HAVE_PLUGIN_dwl)
     REGISTER_CORE_MODULE(dwl, dwl);
 #endif
-#if defined(PLUGIN_ENABLED_FOREIGN_TOPLEVEL)
+#if defined(HAVE_PLUGIN_foreign_toplevel)
     REGISTER_CORE_MODULE(foreign-toplevel, foreign_toplevel);
 #endif
-#if defined(PLUGIN_ENABLED_MEM)
+#if defined(HAVE_PLUGIN_mem)
     REGISTER_CORE_MODULE(mem, mem);
 #endif
-#if defined(PLUGIN_ENABLED_MPD)
+#if defined(HAVE_PLUGIN_mpd)
     REGISTER_CORE_MODULE(mpd, mpd);
 #endif
-#if defined(PLUGIN_ENABLED_I3)
+#if defined(HAVE_PLUGIN_i3)
     REGISTER_CORE_MODULE(i3, i3);
 #endif
-#if defined(PLUGIN_ENABLED_LABEL)
+#if defined(HAVE_PLUGIN_label)
     REGISTER_CORE_MODULE(label, label);
 #endif
-#if defined(PLUGIN_ENABLED_NETWORK)
+#if defined(HAVE_PLUGIN_network)
     REGISTER_CORE_MODULE(network, network);
 #endif
-#if defined(PLUGIN_ENABLED_PIPEWIRE)
+#if defined(HAVE_PLUGIN_pipewire)
     REGISTER_CORE_MODULE(pipewire, pipewire);
 #endif
-#if defined(PLUGIN_ENABLED_PULSE)
+#if defined(HAVE_PLUGIN_pulse)
     REGISTER_CORE_MODULE(pulse, pulse);
 #endif
-#if defined(PLUGIN_ENABLED_REMOVABLES)
+#if defined(HAVE_PLUGIN_removables)
     REGISTER_CORE_MODULE(removables, removables);
 #endif
-#if defined(PLUGIN_ENABLED_RIVER)
+#if defined(HAVE_PLUGIN_river)
     REGISTER_CORE_MODULE(river, river);
 #endif
-#if defined(PLUGIN_ENABLED_SCRIPT)
+#if defined(HAVE_PLUGIN_script)
     REGISTER_CORE_MODULE(script, script);
 #endif
-#if defined(PLUGIN_ENABLED_SWAY_XKB)
+#if defined(HAVE_PLUGIN_sway_xkb)
     REGISTER_CORE_MODULE(sway-xkb, sway_xkb);
 #endif
-#if defined(PLUGIN_ENABLED_XKB)
+#if defined(HAVE_PLUGIN_xkb)
     REGISTER_CORE_MODULE(xkb, xkb);
 #endif
-#if defined(PLUGIN_ENABLED_XWINDOW)
+#if defined(HAVE_PLUGIN_xwindow)
     REGISTER_CORE_MODULE(xwindow, xwindow);
 #endif
 
