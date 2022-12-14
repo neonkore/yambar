@@ -42,3 +42,5 @@ option('plugin-sway-xkb', type: 'feature', value: 'auto',
        description: 'keyboard support for Sway')
 option('plugin-xkb', type: 'feature', value: 'auto',
        description: 'keyboard support for X11')
+option('plugin-xwindow', type: 'feature', value: 'auto',
+       description: 'XWindow support')

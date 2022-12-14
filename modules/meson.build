@@ -45,6 +45,8 @@ plugin_sway_xkb_enabled = json_sway_xkb.found()
 xcb_xkb = dependency('xcb-xkb', required: get_option('plugin-xkb'))
 plugin_xkb_enabled = backend_x11 and xcb_xkb.found()
 
+plugin_xwindow_enabled = backend_x11 and get_option('plugin-xwindow').allowed()
+
 # Module name -> (source-list, dep-list)
 mod_data = {}
 
@@ -120,10 +122,8 @@ if plugin_xkb_enabled
   mod_data += {'xkb': [[], [xcb_stuff, xcb_xkb]]}
 endif
 
-if backend_x11
-  mod_data += {
-    'xwindow': [[], [xcb_stuff]],
-  }
+if plugin_xwindow_enabled
+  mod_data += {'xwindow': [[], [xcb_stuff]]}
 endif
 
 if backend_wayland

@@ -150,6 +150,7 @@ yambar = executable(
     plugin_script_enabled ? '-DPLUGIN_ENABLED_SCRIPT' : [],
     plugin_sway_xkb_enabled ? '-DPLUGIN_ENABLED_SWAY_XKB' : [],
     plugin_xkb_enabled ? '-DPLUGIN_ENABLED_XKB' : [],
+    plugin_xwindow_enabled ? '-DPLUGIN_ENABLED_XWINDOW' : [],
   ],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -206,6 +207,7 @@ summary(
     'Script': plugin_script_enabled,
     'Sway XKB keyboard': plugin_sway_xkb_enabled,
     'XKB keyboard (for X11)': plugin_xkb_enabled,
+    'XWindow': plugin_xwindow_enabled,
   },
   section: 'Optional modules',
   bool_yn: true
