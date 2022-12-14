@@ -30,11 +30,13 @@ option('plugin-label', type: 'feature', value: 'auto',
        description: 'Label support')
 option('plugin-network', type: 'feature', value: 'auto',
        description: 'Network monitoring support')
-option('plugin-removables', type: 'feature', value: 'auto',
-       description: 'Removables (USB sticks, CD-ROM etc) monitoring support')
-option('plugin-script', type: 'feature', value: 'auto',
-       description: 'Script support')
 option('plugin-pipewire', type: 'feature', value: 'auto',
        description: 'Pipewire support')
 option('plugin-pulse', type: 'feature', value: 'auto',
        description: 'PulseAudio support')
+option('plugin-removables', type: 'feature', value: 'auto',
+       description: 'Removables (USB sticks, CD-ROM etc) monitoring support')
+option('plugin-script', type: 'feature', value: 'auto',
+       description: 'Script support')
+option('plugin-sway-xkb', type: 'feature', value: 'auto',
+       description: 'keyboard support for Sway')

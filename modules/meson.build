@@ -2,7 +2,6 @@ module_sdk = declare_dependency(dependencies: [pixman, threads, tllist, fcft])
 
 modules = []
 
-json = dependency('json-c')
 xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 
 # Optional deps
@@ -42,10 +41,11 @@ plugin_removables_enabled = udev_removables.found()
 
 plugin_script_enabled = get_option('plugin-script').allowed()
 
+json_sway_xkb = dependency('json-c', required: get_option('plugin-sway-xkb'))
+plugin_sway_xkb_enabled = json_sway_xkb.found()
+
 # Module name -> (source-list, dep-list)
-mod_data = {
-  'sway-xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
-}
+mod_data = {}
 
 if plugin_alsa_enabled
   mod_data += {'alsa': [[], [m, alsa]]}
@@ -109,6 +109,10 @@ endif
 
 if plugin_script_enabled
   mod_data += {'script': [[], []]}
+endif
+
+if plugin_sway_xkb_enabled
+  mod_data += {'sway-xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json_sway_xkb]]}
 endif
 
 if backend_x11

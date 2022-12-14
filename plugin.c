@@ -81,8 +81,10 @@ EXTERN_MODULE(removables);
 #if defined(PLUGIN_ENABLED_SCRIPT)
 EXTERN_MODULE(script);
 #endif
-EXTERN_MODULE(river);
+#if defined(PLUGIN_ENABLED_SWAY_XKB)
 EXTERN_MODULE(sway_xkb);
+#endif
+EXTERN_MODULE(river);
 EXTERN_MODULE(xkb);
 EXTERN_MODULE(xwindow);
 
@@ -199,10 +201,12 @@ init(void)
 #if defined(PLUGIN_ENABLED_SCRIPT)
     REGISTER_CORE_MODULE(script, script);
 #endif
+#if defined(PLUGIN_ENABLED_SWAY_XKB)
+    REGISTER_CORE_MODULE(sway-xkb, sway_xkb);
+#endif
 #if defined(HAVE_PLUGIN_river)
     REGISTER_CORE_MODULE(river, river);
 #endif
-    REGISTER_CORE_MODULE(sway-xkb, sway_xkb);
 #if defined(HAVE_PLUGIN_xkb)
     REGISTER_CORE_MODULE(xkb, xkb);
 #endif
