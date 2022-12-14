@@ -99,11 +99,11 @@ if backend_x11
 endif
 
 subdir('completions')
-subdir('doc')
 subdir('bar')
 subdir('decorations')
 subdir('particles')
 subdir('modules')
+subdir('doc')
 
 env = find_program('env', native: true)
 generate_version_sh = files('generate-version.sh')
