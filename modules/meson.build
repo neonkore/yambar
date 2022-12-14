@@ -18,6 +18,7 @@ plugin_battery_enabled = udev_battery.found()
 plugin_clock_enabled = get_option('plugin-clock').allowed()
 plugin_cpu_enabled = get_option('plugin-cpu').allowed()
 plugin_disk_io_enabled = get_option('plugin-disk-io').allowed()
+plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 plugin_mem_enabled = get_option('plugin-mem').allowed()
 
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
@@ -29,18 +30,17 @@ plugin_i3_enabled = json_i3.found()
 plugin_label_enabled = get_option('plugin-label').allowed()
 plugin_network_enabled = get_option('plugin-network').allowed()
 
-udev_removables = dependency('udev', required: get_option('plugin-removables'))
-plugin_removables_enabled = udev_removables.found()
-
-plugin_script_enabled = get_option('plugin-script').allowed()
-
 pipewire = dependency('libpipewire-0.3', required: get_option('plugin-pipewire'))
-plugin_pipewire_enabled = pipewire.found()
+json_pipewire = dependency('json-c', required: get_option('plugin-pipewire'))
+plugin_pipewire_enabled = pipewire.found() and json_pipewire.found()
 
 pulse = dependency('libpulse', required: get_option('plugin-pulse'))
 plugin_pulse_enabled = pulse.found()
 
-plugin_dwl_enabled = get_option('plugin-dwl').allowed()
+udev_removables = dependency('udev', required: get_option('plugin-removables'))
+plugin_removables_enabled = udev_removables.found()
+
+plugin_script_enabled = get_option('plugin-script').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
@@ -96,7 +96,7 @@ if plugin_network_enabled
 endif
 
 if plugin_pipewire_enabled
-  mod_data += {'pipewire': [[], [pipewire, dynlist, json]]}
+  mod_data += {'pipewire': [[], [pipewire, dynlist, json_pipewire]]}
 endif
 
 if plugin_pulse_enabled
