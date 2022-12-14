@@ -47,7 +47,9 @@ EXTERN_MODULE(clock);
 #if defined(PLUGIN_ENABLED_CPU)
 EXTERN_MODULE(cpu);
 #endif
+#if defined(PLUGIN_ENABLED_DISK_IO)
 EXTERN_MODULE(disk_io);
+#endif
 #if defined(PLUGIN_ENABLED_DWL)
 EXTERN_MODULE(dwl);
 #endif
@@ -149,7 +151,9 @@ init(void)
 #if defined(PLUGIN_ENABLED_CPU)
     REGISTER_CORE_MODULE(cpu, cpu);
 #endif
+#if defined(PLUGIN_ENABLED_DISK_IO)
     REGISTER_CORE_MODULE(disk-io, disk_io);
+#endif
 #if defined(PLUGIN_ENABLED_DWL)
     REGISTER_CORE_MODULE(dwl, dwl);
 #endif
