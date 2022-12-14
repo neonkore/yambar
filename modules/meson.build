@@ -27,6 +27,8 @@ plugin_mpd_enabled = mpd.found()
 json_i3 = dependency('json-c', required: get_option('plugin-i3'))
 plugin_i3_enabled = json_i3.found()
 
+plugin_label_enabled = get_option('plugin-label').allowed()
+
 pipewire = dependency('libpipewire-0.3', required: get_option('plugin-pipewire'))
 plugin_pipewire_enabled = pipewire.found()
 
@@ -37,7 +39,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'label': [[], []],
   'network': [[], []],
   'removables': [[], [dynlist, udev]],
   'script': [[], []],
@@ -82,6 +83,10 @@ endif
 
 if plugin_i3_enabled
   mod_data += {'i3': [['i3-common.c', 'i3-common.h'], [dynlist, json_i3]]}
+endif
+
+if plugin_label_enabled
+  mod_data += {'label': [[], []]}
 endif
 
 if plugin_pipewire_enabled

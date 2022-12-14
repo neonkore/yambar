@@ -54,7 +54,6 @@ EXTERN_MODULE(disk_io);
 EXTERN_MODULE(dwl);
 #endif
 EXTERN_MODULE(foreign_toplevel);
-EXTERN_MODULE(label);
 #if defined(PLUGIN_ENABLED_MEM)
 EXTERN_MODULE(mem);
 #endif
@@ -63,6 +62,9 @@ EXTERN_MODULE(mpd);
 #endif
 #if defined(PLUGIN_ENABLED_I3)
 EXTERN_MODULE(i3);
+#endif
+#if defined(PLUGIN_ENABLED_LABEL)
+EXTERN_MODULE(label);
 #endif
 EXTERN_MODULE(network);
 #if defined(PLUGIN_ENABLED_PULSE)
@@ -164,7 +166,6 @@ init(void)
 #if defined(HAVE_PLUGIN_foreign_toplevel)
     REGISTER_CORE_MODULE(foreign-toplevel, foreign_toplevel);
 #endif
-    REGISTER_CORE_MODULE(label, label);
 #if defined(PLUGIN_ENABLED_MEM)
     REGISTER_CORE_MODULE(mem, mem);
 #endif
@@ -173,6 +174,9 @@ init(void)
 #endif
 #if defined(PLUGIN_ENABLED_I3)
     REGISTER_CORE_MODULE(i3, i3);
+#endif
+#if defined(PLUGIN_ENABLED_LABEL)
+    REGISTER_CORE_MODULE(label, label);
 #endif
     REGISTER_CORE_MODULE(network, network);
 #if defined(PLUGIN_ENABLED_PULSE)
