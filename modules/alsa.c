@@ -84,10 +84,10 @@ destroy(struct module *mod)
 }
 
 static const char *
-description(struct module *mod)
+description(const struct module *mod)
 {
     static char desc[32];
-    struct private *m = mod->private;
+    const struct private *m = mod->private;
     snprintf(desc, sizeof(desc), "alsa(%s)", m->card);
     return desc;
 }

@@ -27,7 +27,7 @@ struct module {
      * specified number of milliseconds */
     bool (*refresh_in)(struct module *mod, long milli_seconds);
 
-    const char *(*description)(struct module *mod);
+    const char *(*description)(const struct module *mod);
 };
 
 struct module *module_common_new(void);

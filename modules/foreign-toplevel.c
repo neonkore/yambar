@@ -92,7 +92,7 @@ destroy(struct module *mod)
 }
 
 static const char *
-description(struct module *mod)
+description(const struct module *mod)
 {
     return "toplevel";
 }

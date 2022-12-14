@@ -67,7 +67,7 @@ destroy(struct module *module)
 }
 
 static char const *
-description(struct module *module)
+description(const struct module *module)
 {
     return "dwl";
 }

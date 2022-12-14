@@ -60,10 +60,10 @@ destroy(struct module *mod)
 }
 
 static const char *
-description(struct module *mod)
+description(const struct module *mod)
 {
     static char desc[32];
-    struct private *m = mod->private;
+    const struct private *m = mod->private;
 
     char *path = strdup(m->path);
     snprintf(desc, sizeof(desc), "script(%s)", basename(path));

@@ -760,7 +760,7 @@ ws_content_for_name(struct private *m, const char *name)
 }
 
 static const char *
-description(struct module *mod)
+description(const struct module *mod)
 {
     return "i3/sway";
 }
