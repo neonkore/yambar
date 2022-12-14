@@ -16,6 +16,8 @@ plugin_backlight_enabled = udev_backlight.found()
 udev_battery = dependency('libudev', required: get_option('plugin-battery'))
 plugin_battery_enabled = udev_battery.found()
 
+plugin_clock_enabled = get_option('plugin-clock').allowed()
+
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
 plugin_mpd_enabled = mpd.found()
 
@@ -29,7 +31,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'clock': [[], []],
   'cpu': [[], []],
   'disk-io': [[], [dynlist]],
   'mem': [[], []],
@@ -51,6 +52,10 @@ endif
 
 if plugin_battery_enabled
   mod_data += {'battery': [[], [udev_battery]]}
+endif
+
+if plugin_clock_enabled
+  mod_data += {'clock': [[], []]}
 endif
 
 if plugin_dwl_enabled

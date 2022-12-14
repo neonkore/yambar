@@ -41,7 +41,9 @@ EXTERN_MODULE(backlight);
 #if defined(PLUGIN_ENABLED_BATTERY)
 EXTERN_MODULE(battery);
 #endif
+#if defined(PLUGIN_ENABLED_CLOCK)
 EXTERN_MODULE(clock);
+#endif
 EXTERN_MODULE(disk_io);
 #if defined(PLUGIN_ENABLED_DWL)
 EXTERN_MODULE(dwl);
@@ -139,7 +141,9 @@ init(void)
 #if defined(PLUGIN_ENABLED_BATTERY)
     REGISTER_CORE_MODULE(battery, battery);
 #endif
+#if defined(PLUGIN_ENABLED_CLOCK)
     REGISTER_CORE_MODULE(clock, clock);
+#endif
     REGISTER_CORE_MODULE(disk-io, disk_io);
 #if defined(PLUGIN_ENABLED_DWL)
     REGISTER_CORE_MODULE(dwl, dwl);
