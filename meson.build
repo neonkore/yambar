@@ -149,6 +149,7 @@ yambar = executable(
     plugin_removables_enabled ? '-DPLUGIN_ENABLED_REMOVABLES' : [],
     plugin_script_enabled ? '-DPLUGIN_ENABLED_SCRIPT' : [],
     plugin_sway_xkb_enabled ? '-DPLUGIN_ENABLED_SWAY_XKB' : [],
+    plugin_xkb_enabled ? '-DPLUGIN_ENABLED_XKB' : [],
   ],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
@@ -204,6 +205,7 @@ summary(
     'Removables monitoring': plugin_removables_enabled,
     'Script': plugin_script_enabled,
     'Sway XKB keyboard': plugin_sway_xkb_enabled,
+    'XKB keyboard (for X11)': plugin_xkb_enabled,
   },
   section: 'Optional modules',
   bool_yn: true

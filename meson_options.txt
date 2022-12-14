@@ -40,3 +40,5 @@ option('plugin-script', type: 'feature', value: 'auto',
        description: 'Script support')
 option('plugin-sway-xkb', type: 'feature', value: 'auto',
        description: 'keyboard support for Sway')
+option('plugin-xkb', type: 'feature', value: 'auto',
+       description: 'keyboard support for X11')
