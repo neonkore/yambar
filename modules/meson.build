@@ -2,7 +2,6 @@ module_sdk = declare_dependency(dependencies: [pixman, threads, tllist, fcft])
 
 modules = []
 
-udev = dependency('udev')
 json = dependency('json-c')
 xcb_xkb = dependency('xcb-xkb', required: get_option('backend-x11'))
 
@@ -30,6 +29,9 @@ plugin_i3_enabled = json_i3.found()
 plugin_label_enabled = get_option('plugin-label').allowed()
 plugin_network_enabled = get_option('plugin-network').allowed()
 
+udev_removables = dependency('udev', required: get_option('plugin-removables'))
+plugin_removables_enabled = udev_removables.found()
+
 pipewire = dependency('libpipewire-0.3', required: get_option('plugin-pipewire'))
 plugin_pipewire_enabled = pipewire.found()
 
@@ -40,7 +42,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'removables': [[], [dynlist, udev]],
   'script': [[], []],
   'sway-xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
 }
@@ -91,6 +92,10 @@ endif
 
 if plugin_network_enabled
   mod_data += {'network': [[], []]}
+endif
+
+if plugin_removables_enabled
+  mod_data += {'removables': [[], [dynlist, udev_removables]]}
 endif
 
 if plugin_pipewire_enabled
