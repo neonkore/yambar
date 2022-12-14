@@ -24,6 +24,8 @@ option('plugin-mem', type: 'feature', value: 'auto',
        description: 'Memory monitoring support')
 option('plugin-mpd', type: 'feature', value: 'auto',
        description: 'Music Player Daemon (MPD) support')
+option('plugin-i3', type: 'feature', value: 'auto',
+       description: 'i3+Sway support')
 option('plugin-pipewire', type: 'feature', value: 'auto',
        description: 'Pipewire support')
 option('plugin-pulse', type: 'feature', value: 'auto',
