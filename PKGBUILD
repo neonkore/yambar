@@ -16,6 +16,7 @@ depends=(
   'json-c'
   'libmpdclient'
   'libpulse'
+  'pipewire'
   'fcft>=3.0.0' 'fcft<4.0.0')
 optdepends=('xcb-util-errors: better X error messages')
 source=()

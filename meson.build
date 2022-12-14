@@ -99,11 +99,11 @@ if backend_x11
 endif
 
 subdir('completions')
-subdir('doc')
 subdir('bar')
 subdir('decorations')
 subdir('particles')
 subdir('modules')
+subdir('doc')
 
 env = find_program('env', native: true)
 generate_version_sh = files('generate-version.sh')
@@ -131,12 +131,6 @@ yambar = executable(
   version,
   dependencies: [bar, libepoll, libinotify,  pixman, yaml, threads, dl, tllist, fcft] +
                 decorations + particles + modules,
-  c_args: [
-    plugin_mpd_enabled? '-DPLUGIN_ENABLED_MPD':[],
-    plugin_pulse_enabled? '-DPLUGIN_ENABLED_PULSE':[],
-    plugin_pipewire_enabled? '-DPLUGIN_ENABLED_PIPEWIRE':[],
-    plugin_dwl_enabled? '-DPLUGIN_ENABLED_DWL':[],
-  ],
   build_rpath: '$ORIGIN/modules:$ORIGIN/decorations:$ORIGIN/particles',
   export_dynamic: true,
   install: true,
@@ -174,10 +168,27 @@ summary(
 
 summary(
   {
+    'ALSA': plugin_alsa_enabled,
+    'Backlight': plugin_backlight_enabled,
+    'Battery': plugin_battery_enabled,
+    'Clock': plugin_clock_enabled,
+    'CPU monitoring': plugin_cpu_enabled,
+    'Disk I/O monitoring': plugin_disk_io_enabled,
     'DWL (dwm for Wayland)': plugin_dwl_enabled,
+    'Foreign toplevel (window tracking for Wayland)': plugin_foreign_toplevel_enabled,
+    'Memory monitoring': plugin_mem_enabled,
     'Music Player Daemon (MPD)': plugin_mpd_enabled,
+    'i3+Sway': plugin_i3_enabled,
+    'Label': plugin_label_enabled,
+    'Network monitoring': plugin_network_enabled,
     'Pipewire': plugin_pipewire_enabled,
     'PulseAudio': plugin_pulse_enabled,
+    'Removables monitoring': plugin_removables_enabled,
+    'River': plugin_river_enabled,
+    'Script': plugin_script_enabled,
+    'Sway XKB keyboard': plugin_sway_xkb_enabled,
+    'XKB keyboard (for X11)': plugin_xkb_enabled,
+    'XWindow (window tracking for X11)': plugin_xwindow_enabled,
   },
   section: 'Optional modules',
   bool_yn: true
