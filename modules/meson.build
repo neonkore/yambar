@@ -35,7 +35,7 @@ plugin_pipewire_enabled = pipewire.found() and json_pipewire.found()
 pulse = dependency('libpulse', required: get_option('plugin-pulse'))
 plugin_pulse_enabled = pulse.found()
 
-udev_removables = dependency('udev', required: get_option('plugin-removables'))
+udev_removables = dependency('libudev', required: get_option('plugin-removables'))
 plugin_removables_enabled = udev_removables.found()
 
 plugin_river_enabled = backend_wayland and get_option('plugin-river').allowed()
