@@ -23,7 +23,7 @@ This decoration sets the particles background color.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  color
 :  color
 :  yes
@@ -49,7 +49,7 @@ bottom of the particle.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  size
 :  int
 :  yes
@@ -81,7 +81,7 @@ size and color at the top of the particle.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  size
 :  int
 :  yes
@@ -113,7 +113,7 @@ width) around the particle.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  color
 :  color
 :  yes

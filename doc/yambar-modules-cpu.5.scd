@@ -13,7 +13,7 @@ total CPU usage.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  id
 :  int
 :  Core ID. 0..n represents individual cores, and -1 represents the
@@ -27,7 +27,7 @@ total CPU usage.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  interval
 :  int
 :  no

@@ -7,7 +7,7 @@ mpd - This module provides MPD status such as currently playing artist/album/son
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  state
 :  string
 :  One of *offline*, *stopped*, *paused* or *playing*
@@ -56,7 +56,7 @@ mpd - This module provides MPD status such as currently playing artist/album/son
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  host
 :  string
 :  yes

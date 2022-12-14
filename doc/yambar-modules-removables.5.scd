@@ -12,7 +12,7 @@ instantiates the provided _content_ particle for each detected drive.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  vendor
 :  string
 :  Name of the drive vendor
@@ -48,7 +48,7 @@ instantiates the provided _content_ particle for each detected drive.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  left-spacing
 :  int
 :  no

@@ -11,7 +11,7 @@ their information. Each module defines its own set of tags.
 The available tag *types* are:
 
 [[ *Type*
-:[ *Description*
+:< *Description*
 |  string
 :  Value is a string. Rendered as-is by the _string_ particle.
 |  int
@@ -59,7 +59,7 @@ be used.
 [[ *Formatter*
 :[ *Kind*
 :[ *Description*
-:[ *Applies to*
+:< *Applies to*
 |  .<number>
 :  format
 :  How many decimals to print

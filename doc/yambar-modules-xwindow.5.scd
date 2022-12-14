@@ -16,7 +16,7 @@ _title_ tags.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  application
 :  string
 :  Name of the application that owns the currently focused window

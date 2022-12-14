@@ -23,7 +23,7 @@ the state *unknown* under other conditions.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  name
 :  string
 :  Battery device name
@@ -49,7 +49,7 @@ the state *unknown* under other conditions.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  name
 :  string
 :  yes

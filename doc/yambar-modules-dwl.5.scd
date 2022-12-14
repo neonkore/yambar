@@ -25,7 +25,7 @@ Running multiple instances at the same time may result in
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  id
 :  int
 :  Dwl tag id.
@@ -59,7 +59,7 @@ Running multiple instances at the same time may result in
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  number-of-tags
 :  int
 :  yes

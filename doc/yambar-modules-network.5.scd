@@ -16,7 +16,7 @@ address.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  name
 :  string
 :  Network interface name
@@ -64,7 +64,7 @@ address.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  name
 :  string
 :  yes

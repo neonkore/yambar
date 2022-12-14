@@ -7,7 +7,7 @@ pulse - Monitors a PulseAudio source and/or sink
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  online
 :  bool
 :  True when connected to the PulseAudio server
@@ -41,7 +41,7 @@ pulse - Monitors a PulseAudio source and/or sink
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  sink
 :  string
 :  no

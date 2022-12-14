@@ -22,7 +22,7 @@ with the _application_ and _title_ tags to replace the X11-only
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  name
 :  string
 :  The workspace name
@@ -57,7 +57,7 @@ with the _application_ and _title_ tags to replace the X11-only
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  content
 :  associative array
 :  yes

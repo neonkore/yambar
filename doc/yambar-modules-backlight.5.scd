@@ -11,7 +11,7 @@ _/sys/class/backlight_, and uses *udev* to monitor for changes.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  brightness
 :  range
 :  The current brightness level, in absolute value

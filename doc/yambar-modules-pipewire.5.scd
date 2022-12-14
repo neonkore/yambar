@@ -7,7 +7,7 @@ pipewire - Monitors pipewire for volume, mute/unmute, device change
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  type
 :  string
 :  Either "source" (capture) or "sink" (speaker)

@@ -7,7 +7,7 @@ clock - This module provides the current date and time
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  time
 :  string
 :  Current time, formatted using the _time-format_ attribute
@@ -20,7 +20,7 @@ clock - This module provides the current date and time
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  time-format
 :  string
 :  no

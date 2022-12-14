@@ -21,7 +21,7 @@ Note: Wayland only.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  app-id
 :  string
 :  The application ID (typically the application name)
@@ -47,7 +47,7 @@ Note: Wayland only.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  content
 :  particle
 :  yes

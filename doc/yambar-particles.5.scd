@@ -12,7 +12,7 @@ following attributes are supported by all particles:
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  left-margin
 :  int
 :  no
@@ -165,7 +165,7 @@ particle itself.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  items
 :  list
 :  yes
@@ -239,7 +239,7 @@ Where <tag> is the tag you would like to map, <operation> is one of:
 
 and <value> is the value you would like to compare it to. *If the
 value contains any non-alphanumerical characters, you must
-surround it with ' " ' *:
+surround it with ' \" ' *:
 
 ```
 "hello world"
@@ -305,7 +305,7 @@ tx-bitrate > 1000:
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  conditions
 :  associative array
 :  yes
@@ -359,7 +359,7 @@ indicator.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  tag
 :  string
 :  yes
@@ -414,7 +414,7 @@ itself when needed.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  tag
 :  string
 :  yes

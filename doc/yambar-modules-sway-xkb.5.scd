@@ -16,7 +16,7 @@ instantiated from this template, and represents an input device.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  id
 :  string
 :  Input device identifier
@@ -29,7 +29,7 @@ instantiated from this template, and represents an input device.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  identifiers
 :  list of strings
 :  yes

@@ -24,7 +24,7 @@ once for all 32 river tags. This means you probably want to use a
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  id
 :  int
 :  River tag number
@@ -42,14 +42,16 @@ once for all 32 river tags. This means you probably want to use a
 :  True if the river tag has views (i.e. windows).
 |  state
 :  string
-:  Set to *urgent* if _urgent_ is true, *focused* if _focused_ is true, *unfocused* if _visible_ is true, but _focused_ is false, or *invisible* if the river tag is not visible on any monitors.
+:  Set to *urgent* if _urgent_ is true, *focused* if _focused_ is true,
+   *unfocused* if _visible_ is true, but _focused_ is false, or
+   *invisible* if the river tag is not visible on any monitors.
 
 
 # TAGS (for the "title" particle)
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  seat
 :  string
 :  The name of the seat (*title* particle only, see CONFIGURATION)
@@ -66,7 +68,7 @@ once for all 32 river tags. This means you probably want to use a
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  title
 :  particle
 :  no

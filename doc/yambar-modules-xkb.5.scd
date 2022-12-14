@@ -14,7 +14,7 @@ Note: this module is X11 only. It does not work in Wayland.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  name
 :  string
 :  Name of currently selected layout, long version (e.g. "English (US)")

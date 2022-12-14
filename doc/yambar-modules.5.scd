@@ -110,7 +110,7 @@ following attributes are supported by all modules:
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  content
 :  particle
 :  yes

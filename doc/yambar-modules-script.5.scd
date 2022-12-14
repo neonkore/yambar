@@ -66,7 +66,7 @@ User defined.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  path
 :  string
 :  yes

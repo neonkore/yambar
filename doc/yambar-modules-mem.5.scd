@@ -7,7 +7,7 @@ mem - This module provides the memory usage
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  free
 :  int
 :  Free memory in bytes
@@ -29,7 +29,7 @@ mem - This module provides the memory usage
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  interval
 :  string
 :  no

@@ -28,7 +28,7 @@ types that are frequently used:
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  height
 :  int
 :  yes

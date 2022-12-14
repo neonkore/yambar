@@ -9,7 +9,7 @@ currently present in the machine.
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  device
 :  string
 :  Name of the device being tracked (use the command *lsblk* to see these).
@@ -34,7 +34,7 @@ currently present in the machine.
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  interval
 :  int
 :  no

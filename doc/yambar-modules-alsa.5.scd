@@ -7,7 +7,7 @@ alsa - Monitors an alsa soundcard for volume and mute/unmute changes
 
 [[ *Name*
 :[ *Type*
-:[ *Description*
+:< *Description*
 |  online
 :  bool
 :  True when the ALSA device has successfully been opened
@@ -32,7 +32,7 @@ alsa - Monitors an alsa soundcard for volume and mute/unmute changes
 [[ *Name*
 :[ *Type*
 :[ *Req*
-:[ *Description*
+:< *Description*
 |  card
 :  string
 :  yes
