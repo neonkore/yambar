@@ -66,7 +66,9 @@ EXTERN_MODULE(i3);
 #if defined(PLUGIN_ENABLED_LABEL)
 EXTERN_MODULE(label);
 #endif
+#if defined(PLUGIN_ENABLED_NETWORK)
 EXTERN_MODULE(network);
+#endif
 #if defined(PLUGIN_ENABLED_PULSE)
 EXTERN_MODULE(pulse);
 #endif
@@ -178,7 +180,9 @@ init(void)
 #if defined(PLUGIN_ENABLED_LABEL)
     REGISTER_CORE_MODULE(label, label);
 #endif
+#if defined(PLUGIN_ENABLED_NETWORK)
     REGISTER_CORE_MODULE(network, network);
+#endif
 #if defined(PLUGIN_ENABLED_PULSE)
     REGISTER_CORE_MODULE(pulse, pulse);
 #endif
