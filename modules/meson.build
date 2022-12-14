@@ -16,6 +16,7 @@ plugin_clock_enabled = get_option('plugin-clock').allowed()
 plugin_cpu_enabled = get_option('plugin-cpu').allowed()
 plugin_disk_io_enabled = get_option('plugin-disk-io').allowed()
 plugin_dwl_enabled = get_option('plugin-dwl').allowed()
+plugin_foreign_toplevel_enabled = backend_wayland and get_option('plugin-foreign-toplevel').allowed()
 plugin_mem_enabled = get_option('plugin-mem').allowed()
 
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
@@ -150,7 +151,7 @@ if plugin_river_enabled
   mod_data += {'river': [[wl_proto_src + wl_proto_headers + river_proto_src + river_proto_headers], [dynlist, wayland_client]]}
 endif
 
-if backend_wayland
+if plugin_foreign_toplevel_enabled
   ftop_proto_headers = []
   ftop_proto_src = []
 
@@ -169,9 +170,7 @@ if backend_wayland
       command: [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
   endforeach
 
-  mod_data += {
-    'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [dynlist, wayland_client]],
-  }
+  mod_data += {'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [dynlist, wayland_client]]}
 endif
 
 foreach mod, data : mod_data

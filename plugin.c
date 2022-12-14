@@ -53,7 +53,9 @@ EXTERN_MODULE(disk_io);
 #if defined(PLUGIN_ENABLED_DWL)
 EXTERN_MODULE(dwl);
 #endif
+#if defined(PLUGIN_ENABLED_FOREIGN_TOPLEVEL)
 EXTERN_MODULE(foreign_toplevel);
+#endif
 #if defined(PLUGIN_ENABLED_MEM)
 EXTERN_MODULE(mem);
 #endif
@@ -177,7 +179,7 @@ init(void)
 #if defined(PLUGIN_ENABLED_DWL)
     REGISTER_CORE_MODULE(dwl, dwl);
 #endif
-#if defined(HAVE_PLUGIN_foreign_toplevel)
+#if defined(PLUGIN_ENABLED_FOREIGN_TOPLEVEL)
     REGISTER_CORE_MODULE(foreign-toplevel, foreign_toplevel);
 #endif
 #if defined(PLUGIN_ENABLED_MEM)

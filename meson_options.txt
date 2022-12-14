@@ -20,6 +20,8 @@ option('plugin-disk-io', type: 'feature', value: 'auto',
        description: 'Disk I/O support')
 option('plugin-dwl', type: 'feature', value: 'auto',
        description: 'DWL (dwm for wayland) support')
+option('plugin-foreign-toplevel', type: 'feature', value: 'auto',
+       description: 'Foreign toplevel (window tracking for Wayland) support')
 option('plugin-mem', type: 'feature', value: 'auto',
        description: 'Memory monitoring support')
 option('plugin-mpd', type: 'feature', value: 'auto',
@@ -45,4 +47,4 @@ option('plugin-sway-xkb', type: 'feature', value: 'auto',
 option('plugin-xkb', type: 'feature', value: 'auto',
        description: 'keyboard support for X11')
 option('plugin-xwindow', type: 'feature', value: 'auto',
-       description: 'XWindow support')
+       description: 'XWindow (window tracking for X11) support')
