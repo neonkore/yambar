@@ -19,6 +19,7 @@ plugin_battery_enabled = udev_battery.found()
 plugin_clock_enabled = get_option('plugin-clock').allowed()
 plugin_cpu_enabled = get_option('plugin-cpu').allowed()
 plugin_disk_io_enabled = get_option('plugin-disk-io').allowed()
+plugin_mem_enabled = get_option('plugin-mem').allowed()
 
 mpd = dependency('libmpdclient', required: get_option('plugin-mpd'))
 plugin_mpd_enabled = mpd.found()
@@ -33,7 +34,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'mem': [[], []],
   'i3': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
   'label': [[], []],
   'network': [[], []],
@@ -68,6 +68,10 @@ endif
 
 if plugin_dwl_enabled
   mod_data += {'dwl': [[], [dynlist]]}
+endif
+
+if plugin_mem_enabled
+  mod_data += {'mem': [[], []]}
 endif
 
 if plugin_mpd_enabled

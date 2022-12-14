@@ -15,11 +15,13 @@ option('plugin-battery', type: 'feature', value: 'auto',
 option('plugin-clock', type: 'feature', value: 'auto',
        description: 'Clock support')
 option('plugin-cpu', type: 'feature', value: 'auto',
-       description: 'CPU support')
+       description: 'CPU monitoring support')
 option('plugin-disk-io', type: 'feature', value: 'auto',
        description: 'Disk I/O support')
 option('plugin-dwl', type: 'feature', value: 'auto',
        description: 'DWL (dwm for wayland) support')
+option('plugin-mem', type: 'feature', value: 'auto',
+       description: 'Memory monitoring support')
 option('plugin-mpd', type: 'feature', value: 'auto',
        description: 'Music Player Daemon (MPD) support')
 option('plugin-pipewire', type: 'feature', value: 'auto',

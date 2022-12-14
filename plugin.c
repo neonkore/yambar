@@ -56,6 +56,9 @@ EXTERN_MODULE(dwl);
 EXTERN_MODULE(foreign_toplevel);
 EXTERN_MODULE(i3);
 EXTERN_MODULE(label);
+#if defined(PLUGIN_ENABLED_MEM)
+EXTERN_MODULE(mem);
+#endif
 #if defined(PLUGIN_ENABLED_MPD)
 EXTERN_MODULE(mpd);
 #endif
@@ -72,7 +75,6 @@ EXTERN_MODULE(sway_xkb);
 EXTERN_MODULE(script);
 EXTERN_MODULE(xkb);
 EXTERN_MODULE(xwindow);
-EXTERN_MODULE(mem);
 
 EXTERN_PARTICLE(empty);
 EXTERN_PARTICLE(list);
@@ -162,6 +164,9 @@ init(void)
 #endif
     REGISTER_CORE_MODULE(i3, i3);
     REGISTER_CORE_MODULE(label, label);
+#if defined(PLUGIN_ENABLED_MEM)
+    REGISTER_CORE_MODULE(mem, mem);
+#endif
 #if defined(PLUGIN_ENABLED_MPD)
     REGISTER_CORE_MODULE(mpd, mpd);
 #endif
@@ -184,7 +189,6 @@ init(void)
 #if defined(HAVE_PLUGIN_xwindow)
     REGISTER_CORE_MODULE(xwindow, xwindow);
 #endif
-    REGISTER_CORE_MODULE(mem, mem);
 
     REGISTER_CORE_PARTICLE(empty, empty);
     REGISTER_CORE_PARTICLE(list, list);
