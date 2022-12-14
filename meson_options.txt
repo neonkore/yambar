@@ -32,6 +32,8 @@ option('plugin-network', type: 'feature', value: 'auto',
        description: 'Network monitoring support')
 option('plugin-removables', type: 'feature', value: 'auto',
        description: 'Removables (USB sticks, CD-ROM etc) monitoring support')
+option('plugin-script', type: 'feature', value: 'auto',
+       description: 'Script support')
 option('plugin-pipewire', type: 'feature', value: 'auto',
        description: 'Pipewire support')
 option('plugin-pulse', type: 'feature', value: 'auto',

@@ -69,18 +69,20 @@ EXTERN_MODULE(label);
 #if defined(PLUGIN_ENABLED_NETWORK)
 EXTERN_MODULE(network);
 #endif
-#if defined(PLUGIN_ENABLED_REMOVABLES)
-EXTERN_MODULE(removables);
+#if defined(PLUGIN_ENABLED_PIPEWIRE)
+EXTERN_MODULE(pipewire);
 #endif
 #if defined(PLUGIN_ENABLED_PULSE)
 EXTERN_MODULE(pulse);
 #endif
-#if defined(PLUGIN_ENABLED_PIPEWIRE)
-EXTERN_MODULE(pipewire);
+#if defined(PLUGIN_ENABLED_REMOVABLES)
+EXTERN_MODULE(removables);
+#endif
+#if defined(PLUGIN_ENABLED_SCRIPT)
+EXTERN_MODULE(script);
 #endif
 EXTERN_MODULE(river);
 EXTERN_MODULE(sway_xkb);
-EXTERN_MODULE(script);
 EXTERN_MODULE(xkb);
 EXTERN_MODULE(xwindow);
 
@@ -185,20 +187,22 @@ init(void)
 #if defined(PLUGIN_ENABLED_NETWORK)
     REGISTER_CORE_MODULE(network, network);
 #endif
-#if defined(PLUGIN_ENABLED_REMOVABLES)
-    REGISTER_CORE_MODULE(removables, removables);
+#if defined(PLUGIN_ENABLED_PIPEWIRE)
+    REGISTER_CORE_MODULE(pipewire, pipewire);
 #endif
 #if defined(PLUGIN_ENABLED_PULSE)
     REGISTER_CORE_MODULE(pulse, pulse);
 #endif
-#if defined(PLUGIN_ENABLED_PIPEWIRE)
-    REGISTER_CORE_MODULE(pipewire, pipewire);
+#if defined(PLUGIN_ENABLED_REMOVABLES)
+    REGISTER_CORE_MODULE(removables, removables);
+#endif
+#if defined(PLUGIN_ENABLED_SCRIPT)
+    REGISTER_CORE_MODULE(script, script);
 #endif
 #if defined(HAVE_PLUGIN_river)
     REGISTER_CORE_MODULE(river, river);
 #endif
     REGISTER_CORE_MODULE(sway-xkb, sway_xkb);
-    REGISTER_CORE_MODULE(script, script);
 #if defined(HAVE_PLUGIN_xkb)
     REGISTER_CORE_MODULE(xkb, xkb);
 #endif

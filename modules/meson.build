@@ -32,6 +32,8 @@ plugin_network_enabled = get_option('plugin-network').allowed()
 udev_removables = dependency('udev', required: get_option('plugin-removables'))
 plugin_removables_enabled = udev_removables.found()
 
+plugin_script_enabled = get_option('plugin-script').allowed()
+
 pipewire = dependency('libpipewire-0.3', required: get_option('plugin-pipewire'))
 plugin_pipewire_enabled = pipewire.found()
 
@@ -42,7 +44,6 @@ plugin_dwl_enabled = get_option('plugin-dwl').allowed()
 
 # Module name -> (source-list, dep-list)
 mod_data = {
-  'script': [[], []],
   'sway-xkb': [['i3-common.c', 'i3-common.h'], [dynlist, json]],
 }
 
@@ -94,16 +95,20 @@ if plugin_network_enabled
   mod_data += {'network': [[], []]}
 endif
 
-if plugin_removables_enabled
-  mod_data += {'removables': [[], [dynlist, udev_removables]]}
-endif
-
 if plugin_pipewire_enabled
   mod_data += {'pipewire': [[], [pipewire, dynlist, json]]}
 endif
 
 if plugin_pulse_enabled
   mod_data += {'pulse': [[], [pulse]]}
+endif
+
+if plugin_removables_enabled
+  mod_data += {'removables': [[], [dynlist, udev_removables]]}
+endif
+
+if plugin_script_enabled
+  mod_data += {'script': [[], []]}
 endif
 
 if backend_x11
