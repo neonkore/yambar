@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.9.0](#1-9-0)
 * [1.8.0](#1-8-0)
 * [1.7.0](#1-7-0)
 * [1.6.2](#1-6-2)
@@ -9,7 +9,7 @@
 * [1.5.0](#1-5-0)
 
 
-## Unreleased
+## 1.9.0
 
 ### Added
 
@@ -125,8 +125,6 @@
 [207]: https://codeberg.org/dnkl/yambar/issues/207
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * i3: fixed “missing workspace indicator” (_err: modules/i3.c:94:
@@ -160,10 +158,19 @@
 [229]: https://codeberg.org/dnkl/yambar/issues/229
 
 
-### Security
 ### Contributors
 
+* Baptiste Daroussin
 * Horus
+* Johannes
+* Leonardo Gibrowski Faé
+* Leonardo Neumann
+* Midgard
+* Ogromny
+* Peter Rice
+* Timur Celik
+* Willem van de Krol
+* hiog
 
 
 ## 1.8.0
