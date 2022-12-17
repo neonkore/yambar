@@ -16,6 +16,13 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Build failures for certain combinations of enabled and disabled
+  plugins ([#239][239]).
+
+[239]: https://codeberg.org/dnkl/yambar/issues/239
+
+
 ### Security
 ### Contributors
 

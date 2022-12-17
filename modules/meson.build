@@ -70,7 +70,7 @@ if plugin_clock_enabled
 endif
 
 if plugin_cpu_enabled
-  mod_data += {'cpu': [[], [dynlist]]}
+  mod_data += {'cpu': [[], [m, dynlist]]}
 endif
 
 if plugin_disk_io_enabled
@@ -82,7 +82,7 @@ if plugin_dwl_enabled
 endif
 
 if plugin_mem_enabled
-  mod_data += {'mem': [[], []]}
+  mod_data += {'mem': [[], [m]]}
 endif
 
 if plugin_mpd_enabled
@@ -102,11 +102,11 @@ if plugin_network_enabled
 endif
 
 if plugin_pipewire_enabled
-  mod_data += {'pipewire': [[], [pipewire, dynlist, json_pipewire]]}
+  mod_data += {'pipewire': [[], [m, pipewire, dynlist, json_pipewire]]}
 endif
 
 if plugin_pulse_enabled
-  mod_data += {'pulse': [[], [pulse]]}
+  mod_data += {'pulse': [[], [m, pulse]]}
 endif
 
 if plugin_removables_enabled
@@ -170,7 +170,7 @@ if plugin_foreign_toplevel_enabled
       command: [wscanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'])
   endforeach
 
-  mod_data += {'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [dynlist, wayland_client]]}
+  mod_data += {'foreign-toplevel': [[wl_proto_src + wl_proto_headers + ftop_proto_headers + ftop_proto_src], [m, dynlist, wayland_client]]}
 endif
 
 foreach mod, data : mod_data
