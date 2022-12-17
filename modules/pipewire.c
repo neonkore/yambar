@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #define LOG_MODULE "pipewire"
-#define LOG_ENABLE_DBG 1
+#define LOG_ENABLE_DBG 0
 #include "../config-verify.h"
 #include "../config.h"
 #include "../log.h"
