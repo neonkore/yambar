@@ -30,10 +30,11 @@ mem - This module provides the memory usage
 :[ *Type*
 :[ *Req*
 :< *Description*
-|  interval
+|  poll-interval
 :  string
 :  no
-:  Refresh interval of the memory usage stats in ms (default=500). Cannot be less then 500 ms
+:  Refresh interval of the memory usage stats in ms
+   (default=500). Cannot be less then 500 ms.
 
 # EXAMPLES
 
@@ -41,7 +42,7 @@ mem - This module provides the memory usage
 bar:
   left:
     - mem:
-        interval: 2500
+        poll-interval: 2500
         content:
           string: {text: "{used:mb}MB"}
 ```

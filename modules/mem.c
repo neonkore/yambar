@@ -151,10 +151,12 @@ mem_new(uint16_t interval, struct particle *label)
 static struct module *
 from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
-    const struct yml_node *interval = yml_get_value(node, "interval");
+    const struct yml_node *interval = yml_get_value(node, "poll-interval");
     const struct yml_node *c = yml_get_value(node, "content");
 
-    return mem_new(interval == NULL ? SMALLEST_INTERVAL : yml_value_as_int(interval), conf_to_particle(c, inherited));
+    return mem_new(
+        interval == NULL ? SMALLEST_INTERVAL : yml_value_as_int(interval),
+        conf_to_particle(c, inherited));
 }
 
 static bool
@@ -175,7 +177,7 @@ static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"interval", false, &conf_verify_interval},
+        {"poll-interval", false, &conf_verify_interval},
         MODULE_COMMON_ATTRS,
     };
 

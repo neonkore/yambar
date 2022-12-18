@@ -15,6 +15,7 @@
 ### Changed
 
 * disk-io: `interval` renamed to `poll-interval`
+* mem: `interval` renamed to `poll-interval`
 
 
 ### Deprecated
