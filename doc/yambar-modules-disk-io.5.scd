@@ -35,7 +35,7 @@ currently present in the machine.
 :[ *Type*
 :[ *Req*
 :< *Description*
-|  interval
+|  poll-interval
 :  int
 :  no
 :  Refresh interval of disk's stats in ms (default=500).
@@ -50,7 +50,7 @@ formatting in b/s, kb/s, mb/s, or gb/s, as appropriate.
 bar:
   left:
     - disk-io:
-        interval: 1000
+        poll-interval: 1000
         content:
           map:
             conditions:

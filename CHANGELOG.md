@@ -13,6 +13,10 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* disk-io: `interval` renamed to `poll-interval`
+
+
 ### Deprecated
 ### Removed
 ### Fixed
