@@ -19,8 +19,11 @@
 
 * Build failures for certain combinations of enabled and disabled
   plugins ([#239][239]).
+* Documentation for the `cpu` module; `interval` has been renamed to
+  `poll-interval` ([#241][241]).
 
 [239]: https://codeberg.org/dnkl/yambar/issues/239
+[241]: https://codeberg.org/dnkl/yambar/issues/241
 
 
 ### Security

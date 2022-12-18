@@ -28,7 +28,7 @@ total CPU usage.
 :[ *Type*
 :[ *Req*
 :< *Description*
-|  interval
+|  poll-interval
 :  int
 :  no
 :  Refresh interval of the CPU usage stats in ms (default=500). Cannot
@@ -41,7 +41,7 @@ total CPU usage.
 bar:
   left:
     - cpu:
-        interval: 2500
+        poll-interval: 2500
         content:
           map:
             conditions:
@@ -55,7 +55,7 @@ bar:
 bar:
   left:
     - cpu:
-        interval: 2500
+        poll-interval: 2500
         content:
           map:
             conditions:
