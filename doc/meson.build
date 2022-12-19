@@ -68,6 +68,7 @@ endif
 foreach man_src : ['yambar.1.scd',
                    'yambar.5.scd',
                    'yambar-decorations.5.scd',
+                   'yambar-modules.5.scd',
                    'yambar-particles.5.scd',
                    'yambar-tags.5.scd'] + plugin_pages
   parts = man_src.split('.')
