@@ -59,9 +59,9 @@ bar:
   right:
     - clock:
         content:
-          - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
+          - string: {text: , font: "Font Awesome 6 Free:style=solid:size=12"}
           - string: {text: "{date}", right-margin: 5}
-          - string: {text: , font: "Font Awesome 5 Free:style=solid:size=12"}
+          - string: {text: , font: "Font Awesome 6 Free:style=solid:size=12"}
           - string: {text: "{time}"}
 ```
 

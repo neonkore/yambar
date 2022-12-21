@@ -14,8 +14,8 @@ types that are frequently used:
 
 - *font*: this is a comma separated list of fonts in _fontconfig_
   format. Example of valid values:
-	- Font Awesome 5 Brands
-	- Font Awesome 5 Free:style=solid
+	- Font Awesome 6 Brands
+	- Font Awesome 6 Free:style=solid
 	- Dina:pixelsize=10:slant=italic
 	- Dina:pixelsize=10:weight=bold
 - *color*: an rgba hexstring; _RRGGBBAA_. Examples:

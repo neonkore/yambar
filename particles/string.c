@@ -94,7 +94,7 @@ expose(const struct exposable *exposable, pixman_image_t *pix, int x, int y, int
      *
      * Finally, if the font's descent is negative, ignore it (except
      * for the height calculation). This is unfortunately not based on
-     * any real facts, but works very well with e.g. the "Awesome 5"
+     * any real facts, but works very well with e.g. the "Awesome 6"
      * font family.
      */
     const double baseline = (double)y +

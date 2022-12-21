@@ -38,7 +38,7 @@ For example, to render _backlight_ as " 20%", you could use:
 ```
 content:
   - string:
-      font: Font Awesome 5 Free:style=solid:pixelsize=14
+      font: Font Awesome 6 Free:style=solid:pixelsize=14
       text: 
   - string:
       font: Adobe Helvetica:pixelsize=12
@@ -91,7 +91,7 @@ In these cases, you can define an anchor point, either at top-level,
 or in a module's _anchors_ attribute:
 
 ```
-awesome: &awesome Font Awesome 5 Free:style=solid:pixelsize=14
+awesome: &awesome Font Awesome 6 Free:style=solid:pixelsize=14
 
 ```
 
