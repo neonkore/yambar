@@ -16,6 +16,10 @@
 
 * disk-io: `interval` renamed to `poll-interval`
 * mem: `interval` renamed to `poll-interval`
+* battery/network/script: `poll-interval` unit changed from seconds to
+  milliseconds ([#244][244]).
+
+[244]: https://codeberg.org/dnkl/yambar/issues/244
 
 
 ### Deprecated
