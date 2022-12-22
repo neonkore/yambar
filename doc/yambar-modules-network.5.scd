@@ -72,8 +72,9 @@ address.
 |  poll-interval
 :  int
 :  no
-:  Periodically (in seconds) update the signal, rx+tx bitrate, and
-   ul+dl speed tags.
+:  Periodically (in milliseconds) update the signal, rx+tx bitrate, and
+   ul+dl speed tags. Setting it to 0 disables updates. Cannot be less
+   than 500ms.
 
 
 # EXAMPLES

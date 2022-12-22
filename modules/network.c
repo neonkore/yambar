@@ -34,6 +34,8 @@
 
 #define UNUSED __attribute__((unused))
 
+static const long min_poll_interval = 500;
+
 struct rt_stats_msg {
     struct rtmsg rth;
     struct rtnl_link_stats64 stats;
@@ -79,10 +81,10 @@ struct private {
     uint32_t rx_bitrate;
     uint32_t tx_bitrate;
 
-    uint64_t ul_speed;
+    double ul_speed;
     uint64_t ul_bits;
 
-    uint64_t dl_speed;
+    double dl_speed;
     uint64_t dl_bits;
 };
 
@@ -1120,15 +1122,16 @@ static void
 handle_stats(struct module *mod, struct rt_stats_msg *msg)
 {
     struct private *m = mod->private;
-    uint64_t ul_bits = msg->stats.tx_bytes*8;
-    uint64_t dl_bits = msg->stats.rx_bytes*8;
+    uint64_t ul_bits = msg->stats.tx_bytes * 8;
+    uint64_t dl_bits = msg->stats.rx_bytes * 8;
 
-    if (m->ul_bits != 0) {
-        m->ul_speed = (ul_bits - m->ul_bits) / m->poll_interval;
-    }
-    if (m->dl_bits != 0) {
-        m->dl_speed = (dl_bits - m->dl_bits) / m->poll_interval;
-    }
+    const double poll_interval_secs = (double)m->poll_interval / 1000.;
+
+    if (m->ul_bits != 0)
+        m->ul_speed = (double)(ul_bits - m->ul_bits) / poll_interval_secs;
+    if (m->dl_bits != 0)
+        m->dl_speed = (double)(dl_bits - m->dl_bits) / poll_interval_secs;
+
     m->ul_bits = ul_bits;
     m->dl_bits = dl_bits;
 }
@@ -1336,9 +1339,12 @@ run(struct module *mod)
             goto out;
         }
 
+        const long secs = m->poll_interval / 1000;
+        const long msecs = m->poll_interval % 1000;
+
         struct itimerspec poll_time = {
-            .it_value = {.tv_sec = m->poll_interval},
-            .it_interval = {.tv_sec = m->poll_interval},
+            .it_value = {.tv_sec = secs, .tv_nsec = msecs * 1000000},
+            .it_interval = {.tv_sec = secs, .tv_nsec = msecs * 1000000},
         };
 
         if (timerfd_settime(timer_fd, 0, &poll_time, NULL) < 0) {
@@ -1486,11 +1492,26 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
 }
 
 static bool
+conf_verify_poll_interval(keychain_t *chain, const struct yml_node *node)
+{
+    if (!conf_verify_unsigned(chain, node))
+        return false;
+
+    if (yml_value_as_int(node) < min_poll_interval) {
+        LOG_ERR("%s: interval value cannot be less than %ldms",
+                conf_err_prefix(chain, node), min_poll_interval);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"name", true, &conf_verify_string},
-        {"poll-interval", false, &conf_verify_unsigned},
+        {"poll-interval", false, &conf_verify_poll_interval},
         MODULE_COMMON_ATTRS,
     };
 
