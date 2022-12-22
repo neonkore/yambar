@@ -78,8 +78,8 @@ User defined.
 |  poll-interval
 :  integer
 :  no
-:  Number of seconds between each script run. If unset, continuous mode
-   is used.
+:  Number of milliseconds between each script run. If unset, or set to
+   0, continuous mode is used.
 
 # EXAMPLES
 
