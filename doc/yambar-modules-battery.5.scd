@@ -57,7 +57,10 @@ the state *unknown* under other conditions.
 |  poll-interval
 :  int
 :  no
-:  How often, in seconds, to poll for capacity changes (default=*60*). Set to `0` to disable polling (*warning*: many batteries do not support asynchronous reporting).
+:  How often, in milliseconds, to poll for capacity changes
+   (default=*60000*). Set to `0` to disable polling (*warning*: many
+   batteries do not support asynchronous reporting). Cannot be less
+   than 500ms.
 
 # EXAMPLES
 
@@ -66,7 +69,7 @@ bar:
   left:
     - battery:
         name: BAT0
-        poll-interval: 30
+        poll-interval: 30000
         content:
           string: {text: "BAT: {capacity}% {estimate}"}
 ```
