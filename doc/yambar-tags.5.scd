@@ -60,10 +60,20 @@ be used.
 :[ *Kind*
 :[ *Description*
 :< *Applies to*
+|  [0]<number>[.]
+:  format
+:  The width reserved to the field. The leading '0' is optional and
+   indicates zero padding, as opposed to space padding. The trailing
+   '.' is also optional
+:  Numeric tags (integer and floats)
 |  .<number>
 :  format
 :  How many decimals to print
 :  Float tags
+|  [0]<N>[.]<M>
+:  format
+:  Combined version of the two previous formatters
+:  N: numeric tags, M: float tags
 |  hex
 :  format
 :  Renders a tag's value in hex

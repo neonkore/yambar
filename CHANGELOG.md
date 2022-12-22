@@ -12,6 +12,12 @@
 
 ## Unreleased
 ### Added
+
+* field width tag format option ([#246][246])
+
+[246]: https://codeberg.org/dnkl/yambar/issues/246
+
+
 ### Changed
 
 * disk-io: `interval` renamed to `poll-interval`
@@ -45,6 +51,7 @@
 ### Security
 ### Contributors
 
+* Leonardo Gibrowski Faé (Horus)
 
 ## 1.9.0
 

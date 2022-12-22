@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
+#include<errno.h>
 
 #define LOG_MODULE "tag"
 #define LOG_ENABLE_DBG 1
@@ -427,13 +428,18 @@ sbuf_append(struct sbuf *s1, const char *s2)
     sbuf_append_at_most(s1, s2, strlen(s2));
 }
 
-bool
-is_number(const char *str) {
-    while (*str != '\0') {
-        if (!isdigit(*str))
-            return false;
-        ++str;
-    }
+// stores the number in "*value" on success
+static bool
+is_number(const char *str, int *value)
+{
+    errno = 0;
+
+    char *end;
+    int v = strtol(str, &end, 10);
+    if (errno != 0 || *end != '\0')
+        return false;
+
+    *value = v;
     return true;
 }
 
@@ -519,8 +525,10 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             VALUE_UNIT,
         } kind = VALUE_VALUE;
 
+        int digits = 0;
         int decimals = 2;
-        char *float_fmt_end;
+        bool zero_pad = false;
+        char *point = NULL;
 
         for (size_t i = 0; i < MAX_TAG_ARGS; i++) {
             if (tag_args[i] == NULL)
@@ -549,8 +557,31 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 kind = VALUE_MAX;
             else if (strcmp(tag_args[i], "unit") == 0)
                 kind = VALUE_UNIT;
-            else if (tag_args[i][0] == '.' && is_number(tag_args[i] + 1))
-                decimals = strtol(tag_args[i] + 1, &float_fmt_end, 10);
+            else if (is_number(tag_args[i], &digits)) // i.e.: "{tag:3}"
+                zero_pad = tag_args[i][0] == '0';
+            else if ((point = strchr(tag_args[i], '.')) != NULL) {
+                *point = '\0';
+
+                const char *digits_str = tag_args[i];
+                const char *decimals_str = point + 1;
+
+                if (digits_str[0] != '\0') { // guards against i.e. "{tag:.3}"
+                    if (!is_number(digits_str, &digits)) {
+                        LOG_WARN(
+                            "tag `%s`: invalid field width formatter. Ignoring...",
+                            tag_name);
+                    }
+                }
+
+                if (decimals_str[0] != '\0') { // guards against i.e. "{tag:3.}"
+                    if (!is_number(decimals_str, &decimals)) {
+                        LOG_WARN(
+                            "tag `%s`: invalid decimals formatter. Ignoring...",
+                            tag_name);
+                    }
+                }
+                zero_pad = digits_str[0] == '0';
+            }
             else
                 LOG_WARN("invalid tag formatter: %s", tag_args[i]);
         }
@@ -561,8 +592,9 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             switch (format) {
             case FMT_DEFAULT: {
                 if (tag->type(tag) == TAG_TYPE_FLOAT){
+                    const char* fmt = zero_pad ? "%0*.*f" : "%*.*f";
                     char str[24];
-                    snprintf(str, sizeof(str), "%.*f", decimals, tag->as_float(tag));
+                    snprintf(str, sizeof(str), fmt, digits, decimals, tag->as_float(tag));
                     sbuf_append(&formatted, str);
                 } else {
                     sbuf_append(&formatted, tag->as_string(tag));
@@ -572,9 +604,11 @@ tags_expand_template(const char *template, const struct tag_set *tags)
 
             case FMT_HEX:
             case FMT_OCT: {
+                const char* fmt = format == FMT_HEX ?
+                    zero_pad ? "%0*lx" : "%*lx" :
+                    zero_pad ? "%0*lo" : "%*lo";
                 char str[24];
-                snprintf(str, sizeof(str), format == FMT_HEX ? "%lx" : "%lo",
-                         tag->as_int(tag));
+                snprintf(str, sizeof(str), fmt, digits, tag->as_int(tag));
                 sbuf_append(&formatted, str);
                 break;
             }
@@ -584,8 +618,9 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 const long max = tag->max(tag);
                 const long cur = tag->as_int(tag);
 
+                const char* fmt = zero_pad ? "%0*lu" : "%*lu";
                 char str[4];
-                snprintf(str, sizeof(str), "%lu", (cur - min) * 100 / (max - min));
+                snprintf(str, sizeof(str), fmt, digits, (cur - min) * 100 / (max - min));
                 sbuf_append(&formatted, str);
                 break;
             }
@@ -606,10 +641,13 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                     1;
 
                 char str[24];
-                if (tag->type(tag) == TAG_TYPE_FLOAT)
-                    snprintf(str, sizeof(str), "%.*f", decimals, tag->as_float(tag) / (double)divider);
-                else
-                    snprintf(str, sizeof(str), "%lu", tag->as_int(tag) / divider);
+                if (tag->type(tag) == TAG_TYPE_FLOAT) {
+                    const char* fmt = zero_pad ? "%0*.*f" : "%*.*f";
+                    snprintf(str, sizeof(str), fmt, digits, decimals, tag->as_float(tag) / (double)divider);
+                } else {
+                    const char* fmt = zero_pad ? "%0*lu" : "%*lu";
+                    snprintf(str, sizeof(str), fmt, digits, tag->as_int(tag) / divider);
+                }
                 sbuf_append(&formatted, str);
                 break;
             }
@@ -624,13 +662,12 @@ tags_expand_template(const char *template, const struct tag_set *tags)
 
             const char *fmt;
             switch (format) {
-            case FMT_DEFAULT: fmt = "%ld"; break;
-            case FMT_HEX:     fmt = "%lx"; break;
-            case FMT_OCT:     fmt = "%lo"; break;
-
+            case FMT_DEFAULT: fmt = zero_pad ? "%0*ld" : "%*ld"; break;
+            case FMT_HEX:     fmt = zero_pad ? "%0*lx" : "%*lx"; break;
+            case FMT_OCT:     fmt = zero_pad ? "%0*lo" : "%*lo"; break;
             case FMT_PERCENT:
                 value = (value - min) * 100 / (max - min);
-                fmt = "%lu";
+                fmt = zero_pad ? "%0*lu" : "%*lu";
                 break;
 
             case FMT_KBYTE:
@@ -648,13 +685,13 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                     format == FMT_GIBYTE ? 1000 * 1000 * 1000 :
                     1;
                 value /= divider;
-                fmt = "%lu";
+                fmt = zero_pad ? "%0*lu" : "%*lu";
                 break;
             }
             }
 
             char str[24];
-            snprintf(str, sizeof(str), fmt, value);
+            snprintf(str, sizeof(str), fmt, digits, value);
             sbuf_append(&formatted, str);
             break;
         }
