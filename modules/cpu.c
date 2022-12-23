@@ -21,7 +21,7 @@
 #include "../particles/dynlist.h"
 #include "../plugin.h"
 
-static const long min_poll_interval = 500;
+static const long min_poll_interval = 250;
 
 struct cpu_stats {
     uint32_t *prev_cores_idle;

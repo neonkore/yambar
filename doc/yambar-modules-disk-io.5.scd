@@ -39,7 +39,7 @@ currently present in the machine.
 :  int
 :  no
 :  Refresh interval of disk's stats in milliseconds (default=500).
-   Cannot be less then 500ms.
+   Cannot be less then 250ms.
 
 # EXAMPLES
 

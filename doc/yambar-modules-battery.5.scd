@@ -60,7 +60,7 @@ the state *unknown* under other conditions.
 :  How often, in milliseconds, to poll for capacity changes
    (default=*60000*). Set to `0` to disable polling (*warning*: many
    batteries do not support asynchronous reporting). Cannot be less
-   than 500ms.
+   than 250ms.
 
 # EXAMPLES
 

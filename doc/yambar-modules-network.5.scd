@@ -74,7 +74,7 @@ address.
 :  no
 :  Periodically (in milliseconds) update the signal, rx+tx bitrate, and
    ul+dl speed tags. Setting it to 0 disables updates. Cannot be less
-   than 500ms.
+   than 250ms.
 
 
 # EXAMPLES

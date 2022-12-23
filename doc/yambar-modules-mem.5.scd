@@ -34,7 +34,7 @@ mem - This module provides the memory usage
 :  string
 :  no
 :  Refresh interval of the memory usage stats in milliseconds
-   (default=500). Cannot be less then 500ms.
+   (default=500). Cannot be less then 250ms.
 
 # EXAMPLES
 

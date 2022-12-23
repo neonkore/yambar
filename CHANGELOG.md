@@ -18,6 +18,7 @@
 * mem: `interval` renamed to `poll-interval`
 * battery/network/script: `poll-interval` unit changed from seconds to
   milliseconds ([#244][244]).
+* all modules: minimum poll interval changed from 500ms to 250ms.
 
 [244]: https://codeberg.org/dnkl/yambar/issues/244
 

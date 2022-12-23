@@ -22,7 +22,7 @@
 #include "../module.h"
 #include "../plugin.h"
 
-static const long min_poll_interval = 500;
+static const long min_poll_interval = 250;
 
 struct private {
     char *path;

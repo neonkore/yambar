@@ -32,7 +32,7 @@ total CPU usage.
 :  int
 :  no
 :  Refresh interval of the CPU usage stats in milliseconds
-   (default=500). Cannot be less then 500ms.
+   (default=500). Cannot be less then 250ms.
 
 # EXAMPLES
 

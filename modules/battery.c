@@ -20,7 +20,7 @@
 #include "../config-verify.h"
 #include "../plugin.h"
 
-static const long min_poll_interval = 500;
+static const long min_poll_interval = 250;
 static const long default_poll_interval = 60 * 1000;
 
 enum state { STATE_FULL, STATE_NOTCHARGING, STATE_CHARGING, STATE_DISCHARGING, STATE_UNKNOWN };
