@@ -31,8 +31,8 @@ total CPU usage.
 |  poll-interval
 :  int
 :  no
-:  Refresh interval of the CPU usage stats in ms (default=500). Cannot
-   be less then 500 ms
+:  Refresh interval of the CPU usage stats in milliseconds
+   (default=500). Cannot be less then 500ms.
 
 # EXAMPLES
 

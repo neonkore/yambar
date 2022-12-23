@@ -22,6 +22,8 @@
 #include "../module.h"
 #include "../plugin.h"
 
+static const long min_poll_interval = 500;
+
 struct private {
     char *path;
     size_t argc;
@@ -574,7 +576,7 @@ run(struct module *mod)
             break;
         if (m->aborted)
             break;
-        if (m->poll_interval < 0)
+        if (m->poll_interval <= 0)
             break;
 
         struct timeval now;
@@ -583,7 +585,10 @@ run(struct module *mod)
             break;
         }
 
-        struct timeval poll_interval = {.tv_sec = m->poll_interval};
+        struct timeval poll_interval = {
+            .tv_sec = m->poll_interval / 1000,
+            .tv_usec = (m->poll_interval % 1000) * 1000,
+        };
 
         struct timeval timeout;
         timeradd(&now, &poll_interval, &timeout);
@@ -670,7 +675,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
 
     return script_new(
         yml_value_as_string(path), argc, argv,
-        poll_interval != NULL ? yml_value_as_int(poll_interval) : -1,
+        poll_interval != NULL ? yml_value_as_int(poll_interval) : 0,
         conf_to_particle(c, inherited));
 }
 
@@ -696,12 +701,27 @@ conf_verify_args(keychain_t *chain, const struct yml_node *node)
 }
 
 static bool
+conf_verify_poll_interval(keychain_t *chain, const struct yml_node *node)
+{
+    if (!conf_verify_unsigned(chain, node))
+        return false;
+
+    if (yml_value_as_int(node) < min_poll_interval) {
+        LOG_ERR("%s: interval value cannot be less than %ldms",
+                conf_err_prefix(chain, node), min_poll_interval);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"path", true, &conf_verify_path},
         {"args", false, &conf_verify_args},
-        {"poll-interval", false, &conf_verify_unsigned},
+        {"poll-interval", false, &conf_verify_poll_interval},
         MODULE_COMMON_ATTRS,
     };
 

@@ -33,8 +33,8 @@ mem - This module provides the memory usage
 |  poll-interval
 :  string
 :  no
-:  Refresh interval of the memory usage stats in ms
-   (default=500). Cannot be less then 500 ms.
+:  Refresh interval of the memory usage stats in milliseconds
+   (default=500). Cannot be less then 500ms.
 
 # EXAMPLES
 

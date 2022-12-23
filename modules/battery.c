@@ -20,12 +20,15 @@
 #include "../config-verify.h"
 #include "../plugin.h"
 
+static const long min_poll_interval = 500;
+static const long default_poll_interval = 60 * 1000;
+
 enum state { STATE_FULL, STATE_NOTCHARGING, STATE_CHARGING, STATE_DISCHARGING, STATE_UNKNOWN };
 
 struct private {
     struct particle *label;
 
-    int poll_interval;
+    long poll_interval;
     char *battery;
     char *manufacturer;
     char *model;
@@ -429,7 +432,7 @@ run(struct module *mod)
             {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
         };
         if (poll(fds, sizeof(fds) / sizeof(fds[0]),
-                 m->poll_interval > 0 ? m->poll_interval * 1000 : -1) < 0)
+                 m->poll_interval > 0 ? m->poll_interval : -1) < 0)
         {
             if (errno == EINTR)
                 continue;
@@ -469,11 +472,11 @@ out:
 }
 
 static struct module *
-battery_new(const char *battery, struct particle *label, int poll_interval_secs)
+battery_new(const char *battery, struct particle *label, long poll_interval_msecs)
 {
     struct private *m = calloc(1, sizeof(*m));
     m->label = label;
-    m->poll_interval = poll_interval_secs;
+    m->poll_interval = poll_interval_msecs;
     m->battery = strdup(battery);
     m->state = STATE_UNKNOWN;
 
@@ -496,7 +499,24 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     return battery_new(
         yml_value_as_string(name),
         conf_to_particle(c, inherited),
-        poll_interval != NULL ? yml_value_as_int(poll_interval) : 60);
+        (poll_interval != NULL
+         ? yml_value_as_int(poll_interval)
+         : default_poll_interval));
+}
+
+static bool
+conf_verify_poll_interval(keychain_t *chain, const struct yml_node *node)
+{
+    if (!conf_verify_unsigned(chain, node))
+        return false;
+
+    if (yml_value_as_int(node) < min_poll_interval) {
+        LOG_ERR("%s: interval value cannot be less than %ldms",
+                conf_err_prefix(chain, node), min_poll_interval);
+        return false;
+    }
+
+    return true;
 }
 
 static bool
@@ -504,7 +524,7 @@ verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
         {"name", true, &conf_verify_string},
-        {"poll-interval", false, &conf_verify_unsigned},
+        {"poll-interval", false, &conf_verify_poll_interval},
         MODULE_COMMON_ATTRS,
     };
 

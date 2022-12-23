@@ -38,8 +38,8 @@ currently present in the machine.
 |  poll-interval
 :  int
 :  no
-:  Refresh interval of disk's stats in ms (default=500).
-   Cannot be less then 500 ms
+:  Refresh interval of disk's stats in milliseconds (default=500).
+   Cannot be less then 500ms.
 
 # EXAMPLES
 

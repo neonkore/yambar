@@ -13,7 +13,6 @@
 
 #define LOG_MODULE "cpu"
 #define LOG_ENABLE_DBG 0
-#define SMALLEST_INTERVAL 500
 #include "../log.h"
 
 #include "../bar/bar.h"
@@ -21,6 +20,8 @@
 #include "../config.h"
 #include "../particles/dynlist.h"
 #include "../plugin.h"
+
+static const long min_poll_interval = 500;
 
 struct cpu_stats {
     uint32_t *prev_cores_idle;
@@ -276,19 +277,19 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     const struct yml_node *c = yml_get_value(node, "content");
 
     return cpu_new(
-        interval == NULL ? SMALLEST_INTERVAL : yml_value_as_int(interval),
+        interval == NULL ? min_poll_interval : yml_value_as_int(interval),
         conf_to_particle(c, inherited));
 }
 
 static bool
-conf_verify_interval(keychain_t *chain, const struct yml_node *node)
+conf_verify_poll_interval(keychain_t *chain, const struct yml_node *node)
 {
     if (!conf_verify_unsigned(chain, node))
         return false;
 
-    if (yml_value_as_int(node) < SMALLEST_INTERVAL) {
-        LOG_ERR("%s: interval value cannot be less than %d ms",
-                conf_err_prefix(chain, node), SMALLEST_INTERVAL);
+    if (yml_value_as_int(node) < min_poll_interval) {
+        LOG_ERR("%s: interval value cannot be less than %ldms",
+                conf_err_prefix(chain, node), min_poll_interval);
         return false;
     }
 
@@ -299,7 +300,7 @@ static bool
 verify_conf(keychain_t *chain, const struct yml_node *node)
 {
     static const struct attr_info attrs[] = {
-        {"poll-interval", false, &conf_verify_interval},
+        {"poll-interval", false, &conf_verify_poll_interval},
         MODULE_COMMON_ATTRS,
     };
 
