@@ -168,9 +168,15 @@ process_line(char *line, struct module *module)
         }
         /* action */
         else if (index == 2) {
-            if (strcmp(string, "title") == 0)
+            if (strcmp(string, "title") == 0) {
                 line_mode = LINE_MODE_TITLE;
-            else if (strcmp(string, "fullscreen") == 0)
+                /* Update the title here, to avoid allocate and free memory on
+                 * every iteration (the line is separated by spaces, then we
+                 * join it again) a bit suboptimal, isn't it?) */
+                free(private->title);
+                private->title = strdup(save_pointer);
+                break;
+            } else if (strcmp(string, "fullscreen") == 0)
                 line_mode = LINE_MODE_FULLSCREEN;
             else if (strcmp(string, "floating") == 0)
                 line_mode = LINE_MODE_FLOATING;
@@ -222,8 +228,7 @@ process_line(char *line, struct module *module)
             } else
                 switch (line_mode) {
                 case LINE_MODE_TITLE:
-                    free(private->title);
-                    private->title = strdup(string);
+                    assert(false); /* unreachable */
                     break;
                 case LINE_MODE_FULLSCREEN:
                     private->fullscreen = (strcmp(string, "0") != 0);

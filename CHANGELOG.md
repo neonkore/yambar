@@ -32,9 +32,11 @@
 * Documentation for the `cpu` module; `interval` has been renamed to
   `poll-interval` ([#241][241]).
 * battery: module was not thread safe.
+* dwl module reporting only the last part of the title ([#251][251])
 
 [239]: https://codeberg.org/dnkl/yambar/issues/239
 [241]: https://codeberg.org/dnkl/yambar/issues/241
+[251]: https://codeberg.org/dnkl/yambar/pulls/251
 
 
 ### Security
