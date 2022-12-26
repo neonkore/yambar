@@ -150,20 +150,18 @@ content(struct module *mod)
 }
 
 static const char *
-readline_from_fd(int fd)
+readline_from_fd(int fd, size_t sz, char buf[static sz])
 {
-    static char buf[4096];
-
-    ssize_t sz = read(fd, buf, sizeof(buf) - 1);
+    ssize_t bytes = read(fd, buf, sz - 1);
     lseek(fd, 0, SEEK_SET);
 
-    if (sz < 0) {
+    if (bytes < 0) {
         LOG_WARN("failed to read from FD=%d", fd);
         return NULL;
     }
 
-    buf[sz] = '\0';
-    for (ssize_t i = sz - 1; i >= 0 && buf[i] == '\n'; sz--)
+    buf[bytes] = '\0';
+    for (ssize_t i = bytes - 1; i >= 0 && buf[i] == '\n'; bytes--)
         buf[i] = '\0';
 
     return buf;
@@ -172,7 +170,8 @@ readline_from_fd(int fd)
 static long
 readint_from_fd(int fd)
 {
-    const char *s = readline_from_fd(fd);
+    char buf[512];
+    const char *s = readline_from_fd(fd, sizeof(buf), buf);
     if (s == NULL)
         return 0;
 
@@ -189,6 +188,8 @@ readint_from_fd(int fd)
 static bool
 initialize(struct private *m)
 {
+    char line_buf[512];
+
     int pw_fd = open("/sys/class/power_supply", O_RDONLY);
     if (pw_fd < 0) {
         LOG_ERRNO("/sys/class/power_supply");
@@ -210,7 +211,7 @@ initialize(struct private *m)
                      m->battery, strerror(errno));
             m->manufacturer = NULL;
         } else {
-            m->manufacturer = strdup(readline_from_fd(fd));
+            m->manufacturer = strdup(readline_from_fd(fd, sizeof(line_buf), line_buf));
             close(fd);
         }
     }
@@ -222,7 +223,7 @@ initialize(struct private *m)
                      m->battery, strerror(errno));
             m->model = NULL;
         } else {
-            m->model = strdup(readline_from_fd(fd));
+            m->model = strdup(readline_from_fd(fd, sizeof(line_buf), line_buf));
             close(fd);
         }
     }
@@ -338,7 +339,8 @@ update_status(struct module *mod)
     long current = current_fd >= 0 ? readint_from_fd(current_fd) : -1;
     long time_to_empty = time_to_empty_fd >= 0 ? readint_from_fd(time_to_empty_fd) : -1;
 
-    const char *status = readline_from_fd(status_fd);
+    char buf[512];
+    const char *status = readline_from_fd(status_fd, sizeof(buf), buf);
 
     if (status_fd >= 0)
         close(status_fd);
