@@ -150,12 +150,19 @@ workspace_from_json(const struct json_object *json, struct workspace *ws)
 }
 
 static void
-workspace_free(struct workspace *ws)
+workspace_free_persistent(struct workspace *ws)
 {
-    free(ws->name); ws->name = NULL;
     free(ws->output); ws->output = NULL;
     free(ws->window.title); ws->window.title = NULL;
     free(ws->window.application); ws->window.application = NULL;
+    ws->id = -1;
+}
+
+static void
+workspace_free(struct workspace *ws)
+{
+    workspace_free_persistent(ws);
+    free(ws->name); ws->name = NULL;
 }
 
 static void
@@ -250,6 +257,17 @@ workspace_lookup(struct private *m, int id)
     return NULL;
 }
 
+static struct workspace *
+workspace_lookup_by_name(struct private *m, const char *name)
+{
+    tll_foreach(m->workspaces, it) {
+        struct workspace *ws = &it->item;
+        if (strcmp(ws->name, name) == 0)
+            return ws;
+    }
+    return NULL;
+}
+
 static bool
 handle_get_version_reply(int sock, int type, const struct json_object *json, void *_m)
 {
@@ -289,6 +307,35 @@ workspace_update_or_add(struct private *m, const struct json_object *ws_json)
 
     const int id = json_object_get_int(_id);
     struct workspace *already_exists = workspace_lookup(m, id);
+
+    if (already_exists == NULL) {
+        /*
+         * No workspace with this ID.
+         *
+         * Try looking it up again, but this time using the name. If
+         * we get a match, check if it’s an empty, persistent
+         * workspace, and if so, use it.
+         *
+         * This is necessary, since empty, persistent workspaces don’t
+         * exist in the i3/Sway server, and thus we don’t _have_ an
+         * ID.
+         */
+        struct json_object *_name;
+        if (json_object_object_get_ex(ws_json, "name", &_name)) {
+            const char *name = json_object_get_string(_name);
+            if (name != NULL) {
+                struct workspace *maybe_persistent =
+                    workspace_lookup_by_name(m, name);
+
+                if (maybe_persistent != NULL &&
+                    maybe_persistent->persistent &&
+                    maybe_persistent->id < 0)
+                {
+                    already_exists = maybe_persistent;
+                }
+            }
+        }
+    }
 
     if (already_exists != NULL) {
         bool persistent = already_exists->persistent;
@@ -381,9 +428,8 @@ handle_workspace_event(int sock, int type, const struct json_object *json, void 
         if (!ws->persistent)
             workspace_del(m, current_id);
         else {
-            workspace_free(ws);
+            workspace_free_persistent(ws);
             ws->empty = true;
-            assert(ws->persistent);
         }
     }
 
@@ -697,6 +743,7 @@ run(struct module *mod)
         }
 
         struct workspace ws = {
+            .id = -1,
             .name = strdup(name_as_string),
             .name_as_int = name_as_int,
             .persistent = true,
@@ -783,6 +830,9 @@ content(struct module *mod)
         /* Lookup content template for workspace. Fall back to default
          * template if this workspace doesn't have a specific
          * template */
+        if (ws->name == NULL) {
+            LOG_ERR("%d %d", ws->name_as_int, ws->id);
+        }
         template = ws_content_for_name(m, ws->name);
         if (template == NULL) {
             LOG_DBG("no ws template for %s, using default template", ws->name);
@@ -794,9 +844,9 @@ content(struct module *mod)
             ws->visible ? ws->focused ? "focused" : "unfocused" :
             "invisible";
 
-        LOG_DBG("%s: visible=%s, focused=%s, urgent=%s, empty=%s, state=%s, "
+        LOG_DBG("name=%s (name-as-int=%d): visible=%s, focused=%s, urgent=%s, empty=%s, state=%s, "
                 "application=%s, title=%s, mode=%s",
-                ws->name,
+                ws->name, ws->name_as_int,
                 ws->visible ? "yes" : "no",
                 ws->focused ? "yes" : "no",
                 ws->urgent ? "yes" : "no",
