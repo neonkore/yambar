@@ -58,53 +58,53 @@ be used.
 
 [[ *Formatter*
 :[ *Kind*
-:[ *Description*
-:< *Applies to*
+:[ *Applies to*
+:< *Description*
 |  [0]<number>[.]
 :  format
+:  Numeric tags (integer and floats)
 :  The width reserved to the field. The leading '0' is optional and
    indicates zero padding, as opposed to space padding. The trailing
    '.' is also optional
-:  Numeric tags (integer and floats)
 |  .<number>
 :  format
-:  How many decimals to print
 :  Float tags
+:  How many decimals to print
 |  [0]<N>[.]<M>
 :  format
-:  Combined version of the two previous formatters
 :  N: numeric tags, M: float tags
+:  Combined version of the two previous formatters
 |  hex
 :  format
-:  Renders a tag's value in hex
 :  All tag types
+:  Renders a tag's value in hex
 |  oct
 :  format
-:  Renders a tag's value in octal
 :  All tag types
+:  Renders a tag's value in octal
 |  %
 :  format
-:  Renders a range tag's value as a percentage value
 :  Range tags
+:  Renders a range tag's value as a percentage value
 |  kb, mb, gb
 :  format
+:  All tag types
 :  Renders a tag's value (in decimal) divided by 1000, 1000^2 or
    1000^3. Note: no unit suffix is appended)
-:  All tag types
 |  kib, mib, gib
 :  format
-:  Same as *kb*, *mb* and *gb*, but divide by 1024^n instead of 1000^n.
 :  All tag types
+:  Same as *kb*, *mb* and *gb*, but divide by 1024^n instead of 1000^n.
 |  min
 :  selector
-:  Renders a range tag's minimum value
 :  Range tags
+:  Renders a range tag's minimum value
 |  max
 :  selector
-:  Renders a range tag's maximum value
 :  Range tags
+:  Renders a range tag's maximum value
 |  unit
 :  selector
-:  Renders a realtime tag's unit (e.g. "s", or "ms")
 :  Realtime tags
+:  Renders a realtime tag's unit (e.g. "s", or "ms")
 
