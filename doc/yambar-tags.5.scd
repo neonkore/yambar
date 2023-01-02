@@ -108,3 +108,23 @@ be used.
 :  Realtime tags
 :  Renders a realtime tag's unit (e.g. "s", or "ms")
 
+# EXAMPLES
+
+- A numeric (float or int) tag with at least 3 digits, zero-padded if
+  necessary:
+
+```
+{tag:03}
+```
+
+- A float tag with 2 decimals:
+
+```
+{tag:.2}
+```
+
+- A "byte count" tag in gigabytes:
+
+```
+{tag:gib}GB
+```
