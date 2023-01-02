@@ -739,20 +739,32 @@ pipewire_init(struct module *module)
 
     /* Main loop */
     data->loop = pw_main_loop_new(NULL);
-    assert(data->loop != NULL);
+    if (data->loop == NULL) {
+        LOG_ERR("failed to instantiate main loop");
+        goto err;
+    }
 
     /* Context */
     data->context = pw_context_new(pw_main_loop_get_loop(data->loop), NULL, 0);
-    assert(data->context != NULL);
+    if (data->context == NULL) {
+        LOG_ERR("failed to instantiate pipewire context");
+        goto err;
+    }
 
     /* Core */
     data->core = pw_context_connect(data->context, NULL, 0);
-    assert(data->core);
+    if (data->core == NULL) {
+        LOG_ERR("failed to connect to pipewire");
+        goto err;
+    }
     pw_core_add_listener(data->core, &data->core_listener, &core_events, data);
 
     /* Registry */
     data->registry = pw_core_get_registry(data->core, PW_VERSION_REGISTRY, 0);
-    assert(data->registry);
+    if (data->registry == NULL) {
+        LOG_ERR("failed to get core registry");
+        goto err;
+    }
     pw_registry_add_listener(data->registry, &data->registry_listener, &registry_events, data);
 
     /* Sync */
@@ -767,11 +779,26 @@ pipewire_init(struct module *module)
     data->node_data_source.is_sink = false;
 
     return data;
+
+err:
+    if (data->registry != NULL)
+        pw_proxy_destroy((struct pw_proxy *)data->registry);
+    if (data->core != NULL)
+        pw_core_disconnect(data->core);
+    if (data->context != NULL)
+        pw_context_destroy(data->context);
+    if (data->loop != NULL)
+        pw_main_loop_destroy(data->loop);
+    free(data);
+    return NULL;
 }
 
 static void
 pipewire_deinit(struct data *data)
 {
+    if (data == NULL)
+        return;
+
     struct node *node = NULL;
     spa_list_consume(node, &data->node_list, link) node_free(node, data);
 
@@ -828,6 +855,9 @@ content(struct module *module)
 {
     struct private *private = module->private;
 
+    if (private->data == NULL)
+        return dynlist_exposable_new(NULL, 0, 0, 0);
+
     mtx_lock(&module->lock);
 
     struct exposable *exposables[2];
@@ -837,7 +867,9 @@ content(struct module *module)
 
     /* sink */
     output_informations
-        = (private->data->target_sink == NULL ? &output_informations_null : &private->sink_informations);
+        = (private->data->target_sink == NULL
+           ? &output_informations_null
+           : &private->sink_informations);
 
     struct tag_set sink_tag_set = (struct tag_set){
         .tags = (struct tag *[]){
@@ -856,7 +888,9 @@ content(struct module *module)
 
     /* source */
     output_informations
-        = (private->data->target_source == NULL ? &output_informations_null : &private->source_informations);
+        = (private->data->target_source == NULL
+           ? &output_informations_null
+           : &private->source_informations);
 
     struct tag_set source_tag_set = (struct tag_set){
         .tags = (struct tag *[]){
@@ -888,6 +922,9 @@ static int
 run(struct module *module)
 {
     struct private *private = module->private;
+    if (private->data == NULL)
+        return 1;
+
     struct pw_loop *pw_loop = pw_main_loop_get_loop(private->data->loop);
     struct pollfd pollfds[] = {
         /* abort_fd */
