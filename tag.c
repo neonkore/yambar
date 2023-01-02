@@ -591,14 +591,28 @@ tags_expand_template(const char *template, const struct tag_set *tags)
         case VALUE_VALUE:
             switch (format) {
             case FMT_DEFAULT: {
-                if (tag->type(tag) == TAG_TYPE_FLOAT){
+                switch (tag->type(tag)) {
+                case TAG_TYPE_FLOAT: {
                     const char* fmt = zero_pad ? "%0*.*f" : "%*.*f";
                     char str[24];
                     snprintf(str, sizeof(str), fmt, digits, decimals, tag->as_float(tag));
                     sbuf_append(&formatted, str);
-                } else {
-                    sbuf_append(&formatted, tag->as_string(tag));
+                    break;
                 }
+
+                case TAG_TYPE_INT: {
+                    const char* fmt = zero_pad ? "%0*ld" : "%*ld";
+                    char str[24];
+                    snprintf(str, sizeof(str), fmt, digits, tag->as_int(tag));
+                    sbuf_append(&formatted, str);
+                    break;
+                }
+
+                default:
+                    sbuf_append(&formatted, tag->as_string(tag));
+                    break;
+                }
+
                 break;
             }
 
