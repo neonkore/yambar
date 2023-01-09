@@ -478,8 +478,8 @@ node_events_param(void *userdata, __attribute__((unused)) int seq, __attribute__
                 total += values[i];
 
             float base_volume = total / n_values;
-            output_informations->linear_volume = ceilf(base_volume * 100);
-            output_informations->cubic_volume = ceilf(cbrtf(base_volume) * 100);
+            output_informations->linear_volume = roundf(base_volume * 100);
+            output_informations->cubic_volume = roundf(cbrtf(base_volume) * 100);
         }
     }
 
