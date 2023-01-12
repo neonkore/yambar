@@ -54,14 +54,16 @@ once for all 32 river tags. This means you probably want to use a
 :< *Description*
 |  seat
 :  string
-:  The name of the seat (*title* particle only, see CONFIGURATION)
+:  The name of the seat.
 |  title
 :  string
-:  The seat's focused view's title (*title* particle only, see CONFIGURATION)
+:  The seat's focused view's title.
 |  mode
 :  string
-:  The seat's current mode (entered with e.g. *riverctl enter-mode foobar*)
-
+:  The seat's current mode (entered with e.g. *riverctl enter-mode foobar*).
+|  layout
+:  string
+:  Current layout of the output currently focused by the seat.
 
 # CONFIGURATION
 
@@ -90,7 +92,7 @@ once for all 32 river tags. This means you probably want to use a
 bar:
   left:
     - river:
-        title: {string: { text: "{seat} - {title} ({mode})" }}
+        title: {string: { text: "{seat} - {title} ({layout}/{mode})" }}
         content:
           map:
             conditions:

@@ -32,6 +32,9 @@ struct output {
     uint32_t occupied;
     uint32_t focused;
     uint32_t urgent;
+
+    /* Layout */
+    char *layout;
 };
 
 struct seat {
@@ -154,14 +157,19 @@ content(struct module *mod)
         size_t i = 32;
         tll_foreach(m->seats, it) {
             const struct seat *seat = &it->item;
+            const char *layout =
+                seat->output != NULL && seat->output->layout != NULL
+                ? seat->output->layout
+                : "";
 
             struct tag_set tags = {
                 .tags = (struct tag *[]){
                     tag_new_string(mod, "seat", seat->name),
                     tag_new_string(mod, "title", seat->title),
                     tag_new_string(mod, "mode", seat->mode),
+                    tag_new_string(mod, "layout", layout),
                 },
-                .count = 3,
+                .count = 4,
             };
 
             tag_parts[i++] = m->title->instantiate(m->title, &tags);
@@ -193,6 +201,7 @@ output_destroy(struct output *output)
             seat->output = NULL;
     }
     free(output->name);
+    free(output->layout);
     if (output->status != NULL)
         zriver_output_status_v1_destroy(output->status);
     if (output->xdg_output != NULL)
@@ -270,11 +279,53 @@ urgent_tags(void *data, struct zriver_output_status_v1 *zriver_output_status_v1,
     mod->bar->refresh(mod->bar);
 }
 
+#if defined(ZRIVER_OUTPUT_STATUS_V1_LAYOUT_NAME_SINCE_VERSION)
+static void
+layout_name(void *data,
+            struct zriver_output_status_v1 *zriver_output_status_v1,
+            const char *name)
+{
+    struct output *output = data;
+    struct module *mod = output->m->mod;
+
+    mtx_lock(&mod->lock);
+    {
+        free(output->layout);
+        output->layout = name != NULL ? strdup(name) : NULL;
+    }
+    mtx_unlock(&mod->lock);
+    mod->bar->refresh(mod->bar);
+}
+#endif
+
+#if defined(ZRIVER_OUTPUT_STATUS_V1_LAYOUT_NAME_CLEAR_SINCE_VERSION)
+static void
+layout_name_clear(void *data,
+				  struct zriver_output_status_v1 *zriver_output_status_v1)
+{
+    struct output *output = data;
+    struct module *mod = output->m->mod;
+
+    mtx_lock(&mod->lock);
+    {
+        free(output->layout);
+        output->layout = NULL;
+    }
+    mtx_unlock(&mod->lock);
+    mod->bar->refresh(mod->bar);
+}
+#endif
 
 static const struct zriver_output_status_v1_listener river_status_output_listener = {
     .focused_tags = &focused_tags,
     .view_tags = &view_tags,
     .urgent_tags = &urgent_tags,
+#if defined(ZRIVER_OUTPUT_STATUS_V1_LAYOUT_NAME_SINCE_VERSION)
+    .layout_name = &layout_name,
+#endif
+#if defined(ZRIVER_OUTPUT_STATUS_V1_LAYOUT_NAME_CLEAR_SINCE_VERSION)
+    .layout_name_clear = &layout_name_clear,
+#endif
 };
 
 static void
@@ -599,7 +650,7 @@ handle_global(void *data, struct wl_registry *registry,
             return;
 
         m->status_manager = wl_registry_bind(
-            registry, name, &zriver_status_manager_v1_interface, min(version, 3));
+            registry, name, &zriver_status_manager_v1_interface, min(version, 4));
 
         mtx_lock(&m->mod->lock);
         tll_foreach(m->outputs, it)

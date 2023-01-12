@@ -13,7 +13,8 @@
 ## Unreleased
 ### Added
 
-* field width tag format option ([#246][246])
+* Field width tag format option ([#246][246])
+* river: support for ‘layout’ events.
 
 [246]: https://codeberg.org/dnkl/yambar/issues/246
 
