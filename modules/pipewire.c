@@ -35,8 +35,8 @@ struct output_informations {
 
     /* informations */
     bool muted;
-    uint8_t linear_volume; /* classic volume */
-    uint8_t cubic_volume;  /* volume a la pulseaudio */
+    uint16_t linear_volume; /* classic volume */
+    uint16_t cubic_volume;  /* volume a la pulseaudio */
     char *name;
     char *description;
     char *form_factor; /* headset, headphone, speaker, ..., can be null */
