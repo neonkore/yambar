@@ -18,6 +18,7 @@
 
 struct dwl_tag {
     int id;
+    char *name;
     bool selected;
     bool empty;
     bool urgent;
@@ -52,12 +53,19 @@ enum LINE_MODE {
 };
 
 static void
+free_dwl_tag(struct dwl_tag *tag)
+{
+    free(tag->name);
+    free(tag);
+}
+
+static void
 destroy(struct module *module)
 {
     struct private *private = module->private;
     private->label->destroy(private->label);
 
-    tll_free_and_free(private->tags, free);
+    tll_free_and_free(private->tags, free_dwl_tag);
     free(private->dwl_info_filename);
     free(private->title);
     free(private->layout);
@@ -91,11 +99,12 @@ content(struct module *module)
                 tag_new_bool(module, "selmon", private->selmon),
                 tag_new_string(module, "layout", private->layout),
                 tag_new_int(module, "id", it->item->id),
+                tag_new_string(module, "name", it->item->name),
                 tag_new_bool(module, "selected", it->item->selected),
                 tag_new_bool(module, "empty", it->item->empty),
                 tag_new_bool(module, "urgent", it->item->urgent),
             },
-            .count = 9,
+            .count = 10,
         };
         exposable[i++] = private->label->instantiate(private->label, &tags);
         tag_set_destroy(&tags);
@@ -110,11 +119,12 @@ content(struct module *module)
             tag_new_bool(module, "selmon", private->selmon),
             tag_new_string(module, "layout", private->layout),
             tag_new_int(module, "id", 0),
+            tag_new_string(module, "name", "0"),
             tag_new_bool(module, "selected", false),
             tag_new_bool(module, "empty", true),
             tag_new_bool(module, "urgent", false),
         },
-        .count = 9,
+        .count = 10,
     };
     exposable[i++] = private->label->instantiate(private->label, &tags);
     tag_set_destroy(&tags);
@@ -124,7 +134,7 @@ content(struct module *module)
 }
 
 static struct dwl_tag *
-dwl_tag_find_or_create(struct private *private, uint32_t id)
+dwl_tag_from_id(struct private *private, uint32_t id)
 {
     tll_foreach(private->tags, it)
     {
@@ -132,11 +142,8 @@ dwl_tag_find_or_create(struct private *private, uint32_t id)
             return it->item;
     }
 
-    /* No need to order the tag, `print_status` from dwl already orders tags */
-    struct dwl_tag *dwl_tag = calloc(1, sizeof(struct dwl_tag));
-    dwl_tag->id = id;
-    tll_push_back(private->tags, dwl_tag);
-    return dwl_tag;
+    assert(false); /* unreachable */
+    return NULL;
 }
 
 static void
@@ -219,7 +226,7 @@ process_line(char *line, struct module *module)
                     for (size_t id = 1; id <= private->number_of_tags; ++id) {
                         uint32_t mask = 1 << (id - 1);
 
-                        struct dwl_tag *dwl_tag = dwl_tag_find_or_create(private, id);
+                        struct dwl_tag *dwl_tag = dwl_tag_from_id(private, id);
                         dwl_tag->selected = mask & selected;
                         dwl_tag->empty = !(mask & occupied);
                         dwl_tag->urgent = mask & urgent;
@@ -420,12 +427,29 @@ run(struct module *module)
 }
 
 static struct module *
-dwl_new(struct particle *label, int number_of_tags, char const *dwl_info_filename)
+dwl_new(struct particle *label, int number_of_tags,
+        struct yml_node const *name_of_tags, char const *dwl_info_filename)
 {
     struct private *private = calloc(1, sizeof(struct private));
     private->label = label;
     private->number_of_tags = number_of_tags;
     private->dwl_info_filename = strdup(dwl_info_filename);
+
+    struct yml_list_iter list = {0};
+    if (name_of_tags)
+        list = yml_list_iter(name_of_tags);
+
+    for (int i = 1; i <= number_of_tags; i++) {
+        struct dwl_tag *dwl_tag = calloc(1, sizeof(struct dwl_tag));
+        dwl_tag->id = i;
+        if (list.node) {
+            dwl_tag->name = strdup(yml_value_as_string(list.node));
+            yml_list_next(&list);
+        } else if (asprintf(&dwl_tag->name, "%d", i) < 0) {
+            LOG_ERRNO("asprintf");
+        }
+        tll_push_back(private->tags, dwl_tag);
+    }
 
     struct module *module = module_common_new();
     module->private = private;
@@ -442,10 +466,21 @@ from_conf(struct yml_node const *node, struct conf_inherit inherited)
 {
     struct yml_node const *content = yml_get_value(node, "content");
     struct yml_node const *number_of_tags = yml_get_value(node, "number-of-tags");
+    struct yml_node const *name_of_tags = yml_get_value(node, "name-of-tags");
     struct yml_node const *dwl_info_filename = yml_get_value(node, "dwl-info-filename");
 
     return dwl_new(conf_to_particle(content, inherited), yml_value_as_int(number_of_tags),
-                   yml_value_as_string(dwl_info_filename));
+                   name_of_tags, yml_value_as_string(dwl_info_filename));
+}
+
+static bool
+verify_names(keychain_t *keychain, const struct yml_node *node)
+{
+    if (!yml_is_list(node)) {
+        LOG_ERR("%s: %s is not a list", conf_err_prefix(keychain, node), yml_value_as_string(node));
+        return false;
+    }
+    return conf_verify_list(keychain, node, &conf_verify_string);
 }
 
 static bool
@@ -454,6 +489,7 @@ verify_conf(keychain_t *keychain, struct yml_node const *node)
 
     static struct attr_info const attrs[] = {
         {"number-of-tags", true, &conf_verify_unsigned},
+        {"name-of-tags", false, &verify_names},
         {"dwl-info-filename", true, &conf_verify_string},
         MODULE_COMMON_ATTRS,
     };
@@ -463,10 +499,19 @@ verify_conf(keychain_t *keychain, struct yml_node const *node)
 
     /* No need to check whether is `number_of_tags` is a int
      * because `conf_verify_unsigned` already did it */
-    struct yml_node const *key = yml_get_key(node, "number-of-tags");
+    struct yml_node const *ntags_key = yml_get_key(node, "number-of-tags");
     struct yml_node const *value = yml_get_value(node, "number-of-tags");
-    if (yml_value_as_int(value) == 0) {
-        LOG_ERR("%s: %s must not be 0", conf_err_prefix(keychain, key), yml_value_as_string(key));
+    int number_of_tags = yml_value_as_int(value);
+    if (number_of_tags == 0) {
+        LOG_ERR("%s: %s must not be 0", conf_err_prefix(keychain, ntags_key), yml_value_as_string(ntags_key));
+        return false;
+    }
+
+    struct yml_node const *key = yml_get_key(node, "name-of-tags");
+    value = yml_get_value(node, "name-of-tags");
+    if (value && yml_list_length(value) != number_of_tags) {
+        LOG_ERR("%s: %s must have the same number of elements that %s", conf_err_prefix(keychain, key),
+                yml_value_as_string(key), yml_value_as_string(ntags_key));
         return false;
     }
 

@@ -7,7 +7,7 @@ dwl - This module provides information about dwl tags, and information.
 
 This module provides a map of each tags present in dwl.
 
-Each tags has its _id_, its status (_selected_, _empty_, _urgent_)
+Each tags has its _id_, its _name_, its status (_selected_, _empty_, _urgent_)
 and the global data like _title_, _fullscreen_, _floating_,
 _selmon_, and _layout_). The tags start a 1. For needs where
 you only want information about the global data and not the _tags_,
@@ -29,6 +29,9 @@ Running multiple instances at the same time may result in
 |  id
 :  int
 :  Dwl tag id.
+|  name
+:  string
+:  The name of the tag (defaults to _id_ if not set).
 |  selected
 :  bool
 :  True if the tag is currently selected.
@@ -64,6 +67,10 @@ Running multiple instances at the same time may result in
 :  int
 :  yes
 :  The number of defined tags in the dwl `config.def.h`.
+|  name-of-tags
+:  list
+:  false
+:  The name of the tags (must have the same length that _number-of-tags_).
 |  dwl-info-filename
 :  string
 :  yes
@@ -77,16 +84,18 @@ bar:
     - dwl:
         number-of-tags: 9
         dwl-info-filename: "/home/ogromny/dwl_info"
+        name-of-tags: [ , , , , , , , ,  ]
         content:
           list:
             items:
               - map:
                   conditions:
-                    selected: {string: {text: "-> {id}"}}
-                    ~empty: {string: {text: "{id}"}}
-                    urgent: {string: {text: "=> {id} <="}}
                     # default tag
                     id == 0: {string: {text: "{layout} {title}"}}
+
+                    selected: {string: {text: "-> {name}"}}
+                    ~empty: {string: {text: "{name}"}}
+                    urgent: {string: {text: "=> {name} <="}}
 ```
 
 # SEE ALSO

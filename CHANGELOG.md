@@ -15,8 +15,10 @@
 
 * Field width tag format option ([#246][246])
 * river: support for ‘layout’ events.
+* dwl: support for specifying name of tags ([#256][256])
 
 [246]: https://codeberg.org/dnkl/yambar/issues/246
+[256]: https://codeberg.org/dnkl/yambar/pulls/256
 
 
 ### Changed
