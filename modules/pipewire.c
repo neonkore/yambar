@@ -35,8 +35,8 @@ struct output_informations {
 
     /* informations */
     bool muted;
-    uint8_t linear_volume; /* classic volume */
-    uint8_t cubic_volume;  /* volume a la pulseaudio */
+    uint16_t linear_volume; /* classic volume */
+    uint16_t cubic_volume;  /* volume a la pulseaudio */
     char *name;
     char *description;
     char *form_factor; /* headset, headphone, speaker, ..., can be null */
@@ -478,8 +478,8 @@ node_events_param(void *userdata, __attribute__((unused)) int seq, __attribute__
                 total += values[i];
 
             float base_volume = total / n_values;
-            output_informations->linear_volume = ceilf(base_volume * 100);
-            output_informations->cubic_volume = ceilf(cbrtf(base_volume) * 100);
+            output_informations->linear_volume = roundf(base_volume * 100);
+            output_informations->cubic_volume = roundf(cbrtf(base_volume) * 100);
         }
     }
 
