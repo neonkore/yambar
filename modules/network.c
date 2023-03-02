@@ -150,7 +150,8 @@ content(struct module *mod)
         if (it->item.family == AF_INET)
             inet_ntop(AF_INET, &it->item.addr.ipv4, ipv4_str, sizeof(ipv4_str));
         else if (it->item.family == AF_INET6)
-            inet_ntop(AF_INET6, &it->item.addr.ipv6, ipv6_str, sizeof(ipv6_str));
+            if(!IN6_IS_ADDR_LINKLOCAL(&it->item.addr.ipv6))
+                inet_ntop(AF_INET6, &it->item.addr.ipv6, ipv6_str, sizeof(ipv6_str));
     }
 
     struct tag_set tags = {
