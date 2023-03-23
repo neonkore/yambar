@@ -17,9 +17,11 @@
 * river: support for ‘layout’ events.
 * dwl: support for specifying name of tags ([#256][256])
 * i3/sway: extend option `sort`; use `native` to sort numbered workspaces only.
+* modules/dwl: handle the appid status ([#284][284])
 
 [246]: https://codeberg.org/dnkl/yambar/issues/246
 [256]: https://codeberg.org/dnkl/yambar/pulls/256
+[284]: https://codeberg.org/dnkl/yambar/pulls/284
 
 
 ### Changed

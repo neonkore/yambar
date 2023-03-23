@@ -35,6 +35,7 @@ struct private
 
     /* dwl data */
     char *title;
+    char *appid;
     bool fullscreen;
     bool floating;
     bool selmon;
@@ -45,6 +46,7 @@ struct private
 enum LINE_MODE {
     LINE_MODE_0,
     LINE_MODE_TITLE,
+    LINE_MODE_APPID,
     LINE_MODE_FULLSCREEN,
     LINE_MODE_FLOATING,
     LINE_MODE_SELMON,
@@ -94,6 +96,7 @@ content(struct module *module)
         struct tag_set tags = {
             .tags = (struct tag*[]){
                 tag_new_string(module, "title", private->title),
+                tag_new_string(module, "appid", private->appid),
                 tag_new_bool(module, "fullscreen", private->fullscreen),
                 tag_new_bool(module, "floating", private->floating),
                 tag_new_bool(module, "selmon", private->selmon),
@@ -104,7 +107,7 @@ content(struct module *module)
                 tag_new_bool(module, "empty", it->item->empty),
                 tag_new_bool(module, "urgent", it->item->urgent),
             },
-            .count = 10,
+            .count = 11,
         };
         exposable[i++] = private->label->instantiate(private->label, &tags);
         tag_set_destroy(&tags);
@@ -114,6 +117,7 @@ content(struct module *module)
     struct tag_set tags = {
         .tags = (struct tag*[]){
             tag_new_string(module, "title", private->title),
+            tag_new_string(module, "appid", private->appid),
             tag_new_bool(module, "fullscreen", private->fullscreen),
             tag_new_bool(module, "floating", private->floating),
             tag_new_bool(module, "selmon", private->selmon),
@@ -124,7 +128,7 @@ content(struct module *module)
             tag_new_bool(module, "empty", true),
             tag_new_bool(module, "urgent", false),
         },
-        .count = 10,
+        .count = 11,
     };
     exposable[i++] = private->label->instantiate(private->label, &tags);
     tag_set_destroy(&tags);
@@ -183,6 +187,12 @@ process_line(char *line, struct module *module)
                 free(private->title);
                 private->title = strdup(save_pointer);
                 break;
+            } else if (strcmp(string, "appid") == 0) {
+                line_mode = LINE_MODE_APPID;
+                /* Update the appid here, same as the title. */
+                free(private->appid);
+                private->appid = strdup(save_pointer);
+                break;
             } else if (strcmp(string, "fullscreen") == 0)
                 line_mode = LINE_MODE_FULLSCREEN;
             else if (strcmp(string, "floating") == 0)
@@ -235,6 +245,7 @@ process_line(char *line, struct module *module)
             } else
                 switch (line_mode) {
                 case LINE_MODE_TITLE:
+                case LINE_MODE_APPID:
                     assert(false); /* unreachable */
                     break;
                 case LINE_MODE_FULLSCREEN:
