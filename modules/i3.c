@@ -21,7 +21,7 @@
 #include "i3-ipc.h"
 #include "i3-common.h"
 
-enum sort_mode {SORT_NONE, SORT_ASCENDING, SORT_DESCENDING};
+enum sort_mode {SORT_NONE, SORT_NATIVE, SORT_ASCENDING, SORT_DESCENDING};
 
 struct ws_content {
     char *name;
@@ -182,6 +182,21 @@ workspace_add(struct private *m, struct workspace ws)
 {
     switch (m->sort_mode) {
     case SORT_NONE:
+        tll_push_back(m->workspaces, ws);
+        return;
+
+    case SORT_NATIVE:
+        if (ws.name_as_int >= 0) {
+            tll_foreach(m->workspaces, it) {
+                if (it->item.name_as_int < 0)
+                    continue;
+                if (it->item.name_as_int > ws.name_as_int) {
+                    tll_insert_before(m->workspaces, it, ws);
+                    return;
+                }
+            }
+        };
+
         tll_push_back(m->workspaces, ws);
         return;
 
@@ -974,6 +989,7 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
     enum sort_mode sort_mode =
         sort_value == NULL ? SORT_NONE :
         strcmp(sort_value, "none") == 0 ? SORT_NONE :
+        strcmp(sort_value, "native") == 0 ? SORT_NATIVE :
         strcmp(sort_value, "ascending") == 0 ? SORT_ASCENDING : SORT_DESCENDING;
 
     const size_t persistent_count =
@@ -1041,7 +1057,7 @@ static bool
 verify_sort(keychain_t *chain, const struct yml_node *node)
 {
     return conf_verify_enum(
-        chain, node, (const char *[]){"none", "ascending", "descending"}, 3);
+        chain, node, (const char *[]){"none", "native", "ascending", "descending"}, 4);
 }
 
 static bool
