@@ -67,7 +67,7 @@ with the _application_ and _title_ tags to replace the X11-only
 |  sort
 :  enum
 :  no
-:  How to sort the list of workspaces; one of _none_, _ascending_ or _descending_, defaults to _none_.
+:  How to sort the list of workspaces; one of _none_, _native_, _ascending_ or _descending_, defaults to _none_. Use _native_ to sort numbered workspaces only.
 |  strip-workspace-numbers
 :  bool
 :  no
