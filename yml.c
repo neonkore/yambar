@@ -237,12 +237,15 @@ post_process(struct yml_node *node, char **error)
                             .key = vv_it->item.key,
                             .value = vv_it->item.value,
                         };
-                        /* TODO: handle this. Is it an error? Or
-                         * should we replace the existing key/value
-                         * pair */
-                        assert(!dict_has_key(node, vv_it->item.key));
 
-                        tll_push_back(node->dict.pairs, p);
+                        if (dict_has_key(node, vv_it->item.key)) {
+                            /* Prefer value in target dictionary, over the
+                             * value from the anchor */
+                            yml_destroy(vv_it->item.key);
+                            yml_destroy(vv_it->item.value);
+                        } else {
+                            tll_push_back(node->dict.pairs, p);
+                        }
                     }
 
                     /* Destroy list, but don't free (since its nodes
@@ -274,11 +277,14 @@ post_process(struct yml_node *node, char **error)
                         .value = v_it->item.value,
                     };
 
-                    /* TODO: handle this. Is it an error? Or should we
-                     * replace the existing key/value pair */
-                    assert(!dict_has_key(node, v_it->item.key));
-
-                    tll_push_back(node->dict.pairs, p);
+                    if (dict_has_key(node, v_it->item.key)) {
+                        /* Prefer value in target dictionary, over the
+                         * value from the anchor */
+                        yml_destroy(v_it->item.key);
+                        yml_destroy(v_it->item.value);
+                    } else {
+                        tll_push_back(node->dict.pairs, p);
+                    }
                 }
 
                 /* Destroy list here, *without* freeing nodes (since

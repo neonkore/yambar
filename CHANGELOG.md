@@ -50,12 +50,15 @@
 * i3/sway: regression; persistent workspaces shown twice
   ([#253][253]).
 * pipewire: use roundf instead of ceilf for more accuracy ([#262][262])
+* Crash when a yaml anchor has a value to already exists in the target
+  yaml node ([#286][286]).
 
 [239]: https://codeberg.org/dnkl/yambar/issues/239
 [241]: https://codeberg.org/dnkl/yambar/issues/241
 [251]: https://codeberg.org/dnkl/yambar/pulls/251
 [253]: https://codeberg.org/dnkl/yambar/issues/253
 [262]: https://codeberg.org/dnkl/yambar/issues/262
+[286]: https://codeberg.org/dnkl/yambar/issues/286
 
 
 ### Security
