@@ -118,12 +118,20 @@ eval_comparison(const struct map_condition* map_cond, const struct tag_set *tags
 static bool
 eval_map_condition(const struct map_condition* map_cond, const struct tag_set *tags)
 {
-    switch(map_cond->op)
-    {
-    case MAP_OP_NOT: return !eval_map_condition(map_cond->cond1, tags);
-    case MAP_OP_AND: return eval_map_condition(map_cond->cond1, tags) && eval_map_condition(map_cond->cond2, tags);
-    case MAP_OP_OR: return eval_map_condition(map_cond->cond1, tags) || eval_map_condition(map_cond->cond2, tags);
-    default: return eval_comparison(map_cond, tags);
+    switch(map_cond->op) {
+    case MAP_OP_NOT:
+        return !eval_map_condition(map_cond->cond1, tags);
+
+    case MAP_OP_AND:
+        return eval_map_condition(map_cond->cond1, tags) &&
+            eval_map_condition(map_cond->cond2, tags);
+
+    case MAP_OP_OR:
+        return eval_map_condition(map_cond->cond1, tags) ||
+            eval_map_condition(map_cond->cond2, tags);
+
+    default:
+        return eval_comparison(map_cond, tags);
     }
 }
 
