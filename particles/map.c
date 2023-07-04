@@ -13,7 +13,7 @@
 
 #include "map.h"
 
-bool
+static bool
 int_condition(const long tag_value, const long cond_value, enum map_op op)
 {
     switch (op) {
@@ -28,7 +28,7 @@ int_condition(const long tag_value, const long cond_value, enum map_op op)
     }
 }
 
-bool
+static bool
 float_condition(const double tag_value, const double cond_value, enum map_op op)
 {
     switch (op) {
@@ -43,7 +43,7 @@ float_condition(const double tag_value, const double cond_value, enum map_op op)
     }
 }
 
-bool
+static bool
 str_condition(const char* tag_value, const char* cond_value, enum map_op op)
 {
     switch (op) {
@@ -58,7 +58,7 @@ str_condition(const char* tag_value, const char* cond_value, enum map_op op)
     }
 }
 
-bool
+static bool
 eval_comparison(const struct map_condition* map_cond, const struct tag_set *tags)
 {
     const struct tag *tag = tag_for_name(tags, map_cond->tag);
@@ -115,7 +115,7 @@ eval_comparison(const struct map_condition* map_cond, const struct tag_set *tags
     return false;
 }
 
-bool
+static bool
 eval_map_condition(const struct map_condition* map_cond, const struct tag_set *tags)
 {
     switch(map_cond->op)
