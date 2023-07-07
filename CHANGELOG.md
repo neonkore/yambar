@@ -18,6 +18,7 @@
 * dwl: support for specifying name of tags ([#256][256])
 * i3/sway: extend option `sort`; use `native` to sort numbered workspaces only.
 * modules/dwl: handle the appid status ([#284][284])
+* battery: also show estimation for time to full ([#303][303]).
 
 [246]: https://codeberg.org/dnkl/yambar/issues/246
 [256]: https://codeberg.org/dnkl/yambar/pulls/256

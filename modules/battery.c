@@ -44,6 +44,7 @@ struct private {
     long charge;
     long current;
     long time_to_empty;
+    long time_to_full;
 };
 
 static void
@@ -85,8 +86,12 @@ content(struct module *mod)
     unsigned long hours;
     unsigned long minutes;
 
-    if (m->time_to_empty >= 0) {
+    if (m->time_to_empty > 0) {
         minutes = m->time_to_empty / 60;
+        hours = minutes / 60;
+        minutes = minutes % 60;
+    } else if (m->time_to_full > 0) {
+        minutes = m->time_to_full / 60;
         hours = minutes / 60;
         minutes = minutes % 60;
     } else if  (m->energy_full >= 0 && m->charge && m->power >= 0) {
@@ -332,6 +337,7 @@ update_status(struct module *mod)
     int charge_fd = openat(base_dir_fd, "charge_now", O_RDONLY);
     int current_fd = openat(base_dir_fd, "current_now", O_RDONLY);
     int time_to_empty_fd = openat(base_dir_fd, "time_to_empty_now", O_RDONLY);
+    int time_to_full_fd = openat(base_dir_fd, "time_to_full_now", O_RDONLY);
 
     long capacity = readint_from_fd(capacity_fd);
     long energy = energy_fd >= 0 ? readint_from_fd(energy_fd) : -1;
@@ -339,6 +345,7 @@ update_status(struct module *mod)
     long charge = charge_fd >= 0 ? readint_from_fd(charge_fd) : -1;
     long current = current_fd >= 0 ? readint_from_fd(current_fd) : -1;
     long time_to_empty = time_to_empty_fd >= 0 ? readint_from_fd(time_to_empty_fd) : -1;
+    long time_to_full = time_to_full_fd >= 0 ? readint_from_fd(time_to_full_fd) : -1;
 
     char buf[512];
     const char *status = readline_from_fd(status_fd, sizeof(buf), buf);
@@ -357,6 +364,8 @@ update_status(struct module *mod)
         close(current_fd);
     if (time_to_empty_fd >= 0)
         close(time_to_empty_fd);
+    if (time_to_full_fd >= 0)
+        close(time_to_full_fd);
     if (base_dir_fd >= 0)
         close(base_dir_fd);
 
@@ -381,8 +390,8 @@ update_status(struct module *mod)
     }
 
     LOG_DBG("capacity: %ld, energy: %ld, power: %ld, charge=%ld, current=%ld, "
-            "time-to-empty: %ld", capacity, energy, power, charge, current,
-            time_to_empty);
+            "time-to-empty: %ld, time-to-full: %ld", capacity, energy, power,
+            charge, current, time_to_empty, time_to_full);
 
     mtx_lock(&mod->lock);
     m->state = state;
@@ -392,6 +401,7 @@ update_status(struct module *mod)
     m->charge = charge;
     m->current = current;
     m->time_to_empty = time_to_empty;
+    m->time_to_full = time_to_full;
     mtx_unlock(&mod->lock);
     return true;
 }
