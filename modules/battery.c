@@ -86,8 +86,9 @@ content(struct module *mod)
     unsigned long minutes;
 
     if (m->time_to_empty >= 0) {
-        hours = m->time_to_empty / 60;
-        minutes = m->time_to_empty % 60;
+        minutes = m->time_to_empty / 60;
+        hours = minutes / 60;
+        minutes = minutes % 60;
     } else if  (m->energy_full >= 0 && m->charge && m->power >= 0) {
         unsigned long energy = m->state == STATE_CHARGING
             ? m->energy_full - m->energy : m->energy;

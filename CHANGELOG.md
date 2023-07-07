@@ -52,6 +52,7 @@
 * pipewire: use roundf instead of ceilf for more accuracy ([#262][262])
 * Crash when a yaml anchor has a value to already exists in the target
   yaml node ([#286][286]).
+* battery: Fix time conversion in battery estimation ([#303][303]).
 
 [239]: https://codeberg.org/dnkl/yambar/issues/239
 [241]: https://codeberg.org/dnkl/yambar/issues/241
