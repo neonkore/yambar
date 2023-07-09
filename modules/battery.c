@@ -501,7 +501,8 @@ run(struct module *mod)
                 if (!udev_for_us) {
                     LOG_DBG("udev notification not for us (%s != %s)",
                             m->battery, sysname != sysname ? sysname : "NULL");
-                }
+                } else
+                    LOG_DBG("triggering update due to udev notification");
 
                 udev_device_unref(dev);
             }
