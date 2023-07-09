@@ -586,7 +586,9 @@ conf_verify_poll_interval(keychain_t *chain, const struct yml_node *node)
     if (!conf_verify_unsigned(chain, node))
         return false;
 
-    if (yml_value_as_int(node) < min_poll_interval) {
+    const long value = yml_value_as_int(node);
+
+    if (value != 0 && value < min_poll_interval) {
         LOG_ERR("%s: interval value cannot be less than %ldms",
                 conf_err_prefix(chain, node), min_poll_interval);
         return false;
