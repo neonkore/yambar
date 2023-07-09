@@ -54,6 +54,9 @@
 * Crash when a yaml anchor has a value to already exists in the target
   yaml node ([#286][286]).
 * battery: Fix time conversion in battery estimation ([#303][303]).
+* battery: poll timeout being reset when receiving irrelevant udev
+  notification (leading to battery status never updating, in worst
+  case) ([#305][305]).
 
 [239]: https://codeberg.org/dnkl/yambar/issues/239
 [241]: https://codeberg.org/dnkl/yambar/issues/241
@@ -61,6 +64,7 @@
 [253]: https://codeberg.org/dnkl/yambar/issues/253
 [262]: https://codeberg.org/dnkl/yambar/issues/262
 [286]: https://codeberg.org/dnkl/yambar/issues/286
+[305]: https://codeberg.org/dnkl/yambar/issues/305
 
 
 ### Security

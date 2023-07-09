@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
@@ -13,12 +14,14 @@
 #include <libudev.h>
 
 #define LOG_MODULE "battery"
-#define LOG_ENABLE_DBG 0
+#define LOG_ENABLE_DBG 1
 #include "../log.h"
 #include "../bar/bar.h"
 #include "../config.h"
 #include "../config-verify.h"
 #include "../plugin.h"
+
+#define max(x, y) ((x) > (y) ? (x) : (y))
 
 static const long min_poll_interval = 250;
 static const long default_poll_interval = 60 * 1000;
@@ -46,6 +49,22 @@ struct private {
     long time_to_empty;
     long time_to_full;
 };
+
+static void
+timespec_sub(const struct timespec *a, const struct timespec *b,
+             struct timespec *res)
+{
+    const long one_sec_in_ns = 1000000000;
+
+    res->tv_sec = a->tv_sec - b->tv_sec;
+    res->tv_nsec = a->tv_nsec - b->tv_nsec;
+
+    /* tv_nsec may be negative */
+    if (res->tv_nsec < 0) {
+        res->tv_sec--;
+        res->tv_nsec += one_sec_in_ns;
+    }
+}
 
 static void
 destroy(struct module *mod)
@@ -439,14 +458,25 @@ run(struct module *mod)
 
     bar->refresh(bar);
 
+    int timeout_left_ms = m->poll_interval;
+
     while (true) {
         struct pollfd fds[] = {
             {.fd = mod->abort_fd, .events = POLLIN},
             {.fd = udev_monitor_get_fd(mon), .events = POLLIN},
         };
-        if (poll(fds, sizeof(fds) / sizeof(fds[0]),
-                 m->poll_interval > 0 ? m->poll_interval : -1) < 0)
-        {
+
+        int timeout = m->poll_interval > 0 ? timeout_left_ms : -1;
+
+        struct timespec time_before_poll;
+        if (clock_gettime(CLOCK_BOOTTIME, &time_before_poll) < 0) {
+            LOG_ERRNO("failed to get current time");
+            break;
+        }
+
+        const int poll_ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
+
+        if (poll_ret < 0) {
             if (errno == EINTR)
                 continue;
 
@@ -459,21 +489,53 @@ run(struct module *mod)
             break;
         }
 
+        bool udev_for_us = false;
+
         if (fds[1].revents & POLLIN) {
             struct udev_device *dev = udev_monitor_receive_device(mon);
-            if (dev == NULL)
-                continue;
+            if (dev != NULL) {
+                const char *sysname = udev_device_get_sysname(dev);
+                udev_for_us =
+                    sysname != NULL && strcmp(sysname, m->battery) == 0;
 
-            const char *sysname = udev_device_get_sysname(dev);
-            bool is_us = sysname != NULL && strcmp(sysname, m->battery) == 0;
-            udev_device_unref(dev);
+                if (!udev_for_us) {
+                    LOG_DBG("udev notification not for us (%s != %s)",
+                            m->battery, sysname != sysname ? sysname : "NULL");
+                }
 
-            if (!is_us)
-                continue;
+                udev_device_unref(dev);
+            }
         }
 
-        if (update_status(mod))
-            bar->refresh(bar);
+        if (udev_for_us || poll_ret == 0) {
+            if (update_status(mod))
+                bar->refresh(bar);
+        }
+
+        if (poll_ret == 0 || udev_for_us) {
+            LOG_DBG("resetting timeout-left to %ldms", m->poll_interval);
+            timeout_left_ms = m->poll_interval;
+        } else {
+            struct timespec time_after_poll;
+            if (clock_gettime(CLOCK_BOOTTIME, &time_after_poll) < 0) {
+                LOG_ERRNO("failed to get current time");
+                break;
+            }
+
+            struct timespec timeout_consumed;
+            timespec_sub(&time_after_poll, &time_before_poll, &timeout_consumed);
+
+            const int timeout_consumed_ms =
+                timeout_consumed.tv_sec * 1000 + timeout_consumed.tv_nsec / 1000000;
+
+            LOG_DBG("timeout-left before: %dms, consumed: %dms, updated: %dms",
+                    timeout_left_ms, timeout_consumed_ms,
+                    max(timeout_left_ms - timeout_consumed_ms, 0));
+
+            timeout_left_ms -= timeout_consumed_ms;
+            if (timeout_left_ms < 0)
+                timeout_left_ms = 0;
+        }
     }
 
 out:
