@@ -631,11 +631,11 @@ run(struct module *mod)
 }
 
 static struct module *
-script_new(const char *path, size_t argc, const char *const argv[static argc],
+script_new(char *path, size_t argc, const char *const argv[static argc],
            int poll_interval, struct particle *_content)
 {
     struct private *m = calloc(1, sizeof(*m));
-    m->path = strdup(path);
+    m->path = path;
     m->content = _content;
     m->argc = argc;
     m->argv = malloc(argc * sizeof(m->argv[0]));
@@ -655,7 +655,7 @@ script_new(const char *path, size_t argc, const char *const argv[static argc],
 static struct module *
 from_conf(const struct yml_node *node, struct conf_inherit inherited)
 {
-    const struct yml_node *path = yml_get_value(node, "path");
+    const struct yml_node *path_node = yml_get_value(node, "path");
     const struct yml_node *args = yml_get_value(node, "args");
     const struct yml_node *c = yml_get_value(node, "content");
     const struct yml_node *poll_interval = yml_get_value(node, "poll-interval");
@@ -673,8 +673,26 @@ from_conf(const struct yml_node *node, struct conf_inherit inherited)
         }
     }
 
+    const char *yml_path = yml_value_as_string(path_node);
+    char *path = NULL;
+
+    if (yml_path[0] == '~' && yml_path[1] == '/') {
+        const char *home_dir = getenv("HOME");
+
+        if (home_dir == NULL) {
+            LOG_ERRNO("failed to expand '~");
+            return NULL;
+        }
+
+        if (asprintf(&path, "%s/%s", home_dir, yml_path + 2) < 0) {
+            LOG_ERRNO("failed to expand '~");
+            return NULL;
+        }
+    } else
+        path = strdup(yml_path);
+
     return script_new(
-        yml_value_as_string(path), argc, argv,
+        path, argc, argv,
         poll_interval != NULL ? yml_value_as_int(poll_interval) : 0,
         conf_to_particle(c, inherited));
 }
@@ -686,8 +704,13 @@ conf_verify_path(keychain_t *chain, const struct yml_node *node)
         return false;
 
     const char *path = yml_value_as_string(node);
-    if (strlen(path) < 1 || path[0] != '/') {
-        LOG_ERR("%s: path must be absolute", conf_err_prefix(chain, node));
+
+    const bool is_tilde = path[0] == '~' && path[1] == '/';
+    const bool is_absolute = path[0] == '/';
+
+    if (!is_tilde && !is_absolute) {
+        LOG_ERR("%s: path must either be absolute, or begin with '~/'",
+                conf_err_prefix(chain, node));
         return false;
     }
 

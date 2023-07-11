@@ -70,7 +70,8 @@ User defined.
 |  path
 :  string
 :  yes
-:  Path to script/binary to execute. Must be an absolute path.
+:  Path to script/binary to execute. Must either be an absolute path,
+   or start with *~/*.
 |  args
 :  list of strings
 :  no
