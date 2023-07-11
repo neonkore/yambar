@@ -19,10 +19,12 @@
 * i3/sway: extend option `sort`; use `native` to sort numbered workspaces only.
 * modules/dwl: handle the appid status ([#284][284])
 * battery: also show estimation for time to full ([#303][303]).
+* on-click: tilde expansion ([#307][307])
 
 [246]: https://codeberg.org/dnkl/yambar/issues/246
 [256]: https://codeberg.org/dnkl/yambar/pulls/256
 [284]: https://codeberg.org/dnkl/yambar/pulls/284
+[307]: https://codeberg.org/dnkl/yambar/issues/307
 
 
 ### Changed

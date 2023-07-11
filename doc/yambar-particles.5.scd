@@ -44,10 +44,11 @@ following attributes are supported by all particles:
 |  on-click
 :  associative array/string
 :  no
-:  When set to a string, executes the string as a command when the particle 
-   is left-clicked. Tags can be used. Note that the string is *not* 
-   executed in a shell. The same applies to all attributes associated with
-   it, below.
+:  When set to a string, executes the string as a command when the
+   particle is left-clicked. Tags can be used. Note that the string is
+   *not* executed in a shell. Environment variables are not expanded.
+   *~/* is expanded, but only in the first argument. The same applies
+   to all attributes associated with it, below.
 |  on-click.left
 :  string
 :  no

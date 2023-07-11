@@ -64,7 +64,7 @@ struct exposable {
 };
 
 struct particle *particle_common_new(
-    int left_margin, int right_margin, const char *on_click_templates[],
+    int left_margin, int right_margin, char *on_click_templates[],
     struct fcft_font *font, enum font_shaping font_shaping,
     pixman_color_t foreground, struct deco *deco);
 

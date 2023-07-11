@@ -174,22 +174,47 @@ conf_verify_dict(keychain_t *chain, const struct yml_node *node,
     return true;
 }
 
+static bool
+verify_on_click_path(keychain_t *chain, const struct yml_node *node)
+{
+    if (!conf_verify_string(chain, node))
+        return false;
+
+#if 1
+    /* We allow non-absolute paths in on-click handlers */
+    return true;
+#else
+    const char *path = yml_value_as_string(node);
+
+    const bool is_absolute = path[0] == '/';
+    const bool is_tilde = path[0] == '~' && path[1] == '/';
+
+    if (!is_absolute && !is_tilde) {
+        LOG_ERR("%s: path must be either absolute, or begin with '~/",
+                conf_err_prefix(chain, node));
+        return false;
+    }
+
+    return true;
+#endif
+}
+
 bool
 conf_verify_on_click(keychain_t *chain, const struct yml_node *node)
 {
     /* on-click: <command> */
     const char *s = yml_value_as_string(node);
     if (s != NULL)
-        return true;
+        return verify_on_click_path(chain, node);
 
     static const struct attr_info info[] = {
-        {"left", false, &conf_verify_string},
-        {"middle", false, &conf_verify_string},
-        {"right", false, &conf_verify_string},
-        {"wheel-up", false, &conf_verify_string},
-        {"wheel-down", false, &conf_verify_string},
-        {"previous", false, &conf_verify_string},
-        {"next", false, &conf_verify_string},
+        {"left", false, &verify_on_click_path},
+        {"middle", false, &verify_on_click_path},
+        {"right", false, &verify_on_click_path},
+        {"wheel-up", false, &verify_on_click_path},
+        {"wheel-down", false, &verify_on_click_path},
+        {"previous", false, &verify_on_click_path},
+        {"next", false, &verify_on_click_path},
         {NULL, false, NULL},
     };
 
@@ -306,7 +331,8 @@ conf_verify_particle_dictionary(keychain_t *chain, const struct yml_node *node)
 
     const char *particle_name = yml_value_as_string(particle);
     if (particle_name == NULL) {
-        LOG_ERR("%s: particle name must be a string", conf_err_prefix(chain, particle));
+        LOG_ERR("%s: particle name must be a string",
+                conf_err_prefix(chain, particle));
         return false;
     }
 

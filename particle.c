@@ -30,7 +30,7 @@ particle_default_destroy(struct particle *particle)
 
 struct particle *
 particle_common_new(int left_margin, int right_margin,
-                    const char **on_click_templates,
+                    char **on_click_templates,
                     struct fcft_font *font, enum font_shaping font_shaping,
                     pixman_color_t foreground, struct deco *deco)
 {
@@ -46,7 +46,7 @@ particle_common_new(int left_margin, int right_margin,
         for (size_t i = 0; i < MOUSE_BTN_COUNT; i++) {
             if (on_click_templates[i] != NULL) {
                 p->have_on_click_template = true;
-                p->on_click_templates[i] = strdup(on_click_templates[i]);
+                p->on_click_templates[i] = on_click_templates[i];
             }
         }
     }

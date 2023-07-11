@@ -211,20 +211,47 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
     int right = margin != NULL ? yml_value_as_int(margin) :
         right_margin != NULL ? yml_value_as_int(right_margin) : 0;
 
-    const char *on_click_templates[MOUSE_BTN_COUNT] = {NULL};
+    char *on_click_templates[MOUSE_BTN_COUNT] = {NULL};
     if (on_click != NULL) {
-        const char *legacy = yml_value_as_string(on_click);
+        const char *yml_legacy = yml_value_as_string(on_click);
 
-        if (legacy != NULL)
+        if (yml_legacy != NULL) {
+            char *legacy = NULL;
+
+            if (yml_legacy[0] == '~' && yml_legacy[1] == '/') {
+                const char *home_dir = getenv("HOME");
+
+                if (home_dir != NULL)
+                    asprintf(&legacy, "%s/%s", home_dir, yml_legacy + 2);
+
+                if (legacy == NULL)
+                    legacy = strdup(yml_legacy);
+            } else
+                legacy = strdup(yml_legacy);
+
             on_click_templates[MOUSE_BTN_LEFT] = legacy;
+        }
 
-        if (yml_is_dict(on_click)) {
+        else if (yml_is_dict(on_click)) {
             for (struct yml_dict_iter it = yml_dict_iter(on_click);
                  it.key != NULL;
                  yml_dict_next(&it))
             {
                 const char *key = yml_value_as_string(it.key);
-                const char *template = yml_value_as_string(it.value);
+                const char *yml_template = yml_value_as_string(it.value);
+
+                char *template = NULL;
+
+                if (yml_template[0] == '~' && yml_template[1] == '/') {
+                    const char *home_dir = getenv("HOME");
+
+                    if (home_dir != NULL)
+                        asprintf(&template, "%s/%s", home_dir, yml_template + 2);
+
+                    if (template == NULL)
+                        template = strdup(yml_template);
+                } else
+                    template = strdup(yml_template);
 
                 if (strcmp(key, "left") == 0)
                     on_click_templates[MOUSE_BTN_LEFT] = template;
