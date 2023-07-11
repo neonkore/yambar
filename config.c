@@ -222,7 +222,8 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
                 const char *home_dir = getenv("HOME");
 
                 if (home_dir != NULL)
-                    asprintf(&legacy, "%s/%s", home_dir, yml_legacy + 2);
+                    if (asprintf(&legacy, "%s/%s", home_dir, yml_legacy + 2) < 0)
+                        legacy = NULL;
 
                 if (legacy == NULL)
                     legacy = strdup(yml_legacy);
@@ -246,7 +247,8 @@ conf_to_particle(const struct yml_node *node, struct conf_inherit inherited)
                     const char *home_dir = getenv("HOME");
 
                     if (home_dir != NULL)
-                        asprintf(&template, "%s/%s", home_dir, yml_template + 2);
+                        if (asprintf(&template, "%s/%s", home_dir, yml_template + 2) < 0)
+                            template = NULL;
 
                     if (template == NULL)
                         template = strdup(yml_template);
