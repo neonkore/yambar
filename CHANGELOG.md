@@ -53,9 +53,10 @@
 * dwl module reporting only the last part of the title ([#251][251])
 * i3/sway: regression; persistent workspaces shown twice
   ([#253][253]).
-* pipewire: use roundf instead of ceilf for more accuracy ([#262][262])
-* Crash when a yaml anchor has a value to already exists in the target
-  yaml node ([#286][286]).
+* pipewire: use `roundf()` instead of `ceilf()` for more accuracy
+  ([#262][262])
+* Crash when a yaml anchor has a value that already exists in the
+  target yaml node ([#286][286]).
 * battery: Fix time conversion in battery estimation ([#303][303]).
 * battery: poll timeout being reset when receiving irrelevant udev
   notification (leading to battery status never updating, in worst
