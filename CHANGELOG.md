@@ -1,6 +1,6 @@
 # Changelog
 
-* [Unreleased](#unreleased)
+* [1.10.0](#1-10-0)
 * [1.9.0](#1-9-0)
 * [1.8.0](#1-8-0)
 * [1.7.0](#1-7-0)
@@ -10,7 +10,8 @@
 * [1.5.0](#1-5-0)
 
 
-## Unreleased
+## 1.10.0
+
 ### Added
 
 * Field width tag format option ([#246][246])
@@ -41,8 +42,6 @@
 [281]: https://codeberg.org/dnkl/yambar/pulls/281
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * Build failures for certain combinations of enabled and disabled
@@ -71,10 +70,19 @@
 [305]: https://codeberg.org/dnkl/yambar/issues/305
 
 
-### Security
 ### Contributors
 
 * Leonardo Gibrowski Faé (Horus)
+* Armin Fisslthaler
+* Ben Brown
+* David Bimmler
+* Leonardo Hernández Hernández
+* Ogromny
+* Oleg Hahm
+* Stanislav Ochotnický
+* tiosgz
+* Yutaro Ohno
+
 
 ## 1.9.0
 
