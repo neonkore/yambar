@@ -674,7 +674,7 @@ tags_expand_template(const char *template, const struct tag_set *tags)
             const long max = tag->max(tag);
             long value = kind == VALUE_MIN ? min : max;
 
-            const char *fmt;
+            const char *fmt = NULL;
             switch (format) {
             case FMT_DEFAULT: fmt = zero_pad ? "%0*ld" : "%*ld"; break;
             case FMT_HEX:     fmt = zero_pad ? "%0*lx" : "%*lx"; break;
@@ -703,6 +703,8 @@ tags_expand_template(const char *template, const struct tag_set *tags)
                 break;
             }
             }
+
+            assert(fmt != NULL);
 
             char str[24];
             snprintf(str, sizeof(str), fmt, digits, value);
