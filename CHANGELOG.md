@@ -17,6 +17,12 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Compiler error _‘fmt’ may be used uninitialized_ ([#311][311]).
+
+[311]: https://codeberg.org/dnkl/yambar/issues/311
+
+
 ### Security
 ### Contributors
 
